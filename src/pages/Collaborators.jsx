@@ -8,6 +8,7 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
+import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 
 export default function Collaborators() {
   const { collaborators, addCollaborator, updateCollaborator, deleteCollaborator } = useCollaborators();
@@ -63,9 +64,7 @@ export default function Collaborators() {
         badge={`${collaborators.length} cadastrado(s)`}
         badgeVariant="blue"
       >
-        <button className="btn-primary-mint" onClick={openNew}>
-          <Plus className="w-4 h-4" /> Novo Colaborador
-        </button>
+        <LiquidMetalButton label="Novo Colaborador" width={180} onClick={openNew} />
       </PageHeader>
 
       {collaborators.length === 0 ? (
@@ -74,9 +73,7 @@ export default function Collaborators() {
           title="Nenhum colaborador cadastrado"
           description="Adicione seus tecnicos e profissionais de campo para calcular custos de mobilizacao."
         >
-          <button className="btn-primary-mint" onClick={openNew}>
-            <Plus className="w-4 h-4" /> Adicionar Primeiro Colaborador
-          </button>
+          <LiquidMetalButton label="Adicionar Primeiro Colaborador" width={280} onClick={openNew} />
         </EmptyState>
       ) : (
         <GlassCard padding="p-0">

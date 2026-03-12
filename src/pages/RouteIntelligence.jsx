@@ -20,6 +20,7 @@ import { KpiCard } from '../components/ui/KpiCard';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ChartTooltip } from '../components/charts/ChartTooltip';
+import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 
 export default function RouteIntelligence() {
   const { collaborators } = useCollaborators();
@@ -158,17 +159,15 @@ export default function RouteIntelligence() {
               <button
                 type="button"
                 onClick={() => setApenasDesmob(!apenasDesmob)}
-                className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all duration-200 w-full ${
-                  apenasDesmob
-                    ? 'bg-accent-orange/[0.08] text-accent-orange'
-                    : 'bg-surface text-white/35'
-                }`}
+                className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all duration-200 w-full ${apenasDesmob
+                  ? 'bg-accent-orange/[0.08] text-accent-orange'
+                  : 'bg-surface text-white/35'
+                  }`}
               >
                 <Home className="w-4 h-4" />
                 <span className="text-sm font-medium">Apenas Desmobilização (retorno para casa)</span>
-                <div className={`ml-auto w-10 h-5.5 rounded-full transition-colors duration-200 flex items-center ${
-                  apenasDesmob ? 'bg-accent-orange justify-end' : 'bg-surface-border justify-start'
-                }`}>
+                <div className={`ml-auto w-10 h-5.5 rounded-full transition-colors duration-200 flex items-center ${apenasDesmob ? 'bg-accent-orange justify-end' : 'bg-surface-border justify-start'
+                  }`}>
                   <div className="w-4.5 h-4.5 rounded-full bg-white mx-0.5 shadow-sm" />
                 </div>
               </button>
@@ -279,18 +278,14 @@ export default function RouteIntelligence() {
         )}
 
         {/* Premium CTA Button */}
-        <button type="submit" disabled={loading} className="btn-primary-orange w-full py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl">
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              {progress || 'Analisando rotas...'}
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-5 h-5" /> Buscar Rotas Inteligentes
-            </>
-          )}
-        </button>
+        <div className="flex justify-center w-full mb-2 pt-2">
+          <LiquidMetalButton
+            label={loading ? (progress || 'Analisando rotas...') : "Buscar Rotas Inteligentes"}
+            width={220}
+            disabled={loading}
+            type="submit"
+          />
+        </div>
       </form>
 
       {/* Results */}
@@ -429,12 +424,10 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle }) {
         </div>
 
         {/* Icon */}
-        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${
-          alt.tipo === 'Onibus' ? 'bg-accent-amber/10' : alt.tipo === 'Aereo' ? 'bg-accent-blue/10' : 'bg-accent-purple/10'
-        }`}>
-          <TypeIcon className={`w-5 h-5 ${
-            alt.tipo === 'Onibus' ? 'text-accent-amber' : alt.tipo === 'Aereo' ? 'text-accent-blue' : 'text-accent-purple'
-          }`} />
+        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${alt.tipo === 'Onibus' ? 'bg-accent-amber/10' : alt.tipo === 'Aereo' ? 'bg-accent-blue/10' : 'bg-accent-purple/10'
+          }`}>
+          <TypeIcon className={`w-5 h-5 ${alt.tipo === 'Onibus' ? 'text-accent-amber' : alt.tipo === 'Aereo' ? 'text-accent-blue' : 'text-accent-purple'
+            }`} />
         </div>
 
         {/* Info */}

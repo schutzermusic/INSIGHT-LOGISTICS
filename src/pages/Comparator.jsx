@@ -12,6 +12,7 @@ import { KpiCard } from '../components/ui/KpiCard';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ChartTooltip } from '../components/charts/ChartTooltip';
+import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 
 const SCENARIOS = [
   { key: 'onibus', label: 'Onibus', icon: Bus, color: '#F59E0B', defaultTime: 24, defaultFare: 250 },
@@ -183,9 +184,9 @@ export default function Comparator() {
           ))}
         </div>
 
-        <button type="submit" className="btn-primary-orange w-full py-4 text-base mb-6">
-          <BarChart3 className="w-5 h-5" /> Comparar Cenarios
-        </button>
+        <div className="flex justify-center w-full mb-6">
+          <LiquidMetalButton label="Comparar Cenarios" width={220} type="submit" />
+        </div>
       </form>
 
       {/* Results */}

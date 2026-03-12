@@ -7,6 +7,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
+import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 
 const TYPE_CONFIG = {
   'ai-analysis': { label: 'AI', badge: 'purple', icon: Bot },
@@ -76,8 +77,10 @@ export default function History() {
           title="Nenhuma simulacao registrada"
           description="Suas simulacoes do Comparador e Inteligencia de Rotas aparecerao aqui automaticamente."
         >
-          <button className="btn-primary-mint" onClick={() => navigate('/comparador')}>Comparar Cenarios</button>
-          <button className="btn-ghost" onClick={() => navigate('/inteligencia-rotas')}>Inteligencia de Rotas</button>
+          <div className="flex items-center gap-4">
+            <LiquidMetalButton label="Comparar Cenarios" width={220} onClick={() => navigate('/comparador')} />
+            <button className="btn-ghost" onClick={() => navigate('/inteligencia-rotas')}>Inteligencia de Rotas</button>
+          </div>
         </EmptyState>
       ) : (
         <>
@@ -130,12 +133,10 @@ export default function History() {
                           className="w-full px-6 py-4 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"
                           onClick={() => setExpanded(isExpanded ? null : sim.id)}
                         >
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
-                            sim.type === 'ai-analysis' ? 'bg-accent-purple/10 border-accent-purple/10' : sim.type === 'comparison' ? 'bg-accent-amber/10 border-accent-amber/10' : 'bg-accent-blue/10 border-accent-blue/10'
-                          }`}>
-                            <TypeIcon className={`w-4 h-4 ${
-                              sim.type === 'ai-analysis' ? 'text-accent-purple' : sim.type === 'comparison' ? 'text-accent-amber' : 'text-accent-blue'
-                            }`} />
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${sim.type === 'ai-analysis' ? 'bg-accent-purple/10 border-accent-purple/10' : sim.type === 'comparison' ? 'bg-accent-amber/10 border-accent-amber/10' : 'bg-accent-blue/10 border-accent-blue/10'
+                            }`}>
+                            <TypeIcon className={`w-4 h-4 ${sim.type === 'ai-analysis' ? 'text-accent-purple' : sim.type === 'comparison' ? 'text-accent-amber' : 'text-accent-blue'
+                              }`} />
                           </div>
 
                           <div className="flex-1 min-w-0">

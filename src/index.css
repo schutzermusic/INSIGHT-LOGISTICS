@@ -13,7 +13,8 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
+    outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
   }
 
   *::-webkit-scrollbar {
@@ -45,7 +46,8 @@
     font-family: 'Outfit', system-ui, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     background: #040A0A;
-    @apply bg-background text-foreground;
+    background-color: var(--background);
+    color: var(--foreground);
   }
 
   #root {
@@ -128,7 +130,7 @@
     --font-sans: 'Geist Variable', sans-serif;
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-sans, 'Geist Variable', sans-serif);
   }
 }
 

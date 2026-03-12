@@ -18,6 +18,7 @@ import { KpiCard } from '../components/ui/KpiCard';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ChartTooltip } from '../components/charts/ChartTooltip';
+import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 
 const CHART_COLORS = ['#49DC7A', '#F97316', '#22F2EF', '#A855F7', '#3B82F6', '#EF4444'];
 const MODAL_COLORS = { 'Onibus': '#F59E0B', 'Aereo': '#3B82F6', 'Veiculo/Frota': '#A855F7', 'Veiculo Proprio/Locado': '#A855F7', 'Misto': '#22F2EF' };
@@ -112,9 +113,7 @@ export default function Dashboard() {
           title="Bem-vindo ao Insight Logistics"
           description="Comece cadastrando seus colaboradores e criando analises para visualizar dados de inteligencia logistica."
         >
-          <button className="btn-primary-mint" onClick={() => navigate('/colaboradores')}>
-            <Users className="w-4 h-4" /> Cadastrar Equipe
-          </button>
+          <LiquidMetalButton label="Cadastrar Equipe" width={180} onClick={() => navigate('/colaboradores')} />
         </EmptyState>
       </div>
     );
@@ -140,9 +139,7 @@ export default function Dashboard() {
             {stats.aiCount > 0 && (
               <Badge variant="purple" dot>{stats.aiCount} analises AI</Badge>
             )}
-            <button className="btn-primary-orange" onClick={() => navigate('/inteligencia-rotas')}>
-              <Sparkles className="w-4 h-4" /> Nova Analise AI
-            </button>
+            <LiquidMetalButton label="Nova Analise AI" onClick={() => navigate('/inteligencia-rotas')} />
           </div>
         </div>
       </div>

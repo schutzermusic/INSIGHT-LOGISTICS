@@ -20,11 +20,22 @@ export function NavBar({ items, className }) {
   return (
     <div
       className={cn(
-        'fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-6 sm:pt-6',
+        'fixed top-0 left-0 right-0 z-50 flex items-center px-6 pt-4',
         className,
       )}
     >
-      <div className="flex items-center gap-3 bg-dark-900/60 backdrop-blur-2xl py-1 px-1 rounded-full shadow-glass">
+      {/* Logo fixa à esquerda */}
+      <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center">
+        <img
+          src="/INSIGHT-LOGISTICS-LOGO.png"
+          alt="Insight Logistics"
+          className="h-10 w-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+        />
+      </div>
+
+      {/* Navbar centralizada */}
+      <div className="mx-auto flex items-center gap-1 bg-dark-900/70 border border-white/[0.06] backdrop-blur-2xl py-1.5 px-2 rounded-full shadow-lg shadow-black/20">
+        {/* Nav Items */}
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = item.match
@@ -36,8 +47,8 @@ export function NavBar({ items, className }) {
               key={item.name}
               to={item.url}
               className={cn(
-                'relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors',
-                'text-white/50 hover:text-mint',
+                'relative cursor-pointer text-sm font-medium px-5 py-2 rounded-full transition-colors whitespace-nowrap',
+                'text-white/40 hover:text-white/70',
                 isActive && 'text-white',
               )}
             >
@@ -47,19 +58,20 @@ export function NavBar({ items, className }) {
               </span>
               {isActive && (
                 <motion.div
-                  layoutId="lamp"
-                  className="absolute inset-0 w-full bg-mint/[0.08] rounded-full -z-10"
+                  layoutId="tubelight"
+                  className="absolute inset-0 w-full bg-white/[0.06] rounded-full -z-10"
                   initial={false}
                   transition={{
                     type: 'spring',
-                    stiffness: 300,
+                    stiffness: 350,
                     damping: 30,
                   }}
                 >
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-mint rounded-t-full">
-                    <div className="absolute w-12 h-6 bg-mint/20 rounded-full blur-md -top-2 -left-2" />
-                    <div className="absolute w-8 h-6 bg-mint/20 rounded-full blur-md -top-1" />
-                    <div className="absolute w-4 h-4 bg-mint/20 rounded-full blur-sm top-0 left-2" />
+                  {/* Tubelight glow effect */}
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-mint rounded-t-full">
+                    <div className="absolute w-16 h-8 bg-mint/20 rounded-full blur-lg -top-3 -left-3" />
+                    <div className="absolute w-10 h-6 bg-mint/25 rounded-full blur-md -top-1.5 -left-0" />
+                    <div className="absolute w-6 h-4 bg-mint/30 rounded-full blur-sm top-0 left-2" />
                   </div>
                 </motion.div>
               )}
