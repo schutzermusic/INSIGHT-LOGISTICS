@@ -1,0 +1,88 @@
+/* ============================
+   CSS Variables / Design Tokens
+   ============================ */
+:root {
+  /* Colors — Premium Dark Palette */
+  --bg-primary: #040A0A;
+  --bg-secondary: #081A15;
+  --bg-tertiary: #0C2620;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(255, 255, 255, 0.07);
+  --bg-input: rgba(4, 10, 10, 0.8);
+  --bg-sidebar: rgba(4, 10, 10, 0.85);
+
+  --border-primary: rgba(255, 255, 255, 0.08);
+  --border-secondary: rgba(255, 255, 255, 0.12);
+  --border-accent: #49DC7A;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-muted: #475569;
+
+  /* Accents */
+  --accent-mint: #49DC7A;
+  --accent-mint-light: #6BE896;
+  --accent-mint-glow: rgba(73, 220, 122, 0.15);
+
+  --accent-orange: #F97316;
+  --accent-orange-light: #FB923C;
+  --accent-orange-glow: rgba(249, 115, 22, 0.15);
+
+  --accent-cyan: #22F2EF;
+  --accent-cyan-light: #67F5F3;
+  --accent-cyan-glow: rgba(34, 242, 239, 0.15);
+
+  --accent-blue: #3B82F6;
+  --accent-blue-light: #60A5FA;
+  --accent-purple: #A855F7;
+  --accent-amber: #F59E0B;
+  --accent-red: #EF4444;
+
+  /* Typography */
+  --font-family: 'Outfit', system-ui, sans-serif;
+  --font-xs: 0.6875rem;
+  --font-sm: 0.8125rem;
+  --font-base: 0.9375rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.375rem;
+  --font-2xl: 1.75rem;
+  --font-3xl: 2.25rem;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-liquid: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-glow-mint: 0 0 20px rgba(73, 220, 122, 0.2);
+  --shadow-glow-orange: 0 0 20px rgba(249, 115, 22, 0.2);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  /* Layout */
+  --sidebar-width: 280px;
+  --sidebar-collapsed: 80px;
+  --header-height: 72px;
+}

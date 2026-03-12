@@ -1,0 +1,30 @@
+<svg width="640" height="180" viewBox="0 0 640 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="insightFill" x1="24" y1="118" x2="248" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F08C2E"/>
+      <stop offset="1" stop-color="#E47629"/>
+    </linearGradient>
+    <linearGradient id="routeFill" x1="255" y1="38" x2="422" y2="155" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F08C2E"/>
+      <stop offset="0.5" stop-color="#C9D955"/>
+      <stop offset="1" stop-color="#00A651"/>
+    </linearGradient>
+    <linearGradient id="logisticsFill" x1="396" y1="118" x2="631" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#05984B"/>
+      <stop offset="1" stop-color="#00A651"/>
+    </linearGradient>
+  </defs>
+  <g opacity="0.98">
+    <text x="24" y="126" fill="url(#insightFill)" font-size="94" font-weight="800" font-family="Inter, Arial, sans-serif">Insight</text>
+    <path d="M260 145C282 124 302 109 324 95C347 80 372 67 399 52C419 41 440 28 459 18" stroke="url(#routeFill)" stroke-width="18" stroke-linecap="round"/>
+    <path d="M273 57L371 78L338 91L379 118L362 133L312 103L300 133L273 57Z" fill="url(#routeFill)"/>
+    <path d="M311 113H391C403 113 412 122 412 133V139C412 147 406 153 398 153H309C301 153 294 146 294 138V129C294 120 301 113 311 113Z" fill="none" stroke="url(#routeFill)" stroke-width="7"/>
+    <path d="M311 121H391C395 121 399 124 399 129V136H301V129C301 124 306 121 311 121Z" fill="url(#routeFill)" opacity="0.18"/>
+    <path d="M332 123V137" stroke="url(#routeFill)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M348 122V137" stroke="url(#routeFill)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M364 122V137" stroke="url(#routeFill)" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="318" cy="151" r="9" fill="white" stroke="url(#routeFill)" stroke-width="6"/>
+    <circle cx="383" cy="151" r="9" fill="white" stroke="url(#routeFill)" stroke-width="6"/>
+    <text x="402" y="126" fill="url(#logisticsFill)" font-size="94" font-weight="800" font-family="Inter, Arial, sans-serif">Logistics</text>
+  </g>
+</svg>
