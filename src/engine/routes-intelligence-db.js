@@ -120,6 +120,33 @@ const CITIES_EXTENDED = [
 
     // Piauí
     { nome: 'Parnaíba - PI', uf: 'PI', aeroportos: ['PHB'], hub: false, lat: -2.91, lng: -41.78 },
+
+    // Rio de Janeiro Interior — Oil & Gas / Industrial hubs
+    { nome: 'Macaé - RJ', uf: 'RJ', aeroportos: ['MEA'], hub: false, lat: -22.37, lng: -41.79 },
+    { nome: 'Campos dos Goytacazes - RJ', uf: 'RJ', aeroportos: ['CAW'], hub: false, lat: -21.75, lng: -41.32 },
+    { nome: 'Volta Redonda - RJ', uf: 'RJ', aeroportos: [], hub: false, lat: -22.52, lng: -44.10 },
+    { nome: 'Petrópolis - RJ', uf: 'RJ', aeroportos: [], hub: false, lat: -22.51, lng: -43.18 },
+    { nome: 'Nova Friburgo - RJ', uf: 'RJ', aeroportos: [], hub: false, lat: -22.28, lng: -42.53 },
+    { nome: 'Angra dos Reis - RJ', uf: 'RJ', aeroportos: [], hub: false, lat: -23.01, lng: -44.32 },
+    { nome: 'Cabo Frio - RJ', uf: 'RJ', aeroportos: ['CFB'], hub: false, lat: -22.88, lng: -42.02 },
+    { nome: 'Rio das Ostras - RJ', uf: 'RJ', aeroportos: [], hub: false, lat: -22.53, lng: -41.94 },
+
+    // Espírito Santo Interior
+    { nome: 'Cachoeiro de Itapemirim - ES', uf: 'ES', aeroportos: [], hub: false, lat: -20.85, lng: -41.11 },
+    { nome: 'Linhares - ES', uf: 'ES', aeroportos: [], hub: false, lat: -19.39, lng: -40.07 },
+    { nome: 'São Mateus - ES', uf: 'ES', aeroportos: [], hub: false, lat: -18.72, lng: -39.86 },
+
+    // Pernambuco Interior
+    { nome: 'Caruaru - PE', uf: 'PE', aeroportos: ['CAU'], hub: false, lat: -8.28, lng: -35.98 },
+    { nome: 'Petrolina - PE', uf: 'PE', aeroportos: ['PNZ'], hub: false, lat: -9.39, lng: -40.50 },
+
+    // Ceará Interior
+    { nome: 'Juazeiro do Norte - CE', uf: 'CE', aeroportos: ['JDO'], hub: false, lat: -7.21, lng: -39.32 },
+
+    // Amazonas Interior
+    { nome: 'Tabatinga - AM', uf: 'AM', aeroportos: ['TBT'], hub: false, lat: -4.26, lng: -69.94 },
+    { nome: 'Tefé - AM', uf: 'AM', aeroportos: ['TFF'], hub: false, lat: -3.38, lng: -64.72 },
+    { nome: 'Coari - AM', uf: 'AM', aeroportos: ['CIZ'], hub: false, lat: -4.08, lng: -63.13 },
 ];
 
 // ============================================================
@@ -1218,11 +1245,64 @@ export function searchExtendedCities(query) {
 }
 
 /**
- * Get city info by name
+ * Get city info by name (exact match)
  */
 export function getCityInfo(nome) {
     const normalize = s => s.toLowerCase().trim();
     return CITIES_EXTENDED.find(c => normalize(c.nome) === normalize(nome)) || null;
+}
+
+/**
+ * Get city info by fuzzy match — tries exact first, then partial, then UF-based
+ */
+export function getCityInfoFuzzy(nome) {
+    if (!nome) return null;
+    // Exact match
+    const exact = getCityInfo(nome);
+    if (exact) return exact;
+
+    const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const q = normalize(nome);
+
+    // Accent-insensitive exact match
+    const accentMatch = CITIES_EXTENDED.find(c => normalize(c.nome) === q);
+    if (accentMatch) return accentMatch;
+
+    // Partial match (city name starts with query or contains it)
+    const partial = CITIES_EXTENDED.find(c => normalize(c.nome).includes(q));
+    if (partial) return partial;
+
+    // Extract city name without UF
+    const cityPart = nome.split(' - ')[0]?.trim();
+    if (cityPart) {
+        const cityQ = normalize(cityPart);
+        const cityMatch = CITIES_EXTENDED.find(c => normalize(c.nome).startsWith(cityQ));
+        if (cityMatch) return cityMatch;
+    }
+
+    return null;
+}
+
+/**
+ * Find the nearest known city with coordinates to use as approximation
+ */
+export function findNearestKnownCity(nome) {
+    // Try to match by UF
+    const ufMatch = nome.match(/\s*-\s*([A-Z]{2})$/);
+    const uf = ufMatch ? ufMatch[1] : null;
+
+    if (uf) {
+        // Find hub in same state
+        const stateHub = CITIES_EXTENDED.find(c => c.uf === uf && c.hub);
+        if (stateHub) return stateHub;
+
+        // Any city in same state
+        const stateCity = CITIES_EXTENDED.find(c => c.uf === uf);
+        if (stateCity) return stateCity;
+    }
+
+    // Fallback to São Paulo
+    return CITIES_EXTENDED.find(c => c.nome === 'São Paulo - SP');
 }
 
 /**
@@ -1320,6 +1400,13 @@ export function estimateRoute(origem, destino) {
 /**
  * Main lookup: find route in DB or estimate
  */
+/**
+ * Get all extended cities with full data (name, uf, lat, lng, airports, hub)
+ */
+export function getExtendedCitiesData() {
+    return CITIES_EXTENDED;
+}
+
 export function getRouteIntelligence(origem, destino) {
     const route = findIntelligenceRoute(origem, destino);
     if (route) return route;

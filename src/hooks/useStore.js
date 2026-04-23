@@ -1,7 +1,6 @@
-import { useState, useCallback, useSyncExternalStore } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   getCollaborators as _getCollabs,
-  saveCollaborators,
   addCollaborator as _addCollab,
   updateCollaborator as _updateCollab,
   deleteCollaborator as _deleteCollab,
@@ -11,71 +10,67 @@ import {
   clearSimulations as _clearSims,
 } from '../data/store.js';
 
-// Simple event emitter for store changes
-let listeners = new Set();
-function emitChange() {
-  listeners.forEach((l) => l());
-}
-function subscribe(listener) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
 // Collaborators
-let collabSnapshot = _getCollabs();
-function getCollabSnapshot() { return collabSnapshot; }
-
 export function useCollaborators() {
-  const collaborators = useSyncExternalStore(subscribe, getCollabSnapshot);
+  const [collaborators, setCollaborators] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const addCollaborator = useCallback((data) => {
-    const result = _addCollab(data);
-    collabSnapshot = _getCollabs();
-    emitChange();
+  const refresh = useCallback(async () => {
+    const data = await _getCollabs();
+    setCollaborators(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const addCollaborator = useCallback(async (data) => {
+    const result = await _addCollab(data);
+    await refresh();
     return result;
-  }, []);
+  }, [refresh]);
 
-  const updateCollaborator = useCallback((id, data) => {
-    const result = _updateCollab(id, data);
-    collabSnapshot = _getCollabs();
-    emitChange();
+  const updateCollaborator = useCallback(async (id, data) => {
+    const result = await _updateCollab(id, data);
+    await refresh();
     return result;
-  }, []);
+  }, [refresh]);
 
-  const deleteCollaborator = useCallback((id) => {
-    _deleteCollab(id);
-    collabSnapshot = _getCollabs();
-    emitChange();
-  }, []);
+  const deleteCollaborator = useCallback(async (id) => {
+    await _deleteCollab(id);
+    await refresh();
+  }, [refresh]);
 
-  return { collaborators, addCollaborator, updateCollaborator, deleteCollaborator };
+  return { collaborators, loading, addCollaborator, updateCollaborator, deleteCollaborator };
 }
 
 // Simulations
-let simSnapshot = _getSims();
-function getSimSnapshot() { return simSnapshot; }
-
 export function useSimulations() {
-  const simulations = useSyncExternalStore(subscribe, getSimSnapshot);
+  const [simulations, setSimulations] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const saveSimulation = useCallback((sim) => {
-    const result = _saveSim(sim);
-    simSnapshot = _getSims();
-    emitChange();
+  const refresh = useCallback(async () => {
+    const data = await _getSims();
+    setSimulations(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const saveSimulation = useCallback(async (sim) => {
+    const result = await _saveSim(sim);
+    await refresh();
     return result;
-  }, []);
+  }, [refresh]);
 
-  const deleteSimulation = useCallback((id) => {
-    _deleteSim(id);
-    simSnapshot = _getSims();
-    emitChange();
-  }, []);
+  const deleteSimulation = useCallback(async (id) => {
+    await _deleteSim(id);
+    await refresh();
+  }, [refresh]);
 
-  const clearSimulations = useCallback(() => {
-    _clearSims();
-    simSnapshot = _getSims();
-    emitChange();
-  }, []);
+  const clearSimulations = useCallback(async () => {
+    await _clearSims();
+    await refresh();
+  }, [refresh]);
 
-  return { simulations, saveSimulation, deleteSimulation, clearSimulations };
+  return { simulations, loading, saveSimulation, deleteSimulation, clearSimulations };
 }

@@ -4,13 +4,19 @@
  *
  * API Docs: https://serpapi.com/google-flights-api
  *
+ * Provides:
+ * - Real-time flight search with booking links
+ * - Price insights / price history from Google Flights
+ * - Booking options with seller links
+ * - Source transparency for pricing data
+ *
  * Falls back to static database when:
  * - API key not configured
  * - API request fails
  * - Rate limit exceeded
  */
 
-const SERPAPI_BASE = '/api/serpapi'; // Proxied through Vite dev server
+const SERPAPI_BASE = '/serpapi'; // Proxied through Vite dev server
 
 // Cache to avoid repeated API calls for the same route
 const flightCache = new Map();
@@ -63,6 +69,16 @@ const CITY_TO_IATA = {
     'Barreiras - BA': ['BRA'],
     'Ilhéus - BA': ['IOS'],
     'Vitória da Conquista - BA': ['VDC'],
+    'Macaé - RJ': ['MEA'],
+    'Campos dos Goytacazes - RJ': ['CAW'],
+    'Cabo Frio - RJ': ['CFB'],
+    'Petrolina - PE': ['PNZ'],
+    'Juazeiro do Norte - CE': ['JDO'],
+    'Chapecó - SC': ['XAP'],
+    'Navegantes - SC': ['NVT'],
+    'Imperatriz - MA': ['IMP'],
+    'Aracaju - SE': ['AJU'],
+    'Dourados - MS': ['DOU'],
 };
 
 // ============================================================
@@ -102,6 +118,7 @@ export async function searchFlights(origemCity, destinoCity, options = {}) {
     // Search all airport combinations and find the best options
     const allFlights = [];
     const errors = [];
+    let collectedPriceInsights = null;
 
     for (const depAirport of origemAirports) {
         for (const arrAirport of destinoAirports) {
@@ -113,12 +130,18 @@ export async function searchFlights(origemCity, destinoCity, options = {}) {
                         aeroportoOrigem: depAirport,
                         aeroportoDestino: arrAirport,
                     })));
+                    // Collect price insights from the first route that has them
+                    if (!collectedPriceInsights && result.priceInsights) {
+                        collectedPriceInsights = result.priceInsights;
+                    }
                 }
             } catch (err) {
                 errors.push(`${depAirport}-${arrAirport}: ${err.message}`);
             }
         }
     }
+    // Attach price insights to the flights array for extraction
+    allFlights._priceInsights = collectedPriceInsights;
 
     if (allFlights.length === 0) {
         return {
@@ -131,9 +154,13 @@ export async function searchFlights(origemCity, destinoCity, options = {}) {
     // Sort by price and deduplicate
     allFlights.sort((a, b) => a.preco - b.preco);
 
+    // Aggregate price insights from all searched routes
+    const aggregatedPriceInsights = allFlights._priceInsights || null;
+
     return {
         success: true,
         source: 'serpapi_google_flights',
+        sourceLabel: 'Google Flights via SerpAPI',
         timestamp: new Date().toISOString(),
         totalResultados: allFlights.length,
         flights: allFlights,
@@ -142,6 +169,7 @@ export async function searchFlights(origemCity, destinoCity, options = {}) {
         destinoCidade: destinoCity,
         aeroportosOrigem: origemAirports,
         aeroportosDestino: destinoAirports,
+        priceInsights: aggregatedPriceInsights,
     };
 }
 
@@ -284,6 +312,18 @@ function parseFlightResults(data, departureId, arrivalId) {
             overnight: l.overnight || false,
         }));
 
+        // Extract booking options from SerpAPI response
+        const bookingOptions = (flight.booking_options || flight.extensions || [])
+            .filter(opt => typeof opt === 'object' && opt.book_with)
+            .map(opt => ({
+                seller: opt.book_with || '',
+                price: opt.price || price,
+                url: opt.booking_request?.url || opt.url || null,
+            }));
+
+        // If SerpAPI exposes a booking token or deep link, use it
+        const bookingToken = flight.booking_token || flight.departure_token || null;
+
         flights.push({
             preco: price,
             duracaoTotalMin: totalDuration,
@@ -294,15 +334,24 @@ function parseFlightResults(data, departureId, arrivalId) {
             tipo: flight.type || 'one_way',
             emissaoCarbono: flight.carbon_emissions?.this_flight || null,
             fonte: 'Google Flights (SerpAPI)',
+            bookingOptions,
+            bookingToken,
         });
     }
 
-    // Price insights if available
+    // Price insights — full extraction from SerpAPI
     const priceInsights = data.price_insights ? {
         faixaPreco: data.price_insights.typical_price_range || [],
         precoAtualNivel: data.price_insights.price_level || '',
         melhorMomento: data.price_insights.lowest_price || null,
+        precoMaisBaixo: data.price_insights.lowest_price || null,
+        descricao: data.price_insights.price_history || null,
+        fonte: 'Google Flights via SerpAPI',
+        ultimaAtualizacao: new Date().toISOString(),
     } : null;
+
+    // Search metadata from SerpAPI
+    const searchInfo = data.search_metadata || {};
 
     return {
         success: flights.length > 0,
@@ -312,6 +361,8 @@ function parseFlightResults(data, departureId, arrivalId) {
             departureId,
             arrivalId,
             totalResults: flights.length,
+            searchId: searchInfo.id || null,
+            googleFlightsUrl: searchInfo.google_flights_url || null,
         },
     };
 }
@@ -350,10 +401,12 @@ function buildFlightAlternative(bestFlight, allInCategory, descricao) {
             tempoVooH: l.tempoVooH,
             custo: Math.round(bestFlight.preco / legs.length), // Approximate split
             cia: l.cia,
+            ciaLogo: l.ciaLogo,
             numero: l.numero,
             horaSaida: l.horaSaida,
             horaChegada: l.horaChegada,
             aviao: l.aviao,
+            classe: l.classe,
         })),
         layovers: bestFlight.layovers,
         precoMinimo: allInCategory.length > 0 ? Math.min(...allInCategory.map(f => f.preco)) : bestFlight.preco,
@@ -361,7 +414,14 @@ function buildFlightAlternative(bestFlight, allInCategory, descricao) {
         opcoes: allInCategory.length,
         emissaoCarbono: bestFlight.emissaoCarbono,
         fonte: 'realtime',
+        fonteLabel: 'Google Flights via SerpAPI',
         dataConsulta: new Date().toISOString(),
+        // Booking options from SerpAPI
+        bookingOptions: bestFlight.bookingOptions || [],
+        bookingToken: bestFlight.bookingToken || null,
+        // Airport pair used
+        aeroportoOrigem: bestFlight.aeroportoOrigem || firstLeg.de,
+        aeroportoDestino: bestFlight.aeroportoDestino || lastLeg.para,
     };
 }
 
@@ -371,6 +431,39 @@ function buildFlightAlternative(bestFlight, allInCategory, descricao) {
 
 function getAirportsForCity(cityName) {
     return CITY_TO_IATA[cityName] || [];
+}
+
+/**
+ * Get all IATA airport codes mapped in the system
+ */
+export function getAllMappedAirports() {
+    return CITY_TO_IATA;
+}
+
+/**
+ * Find the nearest city with IATA airports for a given city name
+ * Used by the multimodal scenario builder to search hub flights
+ */
+export function findNearestAirportCity(cityName) {
+    const direct = CITY_TO_IATA[cityName];
+    if (direct && direct.length > 0) {
+        return { city: cityName, airports: direct, isDirect: true };
+    }
+
+    // Try to match by UF — find any city in same state with airports
+    const ufMatch = cityName.match(/\s*-\s*([A-Z]{2})$/);
+    if (ufMatch) {
+        const uf = ufMatch[1];
+        const sameStateEntries = Object.entries(CITY_TO_IATA)
+            .filter(([city]) => city.endsWith(`- ${uf}`));
+
+        if (sameStateEntries.length > 0) {
+            // Return the first (likely capital or major hub)
+            return { city: sameStateEntries[0][0], airports: sameStateEntries[0][1], isDirect: false };
+        }
+    }
+
+    return null;
 }
 
 function getNextBusinessDay() {
@@ -387,4 +480,54 @@ function getNextBusinessDay() {
  */
 export function clearFlightCache() {
     flightCache.clear();
+}
+
+/**
+ * Search flight options for a given route — wrapper with enhanced error handling.
+ * Never throws; returns a structured result even on failure.
+ */
+export async function searchFlightOptions(origemCity, destinoCity, options = {}) {
+    try {
+        return await searchFlights(origemCity, destinoCity, options);
+    } catch (err) {
+        return { success: false, reason: 'error', message: err.message, flights: [] };
+    }
+}
+
+/**
+ * Get booking options for a specific flight result.
+ * Extracts seller links and booking URLs from SerpAPI data.
+ */
+export function getFlightBookingOptions(flightResult) {
+    if (!flightResult?.flights) return [];
+    return flightResult.flights
+        .filter(f => f.bookingOptions && f.bookingOptions.length > 0)
+        .flatMap(f => f.bookingOptions.map(opt => ({
+            ...opt,
+            flightPrice: f.preco,
+            airline: f.trechos?.[0]?.cia || '',
+            route: `${f.aeroportoOrigem} → ${f.aeroportoDestino}`,
+        })));
+}
+
+/**
+ * Get price insights for a flight search result.
+ * Returns structured pricing intelligence with source attribution.
+ */
+export function getFlightPriceInsights(flightResult) {
+    if (!flightResult?.priceInsights) {
+        return {
+            available: false,
+            fonte: 'Google Flights via SerpAPI',
+            ultimaAtualizacao: flightResult?.timestamp || new Date().toISOString(),
+        };
+    }
+    return {
+        available: true,
+        ...flightResult.priceInsights,
+        precoAtual: flightResult.melhorPreco || null,
+        totalOpcoes: flightResult.totalResultados || 0,
+        fonte: 'Google Flights via SerpAPI',
+        ultimaAtualizacao: flightResult.timestamp || new Date().toISOString(),
+    };
 }

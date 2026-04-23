@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { ThemeToggle } from './ThemeToggle';
+import { useTheme } from '../../hooks/useTheme';
 
 export function NavBar({ items, className }) {
-  const [isMobile, setIsMobile] = useState(false);
+  const [, setIsMobile] = useState(false);
   const location = useLocation();
+  const { isDark } = useTheme();
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -20,22 +20,33 @@ export function NavBar({ items, className }) {
   return (
     <div
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 flex items-center px-6 pt-4',
+        'fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4',
         className,
       )}
     >
-      {/* Logo fixa à esquerda */}
-      <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center">
+      {/* Logo */}
+      <div className="flex items-center shrink-0">
         <img
           src="/INSIGHT-LOGISTICS-LOGO.png"
           alt="Insight Logistics"
-          className="h-10 w-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+          className={cn(
+            'h-12 w-auto transition-[filter] duration-300',
+            isDark
+              ? 'drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]'
+              : 'drop-shadow-[0_4px_12px_rgba(15,50,40,0.15)]',
+          )}
         />
       </div>
 
-      {/* Navbar centralizada */}
-      <div className="mx-auto flex items-center gap-1 bg-dark-900/70 border border-white/[0.06] backdrop-blur-2xl py-1.5 px-2 rounded-full shadow-lg shadow-black/20">
-        {/* Nav Items */}
+      {/* Centered nav pill */}
+      <div
+        className={cn(
+          'absolute left-1/2 -translate-x-1/2 flex items-center gap-1',
+          'py-1.5 px-2 rounded-full backdrop-blur-2xl',
+          'bg-dark-900/70 border border-white/[0.06]',
+          'shadow-[0_4px_24px_rgb(var(--shadow-ink)/0.12)]',
+        )}
+      >
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = item.match
@@ -78,6 +89,11 @@ export function NavBar({ items, className }) {
             </NavLink>
           );
         })}
+      </div>
+
+      {/* Right cluster — theme toggle */}
+      <div className="flex items-center gap-2 shrink-0">
+        <ThemeToggle />
       </div>
     </div>
   );

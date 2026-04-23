@@ -32,8 +32,11 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-dark-900/70 backdrop-blur-md animate-fade-in" />
+      {/* Backdrop — always a dim overlay, regardless of theme */}
+      <div
+        className="absolute inset-0 backdrop-blur-md animate-fade-in"
+        style={{ background: 'rgb(var(--shadow-ink) / 0.55)' }}
+      />
 
       {/* Modal */}
       <div className={clsx(

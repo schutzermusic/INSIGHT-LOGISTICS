@@ -8,27 +8,51 @@ export default {
   theme: {
     extend: {
       colors: {
-        surface: {
-          DEFAULT: 'rgba(255,255,255,0.04)',
-          hover: 'rgba(255,255,255,0.07)',
-          active: 'rgba(255,255,255,0.10)',
-          border: 'rgba(255,255,255,0.08)',
-          'border-hover': 'rgba(255,255,255,0.14)',
-          'glass': 'rgba(255,255,255,0.03)',
-          'glass-strong': 'rgba(255,255,255,0.06)',
-        },
+        // ───────────────────────────────────────────────
+        // SEMANTIC TOKENS — resolve from CSS vars,
+        // so every utility reads the active theme.
+        // The `<alpha-value>` placeholder lets us keep
+        // using bg-x/X and text-x/X opacity modifiers.
+        // ───────────────────────────────────────────────
+
+        // `white` is overridden so that every existing
+        // `text-white/X` and `bg-white/X` becomes the
+        // theme's ink color (white on dark, dark on light).
+        white: 'rgb(var(--ink) / <alpha-value>)',
+
+        // Page & surface tokens. The `dark-*` names are
+        // kept for back-compat with existing code: in dark
+        // mode they resolve to the green-tinted dark palette;
+        // in light mode they become soft off-white surfaces.
         dark: {
-          950: '#020806',
-          900: '#040A0A',
-          850: '#061410',
-          800: '#081A15',
-          700: '#0C2620',
-          600: '#10322B',
+          950: 'rgb(var(--surface-4) / <alpha-value>)',
+          900: 'rgb(var(--surface-3) / <alpha-value>)',
+          850: 'rgb(var(--surface-2) / <alpha-value>)',
+          800: 'rgb(var(--surface-1) / <alpha-value>)',
+          700: 'rgb(var(--surface-0) / <alpha-value>)',
+          600: 'rgb(var(--surface--1) / <alpha-value>)',
         },
+
+        // Glass surface tint. In dark mode it is white at low
+        // alpha (classic glass); in light mode it is a dark-green
+        // ink tint, still low alpha, so cards read as subtle frosted
+        // panels over a luminous background.
+        surface: {
+          DEFAULT: 'rgb(var(--glass-ink) / 0.07)',
+          hover: 'rgb(var(--glass-ink) / 0.11)',
+          active: 'rgb(var(--glass-ink) / 0.15)',
+          border: 'rgb(var(--glass-ink) / 0.12)',
+          'border-hover': 'rgb(var(--glass-ink) / 0.18)',
+          'glass': 'rgb(var(--glass-ink) / 0.05)',
+          'glass-strong': 'rgb(var(--glass-ink) / 0.09)',
+        },
+
+        // Brand colors — identical in both themes.
         mint: {
           DEFAULT: '#49DC7A',
           light: '#6BE896',
           dark: '#2DB85C',
+          ink: 'rgb(var(--mint-ink) / <alpha-value>)',
           glow: 'rgba(73, 220, 122, 0.15)',
           'glow-strong': 'rgba(73, 220, 122, 0.25)',
         },
@@ -70,25 +94,33 @@ export default {
         'glow-orange-strong': '0 0 30px rgba(249, 115, 22, 0.2), 0 0 80px rgba(249, 115, 22, 0.08)',
         'glow-cyan': '0 0 20px rgba(34, 242, 239, 0.12)',
         'glow-cyan-strong': '0 0 30px rgba(34, 242, 239, 0.18), 0 0 80px rgba(34, 242, 239, 0.06)',
-        'glass': '0 8px 32px rgba(0, 0, 0, 0.4)',
-        'glass-lg': '0 16px 48px rgba(0, 0, 0, 0.5)',
-        'glass-xl': '0 24px 64px rgba(0, 0, 0, 0.6)',
-        'inner-light': 'inset 0 1px 0 rgba(255,255,255,0.06)',
-        'inner-light-strong': 'inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(255,255,255,0.02)',
-        'liquid': '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(255,255,255,0.02)',
-        'liquid-hover': '0 16px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.03)',
+        // Theme-aware shadow using the shadow ink var
+        'glass': '0 8px 32px rgb(var(--shadow-ink) / 0.18)',
+        'glass-lg': '0 16px 48px rgb(var(--shadow-ink) / 0.22)',
+        'glass-xl': '0 24px 64px rgb(var(--shadow-ink) / 0.28)',
+        'inner-light': 'inset 0 1px 0 rgb(var(--highlight-ink) / 0.06)',
+        'inner-light-strong': 'inset 0 1px 0 rgb(var(--highlight-ink) / 0.10), inset 0 -1px 0 rgb(var(--highlight-ink) / 0.02)',
+        'liquid': '0 8px 32px rgb(var(--shadow-ink) / 0.18), inset 0 1px 0 rgb(var(--highlight-ink) / 0.08), inset 0 -1px 0 rgb(var(--highlight-ink) / 0.02)',
+        'liquid-hover': '0 16px 48px rgb(var(--shadow-ink) / 0.22), inset 0 1px 0 rgb(var(--highlight-ink) / 0.12), inset 0 -1px 0 rgb(var(--highlight-ink) / 0.03)',
       },
       backgroundImage: {
-        'glass-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)',
-        'glass-gradient-hover': 'linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 100%)',
-        'glass-gradient-strong': 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
-        'liquid-glass': 'linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.04) 100%)',
-        'liquid-glass-hover': 'linear-gradient(145deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 100%)',
+        'glass-gradient':
+          'linear-gradient(135deg, rgb(var(--glass-ink) / 0.10) 0%, rgb(var(--glass-ink) / 0.04) 100%)',
+        'glass-gradient-hover':
+          'linear-gradient(135deg, rgb(var(--glass-ink) / 0.14) 0%, rgb(var(--glass-ink) / 0.06) 100%)',
+        'glass-gradient-strong':
+          'linear-gradient(135deg, rgb(var(--glass-ink) / 0.12) 0%, rgb(var(--glass-ink) / 0.05) 100%)',
+        'liquid-glass':
+          'linear-gradient(145deg, rgb(var(--glass-ink) / 0.10) 0%, rgb(var(--glass-ink) / 0.04) 50%, rgb(var(--glass-ink) / 0.07) 100%)',
+        'liquid-glass-hover':
+          'linear-gradient(145deg, rgb(var(--glass-ink) / 0.14) 0%, rgb(var(--glass-ink) / 0.06) 50%, rgb(var(--glass-ink) / 0.10) 100%)',
         'glow-radial': 'radial-gradient(ellipse at 50% 0%, rgba(73, 220, 122, 0.08) 0%, transparent 70%)',
         'glow-radial-orange': 'radial-gradient(ellipse at 50% 0%, rgba(249, 115, 22, 0.06) 0%, transparent 70%)',
         'glow-radial-cyan': 'radial-gradient(ellipse at 50% 0%, rgba(34, 242, 239, 0.06) 0%, transparent 70%)',
-        'specular-highlight': 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 40%)',
-        'edge-light': 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.04) 100%)',
+        'specular-highlight':
+          'linear-gradient(180deg, rgb(var(--highlight-ink) / 0.08) 0%, transparent 40%)',
+        'edge-light':
+          'linear-gradient(135deg, rgb(var(--highlight-ink) / 0.12) 0%, transparent 30%, transparent 70%, rgb(var(--highlight-ink) / 0.04) 100%)',
       },
       animation: {
         'fade-in': 'fadeIn 0.4s ease-out',

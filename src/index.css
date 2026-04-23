@@ -5,49 +5,189 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ========================================
-   Global Base Styles — Premium Dark Mode
-   ======================================== */
+/* ════════════════════════════════════════════════════════════════
+   THEME TOKEN SYSTEM
+   Every color that differs between themes is a CSS var. Tailwind
+   reads these via `rgb(var(--x) / <alpha-value>)` so the existing
+   `text-white/X`, `bg-white/X`, `bg-dark-900` utilities theme
+   automatically.
+
+   Tokens come in two flavors:
+     • RGB triplets (no alpha) — used by Tailwind utility classes
+     • Composite tokens — used by component CSS below
+   ════════════════════════════════════════════════════════════════ */
 
 @layer base {
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-    border-color: var(--border);
-    outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
+  :root {
+    /* LIGHT — premium soft off-white, dark green ink, restrained
+       mint accents, subtle green-tinted shadows. */
+
+    --ink: 15 30 24;               /* primary text */
+    --glass-ink: 15 30 24;         /* tint color for glass/borders */
+    --highlight-ink: 255 255 255;  /* specular / inner highlight */
+    --shadow-ink: 15 50 40;        /* drop shadow color */
+    --mint-ink: 12 122 60;         /* darker mint for light-mode text */
+
+    /* Surface ladder — low index = elevated, high index = deeper/base */
+    --surface--1: 255 255 255;     /* crisp card highlight */
+    --surface-0: 255 255 255;      /* raised panel */
+    --surface-1: 252 253 252;      /* elevated card */
+    --surface-2: 248 251 249;      /* subtle card */
+    --surface-3: 242 247 244;      /* page-adjacent panel */
+    --surface-4: 238 244 241;      /* deepest panel (behind glass) */
+
+    /* Page background — soft off-white with a whisper of green */
+    --page-base: 243 248 245;
+
+    /* Chart palette (hex). Chart strokes/fills use these so
+       Recharts legend dots and lines stay legible on both themes. */
+    --chart-1: #0C7A3C;            /* mint ink */
+    --chart-2: #D65A0C;            /* orange ink */
+    --chart-3: #0B9A98;            /* cyan ink */
+    --chart-4: #7A3BC9;            /* purple ink */
+    --chart-5: #1E6FD4;            /* blue ink */
+    --chart-6: #C62828;            /* red ink */
+
+    /* Recharts in-chart colors (text & grid) */
+    --chart-grid: 15 30 24;        /* rgb triplet for grid lines */
+    --chart-text: 15 30 24;        /* rgb triplet for axis labels */
+
+    /* shadcn variables — full color values so `color: var(--foreground)`
+       etc. work directly. These drive shadcn/base UI primitives. */
+    --background: rgb(243 248 245);
+    --foreground: rgb(15 30 24);
+    --card: rgb(255 255 255);
+    --card-foreground: rgb(15 30 24);
+    --popover: rgb(255 255 255);
+    --popover-foreground: rgb(15 30 24);
+    --primary: rgb(12 122 60);
+    --primary-foreground: rgb(255 255 255);
+    --secondary: rgb(248 251 249);
+    --secondary-foreground: rgb(15 30 24);
+    --muted: rgb(242 247 244);
+    --muted-foreground: rgb(70 90 80);
+    --accent: rgb(242 247 244);
+    --accent-foreground: rgb(15 30 24);
+    --destructive: rgb(220 50 60);
+    --border: rgb(15 30 24 / 0.10);
+    --input: rgb(15 30 24 / 0.10);
+    --ring: rgb(12 122 60 / 0.4);
+    --radius: 0.625rem;
+    --sidebar: rgb(255 255 255);
+    --sidebar-foreground: rgb(15 30 24);
+    --sidebar-primary: rgb(12 122 60);
+    --sidebar-primary-foreground: rgb(255 255 255);
+    --sidebar-accent: rgb(242 247 244);
+    --sidebar-accent-foreground: rgb(15 30 24);
+    --sidebar-border: rgb(15 30 24 / 0.10);
+    --sidebar-ring: rgb(12 122 60 / 0.4);
   }
 
+  .dark {
+    /* DARK — premium dark green glass, white ink, saturated mint. */
+
+    --ink: 255 255 255;
+    --glass-ink: 255 255 255;
+    --highlight-ink: 255 255 255;
+    --shadow-ink: 0 0 0;
+    --mint-ink: 73 220 122;
+
+    --surface--1: 34 94 80;        /* dark-600 */
+    --surface-0: 26 74 62;         /* dark-700 */
+    --surface-1: 18 54 44;         /* dark-800 */
+    --surface-2: 14 42 34;         /* dark-850 */
+    --surface-3: 10 30 24;         /* dark-900 */
+    --surface-4: 6 18 16;          /* dark-950 */
+
+    --page-base: 10 30 24;
+
+    --chart-1: #49DC7A;
+    --chart-2: #F97316;
+    --chart-3: #22F2EF;
+    --chart-4: #A855F7;
+    --chart-5: #3B82F6;
+    --chart-6: #EF4444;
+
+    --chart-grid: 255 255 255;
+    --chart-text: 255 255 255;
+
+    /* shadcn variables (dark) — full color values */
+    --background: rgb(10 30 24);
+    --foreground: rgb(255 255 255);
+    --card: rgb(14 42 34);
+    --card-foreground: rgb(255 255 255);
+    --popover: rgb(14 42 34);
+    --popover-foreground: rgb(255 255 255);
+    --primary: rgb(73 220 122);
+    --primary-foreground: rgb(10 30 24);
+    --secondary: rgb(18 54 44);
+    --secondary-foreground: rgb(255 255 255);
+    --muted: rgb(18 54 44);
+    --muted-foreground: rgb(180 200 192);
+    --accent: rgb(18 54 44);
+    --accent-foreground: rgb(255 255 255);
+    --destructive: rgb(239 68 68);
+    --border: rgb(255 255 255 / 0.14);
+    --input: rgb(255 255 255 / 0.18);
+    --ring: rgb(73 220 122 / 0.5);
+    --sidebar: rgb(6 18 16);
+    --sidebar-foreground: rgb(255 255 255);
+    --sidebar-primary: rgb(73 220 122);
+    --sidebar-primary-foreground: rgb(10 30 24);
+    --sidebar-accent: rgb(18 54 44);
+    --sidebar-accent-foreground: rgb(255 255 255);
+    --sidebar-border: rgb(255 255 255 / 0.10);
+    --sidebar-ring: rgb(73 220 122 / 0.5);
+  }
+
+  .theme {
+    --font-sans: 'Outfit', 'Geist Variable', system-ui, sans-serif;
+  }
+
+  html {
+    font-family: var(--font-sans, 'Outfit', system-ui, sans-serif);
+    color-scheme: light;
+    transition: background-color 200ms ease;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /* Global scrollbar — themed via glass-ink */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--glass-ink) / 0.15) transparent;
+    outline-color: rgb(var(--mint-ink) / 0.4);
+  }
   *::-webkit-scrollbar {
     width: 5px;
     height: 5px;
   }
-
   *::-webkit-scrollbar-track {
     background: transparent;
   }
-
   *::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgb(var(--glass-ink) / 0.15);
     border-radius: 999px;
   }
-
   *::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgb(var(--glass-ink) / 0.28);
   }
 
   ::selection {
-    background: rgba(73, 220, 122, 0.25);
-    color: white;
+    background: rgb(var(--mint-ink) / 0.25);
+    color: rgb(var(--ink));
   }
 
   body {
     overflow: hidden;
     height: 100vh;
+    margin: 0;
     font-family: 'Outfit', system-ui, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    background: #040A0A;
-    background-color: var(--background);
-    color: var(--foreground);
+    background: rgb(var(--page-base));
+    color: rgb(var(--ink));
+    transition: background-color 200ms ease, color 200ms ease;
   }
 
   #root {
@@ -59,95 +199,72 @@
   input[type="number"]::-webkit-outer-spin-button {
     opacity: 0.3;
   }
-  :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-  }
-  .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-  }
-  .theme {
-    --font-sans: 'Geist Variable', sans-serif;
-  }
-  html {
-    font-family: var(--font-sans, 'Geist Variable', sans-serif);
+
+  /* Autofill */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: rgb(var(--ink)) !important;
+    -webkit-box-shadow: 0 0 0px 1000px rgb(var(--surface-1)) inset !important;
+    caret-color: rgb(var(--ink));
+    transition: background-color 9999s ease-out;
   }
 }
 
-/* ========================================
-   Liquid Glass & Premium Component System
-   ======================================== */
+/* ════════════════════════════════════════════════════════════════
+   LIQUID GLASS & PREMIUM COMPONENT SYSTEM
+   All rules below read the same tokens. No `!important`, no
+   per-mode overrides — the tokens carry the weight.
+   ════════════════════════════════════════════════════════════════ */
 
 @layer components {
-  /* ---- Liquid Glass Card ---- */
+
+  /* ────────── Liquid Glass Cards ────────── */
   .glass-card {
     @apply relative overflow-hidden rounded-3xl;
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0.015) 50%, rgba(255, 255, 255, 0.035) 100%);
+    background:
+      linear-gradient(
+        145deg,
+        rgb(var(--glass-ink) / var(--glass-a1, 0.09)) 0%,
+        rgb(var(--glass-ink) / var(--glass-a2, 0.03)) 50%,
+        rgb(var(--glass-ink) / var(--glass-a3, 0.06)) 100%
+      ),
+      rgb(var(--surface-2) / 0.6);
     backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.07),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.02);
+      0 8px 32px rgb(var(--shadow-ink) / var(--shadow-a1, 0.18)),
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.07),
+      inset 0 -1px 0 rgb(var(--highlight-ink) / 0.02),
+      0 0 0 1px rgb(var(--glass-ink) / 0.06);
+  }
+  /* Light-mode gets a touch more density and a slightly deeper base
+     so cards read as elegant frosted panels, not washed out. */
+  :root .glass-card {
+    --glass-a1: 0.04;
+    --glass-a2: 0.02;
+    --glass-a3: 0.03;
+    --shadow-a1: 0.06;
+    background:
+      linear-gradient(
+        145deg,
+        rgb(255 255 255 / 0.85) 0%,
+        rgb(255 255 255 / 0.72) 50%,
+        rgb(255 255 255 / 0.80) 100%
+      );
+    box-shadow:
+      0 8px 24px rgb(var(--shadow-ink) / 0.06),
+      0 2px 6px rgb(var(--shadow-ink) / 0.04),
+      inset 0 1px 0 rgb(255 255 255 / 0.8),
+      0 0 0 1px rgb(var(--glass-ink) / 0.06);
+  }
+  .dark .glass-card {
+    --glass-a1: 0.09;
+    --glass-a2: 0.03;
+    --glass-a3: 0.06;
+    --shadow-a1: 0.35;
   }
 
   .glass-card::before {
@@ -155,53 +272,81 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 35%);
+    background: linear-gradient(
+      180deg,
+      rgb(var(--highlight-ink) / 0.07) 0%,
+      transparent 35%
+    );
     pointer-events: none;
-  }
-
-  .glass-card:hover {
-    /* no border change on hover */
   }
 
   .glass-card-interactive {
     @apply glass-card cursor-pointer transition-all duration-300;
   }
-
   .glass-card-interactive:hover {
     transform: translateY(-2px);
     box-shadow:
-      0 16px 48px rgba(0, 0, 0, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.03);
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.045) 100%);
+      0 16px 48px rgb(var(--shadow-ink) / 0.22),
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.10),
+      inset 0 -1px 0 rgb(var(--highlight-ink) / 0.03),
+      0 0 0 1px rgb(var(--glass-ink) / 0.10);
+  }
+  :root .glass-card-interactive:hover {
+    box-shadow:
+      0 16px 40px rgb(var(--shadow-ink) / 0.10),
+      0 4px 10px rgb(var(--shadow-ink) / 0.06),
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 0 0 1px rgb(var(--glass-ink) / 0.10);
   }
 
-  /* ---- Glass Input ---- */
+  /* ────────── Glass Inputs ────────── */
   .glass-input {
-    @apply w-full rounded-2xl border-0 px-4 py-3 text-sm text-white
-      placeholder-white/25 outline-none transition-all duration-200;
-    background: rgba(4, 10, 10, 0.6);
+    @apply w-full rounded-2xl border-0 px-4 py-3 text-sm outline-none transition-all duration-200;
+    color: rgb(var(--ink));
+    background: rgb(var(--surface-1) / 0.85);
     backdrop-filter: blur(12px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.04),
+      0 0 0 1px rgb(var(--glass-ink) / 0.08);
   }
-
+  :root .glass-input {
+    background: rgb(255 255 255 / 0.9);
+    box-shadow:
+      inset 0 1px 2px rgb(var(--shadow-ink) / 0.04),
+      0 0 0 1px rgb(var(--glass-ink) / 0.10);
+  }
+  .dark .glass-input {
+    background: rgb(var(--surface-3) / 0.6);
+  }
+  .glass-input::placeholder {
+    color: rgb(var(--ink) / 0.35);
+  }
+  .glass-input:hover {
+    box-shadow:
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.05),
+      0 0 0 1px rgb(var(--glass-ink) / 0.14);
+  }
   .glass-input:focus {
-    box-shadow: 0 0 20px rgba(73, 220, 122, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 0 0 2px rgb(var(--mint-ink) / 0.25),
+      0 0 20px rgb(var(--mint-ink) / 0.10),
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.05);
   }
 
   .glass-select {
-    @apply glass-input appearance-none cursor-pointer border-0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    @apply glass-input appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 14px center;
     padding-right: 44px;
   }
-
-  .glass-select:focus {
-    box-shadow: 0 0 20px rgba(73, 220, 122, 0.08);
+  .glass-select option {
+    background: rgb(var(--surface-1));
+    color: rgb(var(--ink));
   }
 
-  /* ---- Premium Buttons ---- */
+  /* ────────── Premium Buttons ────────── */
   .btn-premium {
     @apply relative inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3
       text-sm font-semibold tracking-wide transition-all duration-300 overflow-hidden;
@@ -209,64 +354,73 @@
   }
 
   .btn-primary-mint {
-    @apply btn-premium text-dark-900;
+    @apply btn-premium;
+    color: #0A1E18;
     background: linear-gradient(135deg, #49DC7A 0%, #2DB85C 100%);
-    box-shadow: 0 4px 20px rgba(73, 220, 122, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    box-shadow:
+      0 4px 20px rgba(73, 220, 122, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
-
   .btn-primary-mint:hover {
-    box-shadow: 0 8px 32px rgba(73, 220, 122, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 8px 32px rgba(73, 220, 122, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
     transform: translateY(-1px);
   }
-
-  .btn-primary-mint:active {
-    transform: translateY(0);
-  }
+  .btn-primary-mint:active { transform: translateY(0); }
 
   .btn-primary-orange {
     @apply btn-premium text-white;
+    color: #fff;
     background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
-    box-shadow: 0 4px 20px rgba(249, 115, 22, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    box-shadow:
+      0 4px 20px rgba(249, 115, 22, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
-
   .btn-primary-orange:hover {
-    box-shadow: 0 8px 32px rgba(249, 115, 22, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 8px 32px rgba(249, 115, 22, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
     transform: translateY(-1px);
   }
 
   .btn-ghost {
-    @apply btn-premium text-white/70;
-    background: rgba(255, 255, 255, 0.04);
+    @apply btn-premium;
+    color: rgb(var(--ink) / 0.7);
+    background: rgb(var(--glass-ink) / 0.07);
     backdrop-filter: blur(12px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.06),
+      0 0 0 1px rgb(var(--glass-ink) / 0.08);
   }
-
   .btn-ghost:hover {
-    @apply text-white;
-    background: rgba(255, 255, 255, 0.07);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    color: rgb(var(--ink));
+    background: rgb(var(--glass-ink) / 0.12);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.06),
+      0 0 0 1px rgb(var(--glass-ink) / 0.14);
   }
 
-  /* ---- Badge ---- */
+  /* ────────── Badge ────────── */
   .badge-glass {
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
-    background: rgba(255, 255, 255, 0.06);
-    border: none;
+    background: rgb(var(--glass-ink) / 0.09);
     backdrop-filter: blur(12px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: inset 0 1px 0 rgb(var(--highlight-ink) / 0.06);
   }
 
-  /* ---- KPI Value ---- */
+  /* ────────── KPI Value ────────── */
   .kpi-value {
     @apply text-3xl font-bold tracking-tight;
     font-family: 'Outfit', system-ui, sans-serif;
   }
 
-  /* ---- Glow Borders ---- */
+  /* ────────── Glow Borders ────────── */
   .glow-border-mint {
     position: relative;
   }
-
   .glow-border-mint::after {
     content: '';
     position: absolute;
@@ -284,7 +438,6 @@
     mask-composite: exclude;
     pointer-events: none;
   }
-
   .glow-border-orange::after {
     content: '';
     position: absolute;
@@ -303,23 +456,21 @@
     pointer-events: none;
   }
 
-  /* ---- Text Gradients ---- */
+  /* ────────── Text Gradients ────────── */
   .text-gradient-mint {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, #49DC7A, #22F2EF);
   }
-
   .text-gradient-orange {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, #F97316, #FB923C);
   }
-
   .text-gradient-premium {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, #49DC7A 0%, #22F2EF 50%, #49DC7A 100%);
   }
 
-  /* ---- Ambient Glow ---- */
+  /* ────────── Ambient Glow (top) ────────── */
   .ambient-glow {
     position: fixed;
     top: 0;
@@ -327,31 +478,68 @@
     right: 0;
     height: 800px;
     background:
-      radial-gradient(ellipse at 25% -15%, rgba(73, 220, 122, 0.07) 0%, transparent 55%),
-      radial-gradient(ellipse at 75% -10%, rgba(34, 242, 239, 0.04) 0%, transparent 45%),
-      radial-gradient(ellipse at 50% 20%, rgba(73, 220, 122, 0.02) 0%, transparent 60%);
+      radial-gradient(ellipse at 25% -15%, rgba(73, 220, 122, 0.14) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% -10%, rgba(34, 242, 239, 0.08) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 20%, rgba(73, 220, 122, 0.05) 0%, transparent 60%);
     pointer-events: none;
     z-index: 0;
   }
+  :root .ambient-glow {
+    background:
+      radial-gradient(ellipse at 25% -15%, rgba(73, 220, 122, 0.08) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% -10%, rgba(34, 242, 239, 0.05) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 20%, rgba(249, 115, 22, 0.03) 0%, transparent 60%);
+  }
 
-  /* ---- Recharts Premium Styles ---- */
+  /* ────────── Recharts premium styles ──────────
+     Use theme vars — no more white-only hardcodes. */
   .recharts-cartesian-grid-horizontal line,
   .recharts-cartesian-grid-vertical line {
-    stroke: rgba(255, 255, 255, 0.04) !important;
+    stroke: rgb(var(--chart-grid) / 0.08) !important;
+  }
+  :root .recharts-cartesian-grid-horizontal line,
+  :root .recharts-cartesian-grid-vertical line {
+    stroke: rgb(var(--chart-grid) / 0.10) !important;
   }
 
   .recharts-text {
-    fill: rgba(255, 255, 255, 0.35) !important;
+    fill: rgb(var(--chart-text) / 0.55) !important;
     font-family: 'Outfit', system-ui, sans-serif !important;
     font-size: 11px !important;
   }
-
-  .recharts-tooltip-wrapper {
-    outline: none !important;
+  /* Neutralize per-chart inline axis-line/tick-line strokes so themes match */
+  .recharts-cartesian-axis-line,
+  .recharts-cartesian-axis-tick-line,
+  .recharts-xAxis .recharts-cartesian-axis-line,
+  .recharts-yAxis .recharts-cartesian-axis-line {
+    stroke: rgb(var(--chart-grid) / 0.12) !important;
   }
-
+  .recharts-tooltip-wrapper { outline: none !important; }
   .recharts-legend-item-text {
     font-family: 'Outfit', system-ui, sans-serif !important;
-    color: rgba(255, 255, 255, 0.5) !important;
+    color: rgb(var(--ink) / 0.6) !important;
+  }
+  .recharts-default-legend .recharts-legend-item {
+    color: rgb(var(--ink) / 0.6) !important;
+  }
+
+  /* ────────── Map tile container tint (light mode softens GL canvas) ────────── */
+  .map-tile-fade {
+    background: rgb(var(--page-base));
+  }
+
+  /* ────────── Light-mode lift for custom panels ──────────
+     Many pages build premium panels with
+       `bg-gradient-to-br from-dark-850/80 ... backdrop-blur-xl`
+     In dark mode this paints a rich green gradient. In light mode
+     the same tokens resolve to nearly-white surfaces, so without
+     a shadow the panels would visually dissolve into the page
+     background. This rule quietly lifts such panels off the page. */
+  :root [class*="backdrop-blur-xl"][class*="from-dark-"],
+  :root [class*="backdrop-blur-xl"][class*="to-dark-"],
+  :root [class*="backdrop-blur-xl"][class*="via-dark-"] {
+    box-shadow:
+      0 6px 24px rgb(var(--shadow-ink) / 0.06),
+      0 1px 3px rgb(var(--shadow-ink) / 0.04);
   }
 }
