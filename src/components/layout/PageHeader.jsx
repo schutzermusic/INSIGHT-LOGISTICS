@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 import { Badge } from '../ui/Badge';
 
-export function PageHeader({ title, subtitle, badge, badgeVariant = 'mint', icon: Icon, children, className }) {
+export function PageHeader({ title, subtitle, badge, badgeVariant = 'success', icon: Icon, children, className }) {
   return (
     <div className={clsx('flex items-start justify-between mb-8', className)}>
       <div>

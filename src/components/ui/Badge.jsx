@@ -1,38 +1,71 @@
 import { clsx } from 'clsx';
 
 const variants = {
-  default: 'bg-white/[0.06] text-white/60',
-  mint: 'bg-mint/10 text-mint',
-  orange: 'bg-accent-orange/10 text-accent-orange',
-  cyan: 'bg-accent-cyan/10 text-accent-cyan',
-  blue: 'bg-accent-blue/10 text-accent-blue',
-  purple: 'bg-accent-purple/10 text-accent-purple',
-  red: 'bg-accent-red/10 text-accent-red',
-  amber: 'bg-accent-amber/10 text-accent-amber',
+  neutral: 'bg-white/[0.06] text-white/60 border border-white/[0.08]',
+  success: 'bg-success-bg/70 text-success-text border border-success-border/25 shadow-[0_0_14px_rgb(var(--color-success-glow)/0.08)]',
+  warning: 'bg-warning-bg/70 text-warning-text border border-warning-border/25 shadow-[0_0_14px_rgb(var(--color-warning-glow)/0.08)]',
+  danger: 'bg-danger-bg/70 text-danger-text border border-danger-border/25 shadow-[0_0_14px_rgb(var(--color-danger-glow)/0.08)]',
+  info: 'bg-info-bg/70 text-info-text border border-info-border/25 shadow-[0_0_14px_rgb(var(--color-info-glow)/0.08)]',
+  accent: 'bg-accent-bg/70 text-accent-text border border-accent-border/25 shadow-[0_0_14px_rgb(var(--color-accent-glow)/0.08)]',
 };
 
-export function Badge({ children, variant = 'default', className, dot }) {
+const dotVariants = {
+  neutral: 'bg-white/45',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+  info: 'bg-info',
+  accent: 'bg-accent',
+};
+
+const textVariants = {
+  neutral: 'text-white/60',
+  success: 'text-success-text',
+  warning: 'text-warning-text',
+  danger: 'text-danger-text',
+  info: 'text-info-text',
+  accent: 'text-accent-text',
+};
+
+const aliases = {
+  default: 'neutral',
+  mint: 'success',
+  orange: 'accent',
+  cyan: 'info',
+  blue: 'info',
+  purple: 'accent',
+  red: 'danger',
+  amber: 'warning',
+};
+
+function resolveVariant(variant) {
+  return aliases[variant] || variant || 'neutral';
+}
+
+export function Badge({ children, variant = 'neutral', className, dot, compact = false }) {
+  const resolvedVariant = resolveVariant(variant);
+
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold tabular-data',
-        'backdrop-blur-sm',
-        variants[variant],
+        compact
+          ? 'inline-flex items-center gap-2 rounded-full px-0 py-0 text-[11px] font-semibold tabular-data'
+          : 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold tabular-data backdrop-blur-sm',
+        compact
+          ? textVariants[resolvedVariant] || textVariants.neutral
+          : variants[resolvedVariant] || variants.neutral,
         className
       )}
     >
       {dot && (
-        <span className={clsx(
-          'w-1.5 h-1.5 rounded-full',
-          variant === 'mint' && 'bg-mint',
-          variant === 'orange' && 'bg-accent-orange',
-          variant === 'cyan' && 'bg-accent-cyan',
-          variant === 'blue' && 'bg-accent-blue',
-          variant === 'purple' && 'bg-accent-purple',
-          variant === 'red' && 'bg-accent-red',
-          variant === 'amber' && 'bg-accent-amber',
-          variant === 'default' && 'bg-white/40',
-        )} />
+        <span
+          className={clsx(
+            compact
+              ? 'w-2 h-2 rounded-full shadow-[0_0_0_2px_rgb(var(--background))]'
+              : 'w-1.5 h-1.5 rounded-full',
+            dotVariants[resolvedVariant] || dotVariants.neutral,
+          )}
+        />
       )}
       {children}
     </span>

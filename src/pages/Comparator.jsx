@@ -14,23 +14,18 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { ChartTooltip } from '../components/charts/ChartTooltip';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 import { MagneticWrap } from '../components/ui/MagneticWrap';
+import { CHART_PALETTE, COST_BREAKDOWN_COLORS, getComparatorScenarioAccent } from '../lib/chartTheme';
 
 const SCENARIOS = [
-  { key: 'onibus', label: 'Onibus', icon: Bus, color: '#F59E0B', defaultTime: 24, defaultFare: 250 },
-  { key: 'aereo', label: 'Aereo', icon: Plane, color: '#3B82F6', defaultTime: 4, defaultFare: 1200 },
-  { key: 'veiculo', label: 'Veiculo/Frota', icon: Car, color: '#A855F7', defaultTime: 12, defaultFare: 0 },
+  { key: 'onibus', label: 'Onibus', icon: Bus, color: CHART_PALETTE.amber, defaultTime: 24, defaultFare: 250 },
+  { key: 'aereo', label: 'Aereo', icon: Plane, color: CHART_PALETTE.cyan, defaultTime: 4, defaultFare: 1200 },
+  { key: 'veiculo', label: 'Veiculo/Frota', icon: Car, color: CHART_PALETTE.violet, defaultTime: 12, defaultFare: 0 },
 ];
 
 const SCENARIO_ICON_MAP = {
   'Onibus': Bus,
   'Aereo': Plane,
   'Veiculo/Frota': Car,
-};
-
-const SCENARIO_COLOR_MAP = {
-  'Onibus': '#F59E0B',
-  'Aereo': '#3B82F6',
-  'Veiculo/Frota': '#A855F7',
 };
 
 export default function Comparator() {
@@ -142,14 +137,8 @@ export default function Comparator() {
 
             <div className="flex items-center gap-4">
               {/* Analysis engine status */}
-              <div className="surface-recessed flex items-center gap-3 px-4 py-2 rounded-xl">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-cyan/60 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-cyan" />
-                </span>
-                <span className="label-micro text-white/40">Motor Comparativo</span>
-              </div>
-              <Badge variant="blue" dot>{collaborators.length} colaborador(es)</Badge>
+              <Badge variant="accent" dot compact>Motor Comparativo</Badge>
+              <Badge variant="info" dot>{collaborators.length} colaborador(es)</Badge>
             </div>
           </div>
 
@@ -336,7 +325,7 @@ export default function Comparator() {
                     <p className="body text-[13px] mt-1">Recomendacao baseada em custo-beneficio</p>
                   </div>
                 </div>
-                <Badge variant="mint" dot className="text-xs px-4 py-1.5">
+                <Badge variant="success" dot className="text-xs px-4 py-1.5">
                   <Trophy className="w-3 h-3 mr-1" />
                   Melhor Opcao: {analysis.melhor.nome}
                 </Badge>
@@ -358,7 +347,7 @@ export default function Comparator() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="display-md text-mint">{analysis.melhor.nome}</h3>
-                      <Badge variant="mint">RECOMENDADO</Badge>
+                      <Badge variant="success">RECOMENDADO</Badge>
                     </div>
                     <p className="body text-[15px] mb-4">{analysis.recomendacao}</p>
                     <div className="flex items-center gap-6">
@@ -400,7 +389,7 @@ export default function Comparator() {
                   value={formatCurrency(analysis.pior.resumo.custoTotalEquipe)}
                   detail={analysis.pior.nome}
                   icon={DollarSign}
-                  color="orange"
+                  color="accent"
                   border
                 />
                 <MetricCell
@@ -408,7 +397,7 @@ export default function Comparator() {
                   value={formatCurrency(analysis.economia)}
                   detail="Diferenca entre melhor e pior"
                   icon={Zap}
-                  color="cyan"
+                  color="info"
                   border
                   highlight
                 />
@@ -417,7 +406,7 @@ export default function Comparator() {
                   value={formatHours(analysis.maisRapido.resumo.horasTransito)}
                   detail={analysis.maisRapido.nome}
                   icon={Clock}
-                  color="blue"
+                  color="neutral"
                   border
                 />
               </div>
@@ -431,7 +420,7 @@ export default function Comparator() {
             {analysis.cenarios.map((c, i) => {
               const isBest = c.nome === bestName;
               const isFastest = c.nome === fastestName;
-              const scenarioColor = SCENARIO_COLOR_MAP[c.nome] || '#3B82F6';
+              const scenarioColor = getComparatorScenarioAccent(c.nome, bestName);
               const ScenarioIcon = SCENARIO_ICON_MAP[c.nome] || BarChart3;
 
               return (
@@ -467,8 +456,8 @@ export default function Comparator() {
                         <h3 className={`heading ${isBest ? 'text-mint' : 'text-white/80'}`}>{c.nome}</h3>
                       </div>
                       <div className="flex gap-1.5">
-                        {isBest && <Badge variant="mint" dot>Melhor Custo</Badge>}
-                        {isFastest && <Badge variant="blue" dot>Mais Rapido</Badge>}
+                        {isBest && <Badge variant="success" dot compact>Melhor Custo</Badge>}
+                        {isFastest && <Badge variant="info" dot compact>Mais Rapido</Badge>}
                       </div>
                     </div>
 
@@ -492,9 +481,9 @@ export default function Comparator() {
                     <div className="mt-4 pt-4 border-t border-white/[0.04]">
                       <div className="flex items-center justify-between">
                         <span className="label-micro text-white/30">Tempo de Transito</span>
-                        <span className={`tabular-data text-sm font-bold ${isFastest ? 'text-accent-blue' : 'text-white/60'}`}>
+                        <span className={`tabular-data text-sm font-bold ${isFastest ? 'text-info-text' : 'text-white/60'}`}>
                           {formatHours(c.resumo.horasTransito)}
-                          {isFastest && <span className="ml-1.5 text-[10px] text-accent-blue/60">(ida)</span>}
+                          {isFastest && <span className="ml-1.5 text-[10px] text-info-text/70">(ida)</span>}
                         </span>
                       </div>
                     </div>
@@ -533,8 +522,8 @@ export default function Comparator() {
 
                   {/* Time savings */}
                   <div className="surface-recessed rounded-xl border border-accent-blue/[0.08] bg-accent-blue/[0.02] p-4">
-                    <span className="label-micro text-accent-blue/50">Diferenca de Tempo</span>
-                    <div className="metric-value text-accent-blue mt-2">
+                    <span className="label-micro text-info-text/70">Diferenca de Tempo</span>
+                    <div className="metric-value text-info-text mt-2">
                       {formatHours(Math.abs(analysis.melhor.resumo.horasTransito - analysis.maisRapido.resumo.horasTransito))}
                     </div>
                     <p className="body text-[13px] mt-2">
@@ -578,16 +567,16 @@ export default function Comparator() {
               <div className="h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                    <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 12 }} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} />
-                    <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} />
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
                     <Tooltip content={<ChartTooltip formatter={(v) => formatCurrency(v)} />} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
-                    <Bar dataKey="Horas Trabalhadas" stackId="a" fill="#3B82F6" fillOpacity={0.7} />
-                    <Bar dataKey="Deslocamento" stackId="a" fill="#F59E0B" fillOpacity={0.7} />
-                    <Bar dataKey="Passagens" stackId="a" fill="#A855F7" fillOpacity={0.7} />
-                    <Bar dataKey="Hosp + Alim" stackId="a" fill="#49DC7A" fillOpacity={0.7} />
-                    <Bar dataKey="Logistico" stackId="a" fill="#EF4444" fillOpacity={0.7} radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="Horas Trabalhadas" stackId="a" fill={COST_BREAKDOWN_COLORS['Horas Trabalhadas']} fillOpacity={0.76} />
+                    <Bar dataKey="Deslocamento" stackId="a" fill={COST_BREAKDOWN_COLORS.Deslocamento} fillOpacity={0.76} />
+                    <Bar dataKey="Passagens" stackId="a" fill={COST_BREAKDOWN_COLORS.Passagens} fillOpacity={0.76} />
+                    <Bar dataKey="Hosp + Alim" stackId="a" fill={COST_BREAKDOWN_COLORS['Hosp + Alim']} fillOpacity={0.76} />
+                    <Bar dataKey="Logistico" stackId="a" fill={COST_BREAKDOWN_COLORS.Logistico} fillOpacity={0.76} radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -614,11 +603,11 @@ export default function Comparator() {
                       {analysis.cenarios.map((c, i) => {
                         const isBest = c.nome === bestName;
                         const ScIcon = SCENARIO_ICON_MAP[c.nome] || BarChart3;
-                        const scColor = SCENARIO_COLOR_MAP[c.nome] || '#3B82F6';
+                        const scColor = getComparatorScenarioAccent(c.nome, bestName);
                         return (
                           <th key={i} className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <ScIcon className="w-3.5 h-3.5" style={{ color: isBest ? '#49DC7A' : scColor }} />
+                              <ScIcon className="w-3.5 h-3.5" style={{ color: scColor }} />
                               <span className={`label-micro ${isBest ? 'text-mint/60' : 'text-white/20'}`}>
                                 {c.nome}
                               </span>
@@ -690,12 +679,16 @@ export default function Comparator() {
 
 function MetricCell({ label, value, detail, icon: Icon, color, border, highlight }) {
   const colors = {
-    mint: { icon: 'text-mint', value: 'text-mint', bg: 'bg-mint/10' },
-    cyan: { icon: 'text-accent-cyan', value: 'text-accent-cyan', bg: 'bg-accent-cyan/10' },
-    orange: { icon: 'text-accent-orange', value: 'text-accent-orange', bg: 'bg-accent-orange/10' },
-    blue: { icon: 'text-accent-blue', value: 'text-accent-blue', bg: 'bg-accent-blue/10' },
+    success: { icon: 'text-success-text', value: 'text-success-text', bg: 'bg-success-bg' },
+    info: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
+    accent: { icon: 'text-accent-text', value: 'text-accent-text', bg: 'bg-accent-bg' },
+    neutral: { icon: 'text-white/50', value: 'text-white/70', bg: 'bg-white/[0.06]' },
+    mint: { icon: 'text-success-text', value: 'text-success-text', bg: 'bg-success-bg' },
+    cyan: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
+    orange: { icon: 'text-accent-text', value: 'text-accent-text', bg: 'bg-accent-bg' },
+    blue: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
   };
-  const c = colors[color] || colors.mint;
+  const c = colors[color] || colors.success;
 
   return (
     <div className={`relative px-6 py-6 ${border ? 'border-l border-white/[0.04]' : ''}`}>

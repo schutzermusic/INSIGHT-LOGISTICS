@@ -2,32 +2,32 @@ import { clsx } from 'clsx';
 
 const accents = {
   mint: {
-    icon: 'text-mint bg-mint/10',
-    value: 'text-mint',
+    icon: 'text-success-text bg-success-bg',
+    value: 'text-success-text',
     glow: 'shadow-glow-mint',
     border: '',
-    topLine: 'from-transparent via-mint/30 to-transparent',
+    topLine: 'from-transparent via-success-border/45 to-transparent',
   },
   orange: {
-    icon: 'text-accent-orange bg-accent-orange/10',
-    value: 'text-accent-orange',
+    icon: 'text-accent-text bg-accent-bg',
+    value: 'text-accent-text',
     glow: 'shadow-glow-orange',
     border: '',
-    topLine: 'from-transparent via-accent-orange/30 to-transparent',
+    topLine: 'from-transparent via-accent-border/45 to-transparent',
   },
   cyan: {
-    icon: 'text-accent-cyan bg-accent-cyan/10',
-    value: 'text-accent-cyan',
+    icon: 'text-info-text bg-info-bg',
+    value: 'text-info-text',
     glow: '',
     border: '',
-    topLine: 'from-transparent via-accent-cyan/30 to-transparent',
+    topLine: 'from-transparent via-info-border/45 to-transparent',
   },
   blue: {
-    icon: 'text-accent-blue bg-accent-blue/10',
-    value: 'text-accent-blue',
+    icon: 'text-info-text bg-info-bg',
+    value: 'text-info-text',
     glow: '',
     border: '',
-    topLine: 'from-transparent via-accent-blue/30 to-transparent',
+    topLine: 'from-transparent via-info-border/45 to-transparent',
   },
   purple: {
     icon: 'text-accent-purple bg-accent-purple/10',
@@ -37,11 +37,11 @@ const accents = {
     topLine: 'from-transparent via-accent-purple/30 to-transparent',
   },
   amber: {
-    icon: 'text-accent-amber bg-accent-amber/10',
-    value: 'text-accent-amber',
+    icon: 'text-warning-text bg-warning-bg',
+    value: 'text-warning-text',
     glow: '',
     border: '',
-    topLine: 'from-transparent via-accent-amber/30 to-transparent',
+    topLine: 'from-transparent via-warning-border/45 to-transparent',
   },
 };
 

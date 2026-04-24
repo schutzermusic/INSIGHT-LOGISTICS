@@ -21,8 +21,9 @@ import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 import { MagneticWrap } from '../components/ui/MagneticWrap';
 import BrazilMap, { buildMapRoutes, buildMapPoints } from '../components/map/BrazilMap';
 import { useSpotlight } from '../hooks/useSpotlight';
+import { CHART_SEQUENCE } from '../lib/chartTheme';
 
-const CHART_COLORS = ['#49DC7A', '#F97316', '#22F2EF', '#A855F7', '#3B82F6', '#EF4444'];
+const CHART_COLORS = CHART_SEQUENCE;
 
 export default function Dashboard() {
   const { collaborators } = useCollaborators();
@@ -347,7 +348,7 @@ export default function Dashboard() {
                   <p className="body text-[13px] mt-1">Tendencia das ultimas mobilizacoes</p>
                 </div>
               </div>
-              <Badge variant="mint" dot>Tempo real</Badge>
+              <Badge variant="success" dot>Tempo real</Badge>
             </div>
 
             {trendData.length > 1 ? (
@@ -396,7 +397,7 @@ export default function Dashboard() {
                 </div>
               </div>
               {mapPoints.length > 0 && (
-                <Badge variant="cyan" className="tabular-data">{mapPoints.length} pontos</Badge>
+                <Badge variant="info" className="tabular-data">{mapPoints.length} pontos</Badge>
               )}
             </div>
 
@@ -609,7 +610,7 @@ export default function Dashboard() {
                   <p className="body text-[13px] mt-1">Recomendacoes inteligentes baseadas nos seus dados</p>
                 </div>
               </div>
-              <Badge variant="purple" dot>{aiInsights.length} insight(s)</Badge>
+              <Badge variant="accent" dot>{aiInsights.length} insight(s)</Badge>
             </div>
 
             <div className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -677,7 +678,11 @@ export default function Dashboard() {
                       <span className="body text-[13px] font-medium text-white/80 block truncate">{sim.nome || 'Simulacao'}</span>
                       <span className="label-micro mt-1 block">{sim.origem || '—'} → {sim.destino || '—'}</span>
                     </div>
-                    <Badge variant={sim.modal === 'Aereo' ? 'blue' : sim.modal === 'Onibus' ? 'amber' : 'purple'}>
+                    <Badge
+                      variant={sim.modal === 'Aereo' ? 'info' : sim.modal === 'Onibus' ? 'warning' : 'accent'}
+                      dot
+                      compact
+                    >
                       {sim.modal || '—'}
                     </Badge>
                     <span className="label-micro text-white/25 w-20 text-right tabular-data">{sim.qtdColaboradores || '—'} pessoa(s)</span>
@@ -738,10 +743,10 @@ export default function Dashboard() {
 
 function MetricCell({ label, value, detail, icon: Icon, color, border, highlight }) {
   const colors = {
-    mint: { icon: 'text-mint', value: 'text-mint', bg: 'bg-mint/10' },
-    cyan: { icon: 'text-accent-cyan', value: 'text-accent-cyan', bg: 'bg-accent-cyan/10' },
-    orange: { icon: 'text-accent-orange', value: 'text-accent-orange', bg: 'bg-accent-orange/10' },
-    blue: { icon: 'text-accent-blue', value: 'text-accent-blue', bg: 'bg-accent-blue/10' },
+    mint: { icon: 'text-success-text', value: 'text-success-text', bg: 'bg-success-bg' },
+    cyan: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
+    orange: { icon: 'text-accent-text', value: 'text-accent-text', bg: 'bg-accent-bg' },
+    blue: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
   };
   const c = colors[color] || colors.mint;
 
@@ -776,7 +781,7 @@ function InsightRow({ label, value, highlight }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-white/[0.03] last:border-0">
       <span className="body text-[13px]">{label}</span>
-      <span className={`tabular-data text-[13px] font-semibold ${highlight ? 'text-mint' : 'text-white/70'}`}>{value}</span>
+      <span className={`tabular-data text-[13px] font-semibold ${highlight ? 'text-success-text' : 'text-white/70'}`}>{value}</span>
     </div>
   );
 }
@@ -784,36 +789,36 @@ function InsightRow({ label, value, highlight }) {
 function AIInsightCard({ type, icon: Icon, title, text }) {
   const styles = {
     success: {
-      bg: 'bg-mint/[0.04]',
-      border: 'border-mint/10',
-      iconBg: 'bg-mint/[0.08]',
-      iconColor: 'text-mint/70',
-      titleColor: 'text-mint/90',
-      textColor: 'text-mint/60',
+      bg: 'bg-success-bg/60',
+      border: 'border-success-border/20',
+      iconBg: 'bg-success-bg',
+      iconColor: 'text-success-text',
+      titleColor: 'text-success-text',
+      textColor: 'text-success-text/70',
     },
     info: {
-      bg: 'bg-accent-blue/[0.04]',
-      border: 'border-accent-blue/10',
-      iconBg: 'bg-accent-blue/[0.08]',
-      iconColor: 'text-accent-blue/70',
-      titleColor: 'text-accent-blue/90',
-      textColor: 'text-accent-blue/60',
+      bg: 'bg-info-bg/60',
+      border: 'border-info-border/20',
+      iconBg: 'bg-info-bg',
+      iconColor: 'text-info-text',
+      titleColor: 'text-info-text',
+      textColor: 'text-info-text/70',
     },
     warning: {
-      bg: 'bg-accent-orange/[0.04]',
-      border: 'border-accent-orange/10',
-      iconBg: 'bg-accent-orange/[0.08]',
-      iconColor: 'text-accent-orange/70',
-      titleColor: 'text-accent-orange/90',
-      textColor: 'text-accent-orange/60',
+      bg: 'bg-warning-bg/60',
+      border: 'border-warning-border/20',
+      iconBg: 'bg-warning-bg',
+      iconColor: 'text-warning-text',
+      titleColor: 'text-warning-text',
+      textColor: 'text-warning-text/70',
     },
     suggestion: {
-      bg: 'bg-accent-purple/[0.04]',
-      border: 'border-accent-purple/10',
-      iconBg: 'bg-accent-purple/[0.08]',
-      iconColor: 'text-accent-purple/70',
-      titleColor: 'text-accent-purple/90',
-      textColor: 'text-accent-purple/60',
+      bg: 'bg-accent-bg/60',
+      border: 'border-accent-border/20',
+      iconBg: 'bg-accent-bg',
+      iconColor: 'text-accent-text',
+      titleColor: 'text-accent-text',
+      textColor: 'text-accent-text/70',
     },
   };
   const s = styles[type] || styles.info;

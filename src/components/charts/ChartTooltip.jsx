@@ -18,7 +18,7 @@ export function ChartTooltip({
   if (!active || !payload?.length) return null;
 
   const primary = payload[0];
-  const accent = accentColor || primary?.color || primary?.fill || '#49DC7A';
+  const accent = accentColor || primary?.color || primary?.fill || 'rgb(var(--color-success))';
   const displayLabel = labelFormatter ? labelFormatter(label) : label;
 
   return (
@@ -79,7 +79,7 @@ export function ChartTooltip({
 
 // Tiny helper: hex / rgb(a) → rgba with custom alpha for glow effects.
 function hexToRgba(color, alpha) {
-  if (!color) return `rgba(73, 220, 122, ${alpha})`;
+  if (!color) return `rgba(var(--color-success), ${alpha})`;
   if (color.startsWith('rgba')) return color.replace(/[\d.]+\)$/, `${alpha})`);
   if (color.startsWith('rgb(')) return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
   const hex = color.replace('#', '');

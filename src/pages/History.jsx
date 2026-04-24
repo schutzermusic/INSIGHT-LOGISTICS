@@ -11,9 +11,9 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 
 const TYPE_CONFIG = {
-  'ai-analysis': { label: 'AI', badge: 'purple', icon: Bot },
-  'comparison': { label: 'Comparacao', badge: 'amber', icon: BarChart3 },
-  'default': { label: 'Simulacao', badge: 'blue', icon: Clock },
+  'ai-analysis': { label: 'AI', badge: 'accent', icon: Bot },
+  'comparison': { label: 'Comparacao', badge: 'warning', icon: BarChart3 },
+  'default': { label: 'Simulacao', badge: 'info', icon: Clock },
 };
 
 export default function History() {
@@ -84,9 +84,9 @@ export default function History() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant="blue" dot>{simulations.length} registro(s)</Badge>
+              <Badge variant="info" dot>{simulations.length} registro(s)</Badge>
               {simulations.length > 0 && (
-                <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold text-accent-red/50 hover:text-accent-red hover:bg-accent-red/10 transition-all" onClick={handleClear}>
+                <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold text-danger-text/70 hover:text-danger-text hover:bg-danger-bg/70 transition-all" onClick={handleClear}>
                   <Trash2 className="w-3.5 h-3.5" /> Limpar
                 </button>
               )}
@@ -146,7 +146,7 @@ export default function History() {
                 <option value="Aereo">Aereo</option>
                 <option value="Veiculo">Veiculo</option>
               </select>
-              <Badge variant="default" className="ml-auto">{filtered.length} resultado(s)</Badge>
+              <Badge variant="neutral" className="ml-auto">{filtered.length} resultado(s)</Badge>
             </div>
           </section>
 
@@ -176,9 +176,9 @@ export default function History() {
                           className="w-full px-4 py-4 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"
                           onClick={() => setExpanded(isExpanded ? null : sim.id)}
                         >
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${sim.type === 'ai-analysis' ? 'bg-accent-purple/10' : sim.type === 'comparison' ? 'bg-accent-amber/10' : 'bg-accent-blue/10'
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${sim.type === 'ai-analysis' ? 'bg-accent-bg/70' : sim.type === 'comparison' ? 'bg-warning-bg/70' : 'bg-info-bg/70'
                             }`}>
-                            <TypeIcon className={`w-4 h-4 ${sim.type === 'ai-analysis' ? 'text-accent-purple' : sim.type === 'comparison' ? 'text-accent-amber' : 'text-accent-blue'
+                            <TypeIcon className={`w-4 h-4 ${sim.type === 'ai-analysis' ? 'text-accent-text' : sim.type === 'comparison' ? 'text-warning-text' : 'text-info-text'
                               }`} />
                           </div>
 
@@ -198,13 +198,17 @@ export default function History() {
                           <Badge variant={typeConfig.badge}>{typeConfig.label}</Badge>
 
                           {sim.modal && (
-                            <Badge variant={sim.modal?.includes('Aereo') || sim.modal?.includes('reo') ? 'blue' : sim.modal?.includes('Onibus') || sim.modal?.includes('nibus') ? 'amber' : 'purple'}>
+                            <Badge
+                              variant={sim.modal?.includes('Aereo') || sim.modal?.includes('reo') ? 'info' : sim.modal?.includes('Onibus') || sim.modal?.includes('nibus') ? 'warning' : 'accent'}
+                              dot
+                              compact
+                            >
                               {sim.modal}
                             </Badge>
                           )}
 
                           <div className="text-right min-w-[100px]">
-                            <span className="tabular-data text-sm font-bold text-mint">
+                            <span className="tabular-data text-sm font-bold text-success-text">
                               {formatCurrency(sim.resumo?.custoTotalEquipe || 0)}
                             </span>
                             {sim.resumo?.horasTransito > 0 && (
@@ -214,7 +218,7 @@ export default function History() {
 
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(sim.id); }}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white/10 hover:text-accent-red hover:bg-accent-red/10 transition-all duration-200"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white/10 hover:text-danger-text hover:bg-danger-bg/70 transition-all duration-200"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>

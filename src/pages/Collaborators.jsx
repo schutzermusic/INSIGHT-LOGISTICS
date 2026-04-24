@@ -62,7 +62,7 @@ export default function Collaborators() {
         subtitle="Cadastre e gerencie os tecnicos e profissionais de campo"
         icon={Users}
         badge={`${collaborators.length} cadastrado(s)`}
-        badgeVariant="blue"
+        badgeVariant="info"
       >
         <LiquidMetalButton label="Novo Colaborador" width={180} onClick={openNew} />
       </PageHeader>
@@ -92,14 +92,14 @@ export default function Collaborators() {
                   return (
                     <tr key={c.id} className="border-b border-white/[0.04]/50 last:border-0 hover:bg-white/[0.02] transition-colors">
                       <td className="px-6 py-4 heading text-white">{c.nome}</td>
-                      <td className="px-6 py-4"><Badge variant="blue">{c.cargo}</Badge></td>
+                      <td className="px-6 py-4"><Badge variant="info">{c.cargo}</Badge></td>
                       <td className="px-6 py-4 text-sm text-white/50 tabular-data">{formatCurrency(c.salarioBase)}</td>
                       <td className="px-6 py-4 text-sm text-white/35 tabular-data">{c.cargaHoraria}h</td>
-                      <td className="px-6 py-4 text-sm text-mint font-medium tabular-data">{formatCurrency(rates.horaNormal)}</td>
-                      <td className="px-6 py-4 text-sm text-accent-amber font-medium tabular-data">{formatCurrency(rates.horaExtra50)}</td>
-                      <td className="px-6 py-4 text-sm text-accent-red font-medium tabular-data">{formatCurrency(rates.horaExtra100)}</td>
+                      <td className="px-6 py-4 text-sm text-success-text font-medium tabular-data">{formatCurrency(rates.horaNormal)}</td>
+                      <td className="px-6 py-4 text-sm text-warning-text font-medium tabular-data">{formatCurrency(rates.horaExtra50)}</td>
+                      <td className="px-6 py-4 text-sm text-danger-text font-medium tabular-data">{formatCurrency(rates.horaExtra100)}</td>
                       <td className="px-6 py-4 text-sm text-accent-purple font-medium tabular-data">{formatCurrency(rates.horaNoturna)}</td>
-                      <td className="px-6 py-4 text-sm text-accent-cyan font-medium tabular-data">{formatCurrency(rates.horaTecnica)}</td>
+                      <td className="px-6 py-4 text-sm text-info-text font-medium tabular-data">{formatCurrency(rates.horaTecnica)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
                           <button
@@ -110,7 +110,7 @@ export default function Collaborators() {
                           </button>
                           <button
                             onClick={() => handleDelete(c.id)}
-                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white/25 hover:text-accent-red hover:bg-accent-red/10 transition-all duration-200"
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white/25 hover:text-danger-text hover:bg-danger-bg/70 transition-all duration-200"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

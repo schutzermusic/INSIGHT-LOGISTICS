@@ -29,12 +29,13 @@ import BrazilMap, { latLngToSvg } from '../components/map/BrazilMap';
 const DeckGLMap = lazy(() => import('../components/map/DeckGLMap'));
 import { isGoogleMapsLoaded } from '../services/GoogleMapsLoader';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
+import { CHART_PALETTE, CHART_SEQUENCE, COST_BREAKDOWN_COLORS } from '../lib/chartTheme';
 
 const ROUTE_SCENARIO_ORDER = ['veiculo', 'aereo', 'onibus'];
 const ROUTE_SCENARIO_META = {
-  onibus: { label: 'Onibus', icon: Bus, color: '#F59E0B' },
-  aereo: { label: 'Aereo', icon: Plane, color: '#3B82F6' },
-  veiculo: { label: 'Veiculo/Frota', icon: Car, color: '#A855F7' },
+  onibus: { label: 'Onibus', icon: Bus, color: CHART_PALETTE.amber },
+  aereo: { label: 'Aereo', icon: Plane, color: CHART_PALETTE.cyan },
+  veiculo: { label: 'Veiculo/Frota', icon: Car, color: CHART_PALETTE.violet },
 };
 
 function inferScenarioKey(tipo = '') {
@@ -161,7 +162,7 @@ export default function RouteIntelligence() {
   if (collaborators.length === 0) {
     return (
       <div className="animate-fade-in">
-        <PageHeader title="Inteligencia de Rotas" subtitle="Motor de recomendacao logistica com analise multi-modal" icon={Globe} badge="AI-Powered" badgeVariant="purple" />
+        <PageHeader title="Inteligencia de Rotas" subtitle="Motor de recomendacao logistica com analise multi-modal" icon={Globe} badge="AI-Powered" badgeVariant="accent" />
         <EmptyState icon={AlertTriangle} title="Cadastre colaboradores primeiro" description="O modulo de inteligencia requer colaboradores cadastrados.">
           <MagneticWrap><button className="btn-primary-mint" onClick={() => navigate('/colaboradores')}>Ir para Cadastro</button></MagneticWrap>
         </EmptyState>
@@ -182,7 +183,7 @@ export default function RouteIntelligence() {
     const destCoords = latLngToSvg(destCity.lat, destCity.lng);
 
     const bestAlt = analysis.alternatives?.sort((a, b) => b.scores.total - a.scores.total)?.[0];
-    const routeColor = bestAlt?.tipo === 'Aereo' ? '#22F2EF' : bestAlt?.tipo === 'Onibus' ? '#F97316' : '#49DC7A';
+    const routeColor = bestAlt?.tipo === 'Aereo' ? CHART_PALETTE.cyan : bestAlt?.tipo === 'Onibus' ? CHART_PALETTE.amber : CHART_PALETTE.mint;
 
     const routes = [{
       fromUf: originCity.uf,
@@ -198,7 +199,7 @@ export default function RouteIntelligence() {
         x: originCoords.x,
         y: originCoords.y,
         label: analysis.origem?.split(' - ')[0],
-        color: '#49DC7A',
+        color: CHART_PALETTE.mint,
         value: 'Origem',
       },
       {
@@ -206,7 +207,7 @@ export default function RouteIntelligence() {
         x: destCoords.x,
         y: destCoords.y,
         label: analysis.destino?.split(' - ')[0],
-        color: '#F97316',
+        color: CHART_PALETTE.amber,
         value: 'Destino',
       },
     ];
@@ -347,7 +348,7 @@ export default function RouteIntelligence() {
             <div>
               <div className="flex items-center gap-3 mb-1">
                 <h2 className="display-md">Route Intelligence</h2>
-                <Badge variant="purple" dot>AI-Powered</Badge>
+                <Badge variant="accent" dot>AI-Powered</Badge>
               </div>
               <p className="body">Centro de comando logistico com analise multi-modal e otimizacao inteligente</p>
               <div className="flex items-center gap-4 mt-3">
@@ -367,7 +368,7 @@ export default function RouteIntelligence() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {flightsEnabled && <Badge variant="mint" dot>Google Flights Ativo</Badge>}
+            {flightsEnabled && <Badge variant="success" dot>Google Flights Ativo</Badge>}
             <div className="surface-recessed px-3 py-2 rounded-xl label-micro text-white/25 tabular-data">
               {collaborators.length} colab.
             </div>
@@ -652,7 +653,7 @@ export default function RouteIntelligence() {
                     Parametros Operacionais
                   </h3>
                   {operationalEnabled && (
-                    <Badge variant="purple" dot>Ativo</Badge>
+                    <Badge variant="accent" dot compact>Ativo</Badge>
                   )}
                 </div>
                 <p className={`body text-[13px] transition-colors duration-300 ${
@@ -826,7 +827,7 @@ export default function RouteIntelligence() {
         {/* Premium CTA Button */}
         <div className="flex flex-col items-center w-full pt-4 pb-2 gap-2">
           {selectedCollaborators.length === 0 && (
-            <span className="body text-[13px] text-accent-orange/60 font-medium">Selecione ao menos 1 colaborador</span>
+            <span className="body text-[13px] text-warning-text/80 font-medium">Selecione ao menos 1 colaborador</span>
           )}
           <LiquidMetalButton
             label={loading ? (progress || 'Analisando...') : 'Buscar Rotas'}
@@ -892,7 +893,7 @@ export default function RouteIntelligence() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="heading text-white">Motor Multimodal Ativo</h4>
-                    <Badge variant="purple" dot>Exploração Inteligente</Badge>
+                    <Badge variant="accent" dot>Exploração Inteligente</Badge>
                   </div>
                   <p className="body text-[13px]">
                     Rota direta simples nao encontrada. O motor de inteligencia explorou aeroportos proximos, hubs regionais e composicoes multimodais para construir {analysis.alternatives?.length || 0} alternativa(s) porta-a-porta.
@@ -979,9 +980,9 @@ export default function RouteIntelligence() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     {analysis.multimodal && (
-                      <Badge variant="purple" dot>Multimodal</Badge>
+                      <Badge variant="accent" dot compact>Multimodal</Badge>
                     )}
-                    <Badge variant={analysis.estimado ? 'orange' : 'mint'} dot>
+                    <Badge variant={analysis.estimado ? 'warning' : 'success'} dot compact>
                       {analysis.estimado ? 'Estimativa' : 'Dados reais'}
                     </Badge>
                   </div>
@@ -1002,13 +1003,13 @@ export default function RouteIntelligence() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2.5">
                       <h3 className="heading text-white">Recomendacao AI</h3>
-                      <Badge variant="mint" dot>Score {analysis.executive.scoreTotal}/100</Badge>
+                      <Badge variant="success" dot>Score {analysis.executive.scoreTotal}/100</Badge>
                     </div>
                     <p className="label-micro text-white/25 mt-1">Analise completa multi-modal com otimizacao de custos</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <OptimizationModeBadge mode={analysis.optimizationMode} />
-                    <Badge variant="purple">{analysis.totalAlternativas || analysis.alternatives?.length} alternativas</Badge>
+                    <Badge variant="neutral">{analysis.totalAlternativas || analysis.alternatives?.length} alternativas</Badge>
                   </div>
                 </div>
 
@@ -1028,7 +1029,7 @@ export default function RouteIntelligence() {
                       <div className="label-micro text-white/20 mt-1">Melhor opcao</div>
                     </div>
                     <div className="text-center">
-                      <div className="metric-value text-accent-orange">{formatCurrency(analysis.executive.economiaOperacional || 0)}</div>
+                      <div className="metric-value text-accent-text">{formatCurrency(analysis.executive.economiaOperacional || 0)}</div>
                       <div className="label-micro text-white/20 mt-1">Economia</div>
                     </div>
                     <div className="text-center">
@@ -1051,7 +1052,7 @@ export default function RouteIntelligence() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <h4 className="heading text-white">Inteligencia de Precos — Voos</h4>
-                    <Badge variant="cyan">Google Flights</Badge>
+                    <Badge variant="info">Google Flights</Badge>
                   </div>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
@@ -1070,8 +1071,8 @@ export default function RouteIntelligence() {
                       <div>
                         <div className="label-micro text-white/20">Nivel de Preco</div>
                         <div className={`text-sm font-semibold ${
-                          analysis.flightPriceInsights.precoAtualNivel === 'low' ? 'text-mint' :
-                          analysis.flightPriceInsights.precoAtualNivel === 'high' ? 'text-accent-orange' : 'text-white/50'
+                          analysis.flightPriceInsights.precoAtualNivel === 'low' ? 'text-success-text' :
+                          analysis.flightPriceInsights.precoAtualNivel === 'high' ? 'text-warning-text' : 'text-white/50'
                         }`}>
                           {analysis.flightPriceInsights.precoAtualNivel === 'low' ? 'Abaixo da media' :
                            analysis.flightPriceInsights.precoAtualNivel === 'high' ? 'Acima da media' :
@@ -1150,8 +1151,8 @@ export default function RouteIntelligence() {
                             <h3 className={`heading ${isBest ? 'text-mint' : 'text-white/80'}`}>{c.nome}</h3>
                           </div>
                           <div className="flex gap-1.5">
-                            {isBest && <Badge variant="mint" dot>Melhor Custo</Badge>}
-                            {isFastest && <Badge variant="blue" dot>Mais Rapido</Badge>}
+                            {isBest && <Badge variant="success" dot compact>Melhor Custo</Badge>}
+                            {isFastest && <Badge variant="info" dot compact>Mais Rapido</Badge>}
                           </div>
                         </div>
 
@@ -1161,18 +1162,18 @@ export default function RouteIntelligence() {
                         <p className="label-micro mb-4">Custo total · {selectedCollaborators.length} colab.</p>
 
                         <div className="space-y-3">
-                          <RouteScenarioCostRow label="Horas Trabalhadas" value={c.resumo.custoEquipeHoras} total={c.resumo.custoTotalEquipe} color="#3B82F6" />
-                          <RouteScenarioCostRow label="Deslocamento" value={c.resumo.custoEquipeTransito} total={c.resumo.custoTotalEquipe} color="#F59E0B" />
-                          <RouteScenarioCostRow label="Passagens" value={c.resumo.custoEquipePassagens} total={c.resumo.custoTotalEquipe} color="#A855F7" />
-                          <RouteScenarioCostRow label="Hospedagem" value={c.resumo.custoEquipeHospedagem} total={c.resumo.custoTotalEquipe} color="#49DC7A" />
-                          <RouteScenarioCostRow label="Alimentacao" value={c.resumo.custoEquipeAlimentacao} total={c.resumo.custoTotalEquipe} color="#22F2EF" />
-                          <RouteScenarioCostRow label="Logistico" value={c.resumo.custoLogistico} total={c.resumo.custoTotalEquipe} color="#EF4444" />
+                          <RouteScenarioCostRow label="Horas Trabalhadas" value={c.resumo.custoEquipeHoras} total={c.resumo.custoTotalEquipe} color={COST_BREAKDOWN_COLORS['Horas Trabalhadas']} />
+                          <RouteScenarioCostRow label="Deslocamento" value={c.resumo.custoEquipeTransito} total={c.resumo.custoTotalEquipe} color={COST_BREAKDOWN_COLORS.Deslocamento} />
+                          <RouteScenarioCostRow label="Passagens" value={c.resumo.custoEquipePassagens} total={c.resumo.custoTotalEquipe} color={COST_BREAKDOWN_COLORS.Passagens} />
+                          <RouteScenarioCostRow label="Hospedagem" value={c.resumo.custoEquipeHospedagem} total={c.resumo.custoTotalEquipe} color={COST_BREAKDOWN_COLORS.Hospedagem} />
+                          <RouteScenarioCostRow label="Alimentacao" value={c.resumo.custoEquipeAlimentacao} total={c.resumo.custoTotalEquipe} color={COST_BREAKDOWN_COLORS.Alimentacao} />
+                          <RouteScenarioCostRow label="Logistico" value={c.resumo.custoLogistico} total={c.resumo.custoTotalEquipe} color={COST_BREAKDOWN_COLORS.Logistico} />
                         </div>
 
                         <div className="mt-4 pt-4 border-t border-white/[0.04]">
                           <div className="flex items-center justify-between">
                             <span className="label-micro text-white/30">Tempo de Transito</span>
-                            <span className={`tabular-data text-sm font-bold ${isFastest ? 'text-accent-blue' : 'text-white/60'}`}>
+                            <span className={`tabular-data text-sm font-bold ${isFastest ? 'text-info-text' : 'text-white/60'}`}>
                               {formatHours(c.resumo.horasTransito)}
                             </span>
                           </div>
@@ -1241,13 +1242,13 @@ export default function RouteIntelligence() {
                           key={alt.id}
                           name={`${alt.tipo} - ${alt.descricao?.substring(0, 20)}`}
                           dataKey={alt.id}
-                          stroke={['#49DC7A', '#F97316', '#22F2EF', '#A855F7', '#3B82F6'][i % 5]}
-                          fill={['#49DC7A', '#F97316', '#22F2EF', '#A855F7', '#3B82F6'][i % 5]}
+                          stroke={CHART_SEQUENCE[i % CHART_SEQUENCE.length]}
+                          fill={CHART_SEQUENCE[i % CHART_SEQUENCE.length]}
                           fillOpacity={0.08}
                           strokeWidth={2}
                         />
                       ))}
-                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
                       <Tooltip content={<ChartTooltip />} />
                     </RadarChart>
                   </ResponsiveContainer>
@@ -1291,11 +1292,11 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5">
             <span className="heading text-white">{alt.tipo}</span>
-            {isBest && <Badge variant="mint" dot>Recomendado</Badge>}
-            {isMultimodal && <Badge variant="purple">Multimodal</Badge>}
-            {alt.detalhes?.fonte === 'realtime' || alt.detalhes?.fonte === 'quero_passagem' ? <Badge variant="cyan">Tempo Real</Badge> : null}
-            {alt.detalhes?.purchaseUrl && <Badge variant="orange">Compra Disponivel</Badge>}
-            {alt.detalhes?.bookingOptions?.length > 0 && <Badge variant="blue">Reserva Online</Badge>}
+            {isBest && <Badge variant="success" dot compact>Recomendado</Badge>}
+            {isMultimodal && <Badge variant="accent" dot compact>Multimodal</Badge>}
+            {alt.detalhes?.fonte === 'realtime' || alt.detalhes?.fonte === 'quero_passagem' ? <Badge variant="info" dot compact>Tempo Real</Badge> : null}
+            {alt.detalhes?.purchaseUrl && <Badge variant="accent" dot compact>Compra Disponivel</Badge>}
+            {alt.detalhes?.bookingOptions?.length > 0 && <Badge variant="info" dot compact>Reserva Online</Badge>}
           </div>
           <p className="body text-[13px] truncate mt-1">{alt.descricao}</p>
         </div>
@@ -1420,8 +1421,8 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                   <div>
                     <div className="label-micro text-white/20">Nivel</div>
                     <div className={`text-xs font-semibold ${
-                      alt.detalhes.priceInsights.precoAtualNivel === 'low' ? 'text-mint' :
-                      alt.detalhes.priceInsights.precoAtualNivel === 'high' ? 'text-accent-orange' : 'text-white/50'
+                      alt.detalhes.priceInsights.precoAtualNivel === 'low' ? 'text-success-text' :
+                      alt.detalhes.priceInsights.precoAtualNivel === 'high' ? 'text-warning-text' : 'text-white/50'
                     }`}>
                       {alt.detalhes.priceInsights.precoAtualNivel === 'low' ? 'Abaixo da media' :
                        alt.detalhes.priceInsights.precoAtualNivel === 'high' ? 'Acima da media' :
@@ -1502,7 +1503,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                 <div className="p-3 rounded-xl bg-accent-orange/[0.03] border border-accent-orange/10">
                   <div className="flex items-center gap-1.5 mb-2">
                     <ThumbsDown className="w-3 h-3 text-accent-orange/60" />
-                    <span className="label-micro text-accent-orange/50">Limitacoes</span>
+                    <span className="label-micro text-warning-text/70">Limitacoes</span>
                   </div>
                   <ul className="space-y-1">
                     {alt.limitations.map((l, i) => (
@@ -1543,7 +1544,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
             <div className="flex items-center gap-3">
               {/* Confirm Route */}
               {confirmed ? (
-                <div className="flex items-center gap-2.5 text-mint">
+                <div className="flex items-center gap-2.5 text-success-text">
                   <CheckCircle className="w-5 h-5" />
                 <span className="heading">Rota Confirmada</span>
                 </div>
@@ -1551,7 +1552,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onConfirm(); }}
-                  className="flex items-center gap-3 px-6 py-3 rounded-xl bg-mint/10 border border-mint/20 text-mint text-sm font-semibold hover:bg-mint/15 transition-all duration-200"
+                  className="flex items-center gap-3 px-6 py-3 rounded-xl bg-success-bg/70 border border-success-border/25 text-success-text text-sm font-semibold hover:bg-success-bg transition-all duration-200"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Confirmar Rota
@@ -1570,7 +1571,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent-blue/10 border border-accent-blue/20 text-accent-blue text-[11px] font-semibold hover:bg-accent-blue/15 transition-all duration-200"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-info-bg/70 border border-info-border/25 text-info-text text-[11px] font-semibold hover:bg-info-bg transition-all duration-200"
                     >
                       <ShoppingCart className="w-3 h-3" />
                       {opt.seller ? `Comprar — ${opt.seller}` : 'Ver reserva'}
@@ -1587,7 +1588,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/40 text-[11px] font-semibold hover:bg-white/[0.06] transition-all duration-200"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-info-bg/40 border border-info-border/20 text-info-text/75 text-[11px] font-semibold hover:bg-info-bg/60 transition-all duration-200"
                 >
                   <Plane className="w-3 h-3" />
                   Ver no Google Flights
@@ -1602,7 +1603,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent-amber/10 border border-accent-amber/20 text-accent-amber text-[11px] font-semibold hover:bg-accent-amber/15 transition-all duration-200"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-warning-bg/70 border border-warning-border/25 text-warning-text text-[11px] font-semibold hover:bg-warning-bg transition-all duration-200"
                 >
                   <ShoppingCart className="w-3 h-3" />
                   Comprar Passagem
@@ -1632,10 +1633,10 @@ function MiniStat({ label, value }) {
 
 function MetricCell({ label, value, detail, icon: Icon, color, border }) {
   const colors = {
-    mint: { icon: 'text-mint', value: 'text-mint', bg: 'bg-mint/10' },
-    cyan: { icon: 'text-accent-cyan', value: 'text-accent-cyan', bg: 'bg-accent-cyan/10' },
-    orange: { icon: 'text-accent-orange', value: 'text-accent-orange', bg: 'bg-accent-orange/10' },
-    blue: { icon: 'text-accent-blue', value: 'text-accent-blue', bg: 'bg-accent-blue/10' },
+    mint: { icon: 'text-success-text', value: 'text-success-text', bg: 'bg-success-bg' },
+    cyan: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
+    orange: { icon: 'text-accent-text', value: 'text-accent-text', bg: 'bg-accent-bg' },
+    blue: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
   };
   const c = colors[color] || colors.mint;
 
@@ -1697,17 +1698,17 @@ function OptimizationModeBadge({ mode }) {
   const config = {
     'logistics': {
       label: 'Logistics Only',
-      variant: 'cyan',
+      variant: 'info',
       icon: Route,
     },
     'logistics-labor': {
       label: 'Logistics + Labor',
-      variant: 'purple',
+      variant: 'accent',
       icon: Briefcase,
     },
     'full-operational': {
       label: 'Full Operational',
-      variant: 'mint',
+      variant: 'success',
       icon: Layers,
     },
   };
@@ -1716,10 +1717,10 @@ function OptimizationModeBadge({ mode }) {
   return (
     <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full label-micro ${
       mode === 'logistics'
-        ? 'bg-accent-cyan/[0.08] text-accent-cyan border border-accent-cyan/15'
+        ? 'bg-info-bg/70 text-info-text border border-info-border/25'
         : mode === 'logistics-labor'
-        ? 'bg-accent-purple/[0.08] text-accent-purple border border-accent-purple/15'
-        : 'bg-mint/[0.08] text-mint border border-mint/15'
+        ? 'bg-accent-bg/70 text-accent-text border border-accent-border/25'
+        : 'bg-success-bg/70 text-success-text border border-success-border/25'
     }`}>
       <IconComp className="w-3 h-3" />
       {c.label}

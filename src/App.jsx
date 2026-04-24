@@ -84,15 +84,15 @@ class ErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div className="p-8 text-white">
-          <h2 className="text-xl font-bold text-accent-red mb-4">Erro na pagina</h2>
-          <pre className="text-sm text-white/60 bg-white/5 p-4 rounded-xl overflow-auto whitespace-pre-wrap">
+          <h2 className="text-xl font-bold text-danger-text mb-4">Erro na pagina</h2>
+          <pre className="text-sm text-white/60 bg-danger-bg/40 border border-danger-border/20 p-4 rounded-xl overflow-auto whitespace-pre-wrap">
             {this.state.error.message}
             {'\n\n'}
             {this.state.error.stack}
           </pre>
           <button
             onClick={() => this.setState({ error: null })}
-            className="mt-4 px-4 py-2 rounded-lg bg-mint/20 text-mint-ink text-sm"
+            className="mt-4 px-4 py-2 rounded-lg bg-success-bg text-success-text border border-success-border/25 text-sm"
           >
             Tentar novamente
           </button>
