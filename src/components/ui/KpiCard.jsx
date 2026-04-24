@@ -50,7 +50,7 @@ export function KpiCard({ label, value, detail, icon: Icon, accent = 'mint', cla
 
   return (
     <div className={clsx(
-      'glass-card p-6 relative overflow-hidden group transition-all duration-300',
+      'surface-card glass-card p-6 relative overflow-hidden group transition-all duration-300',
       a.border,
       className
     )}>

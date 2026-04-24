@@ -32,21 +32,21 @@ export function Header() {
           <PageIcon className="w-[17px] h-[17px] text-white/40" />
         </div>
         <div>
-          <h1 className="text-[15px] font-semibold text-white/90 tracking-tight">{meta.title}</h1>
+          <h1 className="heading text-white/90">{meta.title}</h1>
         </div>
       </div>
 
       {/* Right: Actions */}
       <div className="relative flex items-center gap-3">
         {/* AI Engine Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] backdrop-blur-sm">
+        <div className="surface-elevated flex items-center gap-2 px-3 py-1.5 rounded-full">
           <Sparkles className="w-3.5 h-3.5 text-accent-orange" />
-          <span className="text-[11px] font-medium text-white/40">AI Engine</span>
+          <span className="label-micro text-white/40">AI Engine</span>
           <div className="w-1.5 h-1.5 rounded-full bg-mint animate-pulse" />
         </div>
 
         {/* Notifications */}
-        <button className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/[0.03] text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-all duration-200 relative">
+        <button className="surface-elevated w-9 h-9 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60 transition-all duration-200 relative">
           <Bell className="w-4 h-4" />
         </button>
 

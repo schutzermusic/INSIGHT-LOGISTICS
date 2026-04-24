@@ -40,7 +40,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
 
       {/* Modal */}
       <div className={clsx(
-        'relative glass-card p-0 animate-slide-up w-full',
+        'relative surface-elevated p-0 animate-slide-up w-full',
         size === 'sm' && 'max-w-md',
         size === 'md' && 'max-w-lg',
         size === 'lg' && 'max-w-2xl',

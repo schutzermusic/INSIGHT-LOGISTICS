@@ -15,7 +15,7 @@ export function Badge({ children, variant = 'default', className, dot }) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold',
+        'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold tabular-data',
         'backdrop-blur-sm',
         variants[variant],
         className

@@ -2,7 +2,7 @@ import { clsx } from 'clsx';
 
 export function DataTable({ columns, data, className, onRowClick }) {
   return (
-    <div className={clsx('glass-card p-0 overflow-hidden', className)}>
+    <div className={clsx('surface-card glass-card p-0 overflow-hidden', className)}>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -11,7 +11,7 @@ export function DataTable({ columns, data, className, onRowClick }) {
                 <th
                   key={i}
                   className={clsx(
-                    'px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/25 text-left',
+                    'px-6 py-4 label-micro text-white/25 text-left',
                     col.align === 'right' && 'text-right',
                     col.align === 'center' && 'text-center',
                   )}
@@ -37,7 +37,7 @@ export function DataTable({ columns, data, className, onRowClick }) {
                   <td
                     key={colIdx}
                     className={clsx(
-                      'px-6 py-4 text-sm',
+                      'px-6 py-4 text-sm tabular-data',
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center',
                     )}

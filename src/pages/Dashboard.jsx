@@ -267,7 +267,7 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-3">
               {/* AI Engine Status */}
-              <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl">
+              <div className="surface-elevated flex items-center gap-3 px-4 py-2 rounded-full">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-mint/60 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-mint" />
@@ -291,7 +291,7 @@ export default function Dashboard() {
           </div>
 
           {/* KPI INTEGRATED STRIP — lifted off the panel like floating shelves */}
-          <div className="grid grid-cols-4 gap-0 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-white/[0.01] overflow-hidden backdrop-blur-xl">
+          <div className="surface-recessed grid grid-cols-4 gap-0 rounded-2xl overflow-hidden">
             <MetricCell
               label="Mobilizacoes"
               value={stats.totalSims}
@@ -548,8 +548,8 @@ export default function Dashboard() {
             {topDestinations.length > 0 ? (
               <div className="space-y-2">
                 {topDestinations.map((dest, i) => (
-                  <div key={dest.name} className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-                    <div className="w-6 h-6 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+                  <div key={dest.name} className="surface-recessed flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.04] transition-colors">
+                    <div className="surface-recessed w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0">
                       <span className="text-[10px] font-bold text-white/25">{i + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -840,7 +840,7 @@ function CommandAction({ icon: Icon, label, description, accentFrom, accentTo, b
       ref={ref}
       onMouseMove={onMouseMove}
       onClick={onClick}
-      className={`spotlight group relative overflow-hidden rounded-2xl border ${borderColor} bg-gradient-to-r ${accentFrom} ${accentTo} backdrop-blur-xl p-6 flex items-center gap-4 text-left transition-all duration-300 hover:scale-[1.015] hover:-translate-y-0.5`}
+      className={`surface-card spotlight group relative overflow-hidden rounded-2xl border ${borderColor} bg-gradient-to-r ${accentFrom} ${accentTo} p-6 flex items-center gap-4 text-left transition-all duration-300 hover:scale-[1.015] hover:-translate-y-0.5`}
       style={{
         boxShadow: '0 10px 30px -12px rgb(var(--shadow-ink) / 0.35), inset 0 1px 0 rgb(var(--highlight-ink) / 0.06)',
       }}

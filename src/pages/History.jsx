@@ -70,7 +70,7 @@ export default function History() {
   return (
     <div className="animate-fade-in space-y-6">
       {/* Hero Header */}
-      <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
+      <section className="surface-card relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-blue/20 to-transparent" />
         <div className="relative px-8 py-6">
           <div className="flex items-center justify-between">
@@ -95,7 +95,7 @@ export default function History() {
 
           {/* Summary stats strip */}
           {summaryStats && (
-            <div className="grid grid-cols-5 gap-0 mt-6 rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden">
+            <div className="surface-recessed grid grid-cols-5 gap-0 mt-6 rounded-2xl overflow-hidden">
               <SummaryCell label="Total Registros" value={simulations.length} />
               <SummaryCell label="Analises AI" value={summaryStats.aiCount} border />
               <SummaryCell label="Comparacoes" value={summaryStats.compCount} border />
@@ -120,7 +120,7 @@ export default function History() {
       ) : (
         <>
           {/* Filters */}
-          <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-r from-dark-850/40 to-dark-900/40 backdrop-blur-xl px-6 py-4">
+          <section className="surface-recessed relative overflow-hidden px-6 py-4">
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2 text-white/20">
                 <Filter className="w-4 h-4" />
@@ -170,7 +170,7 @@ export default function History() {
                     const isExpanded = expanded === sim.id;
 
                     return (
-                      <div key={sim.id} className="relative overflow-hidden rounded-2xl border border-white/[0.05] bg-gradient-to-r from-dark-850/40 to-dark-900/30 backdrop-blur-xl">
+                      <div key={sim.id} className="surface-card relative overflow-hidden rounded-2xl border border-white/[0.05]">
                         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
                         <button
                           className="w-full px-4 py-4 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"

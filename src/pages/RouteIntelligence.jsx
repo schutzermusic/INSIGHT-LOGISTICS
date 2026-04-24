@@ -321,7 +321,7 @@ export default function RouteIntelligence() {
   return (
     <div className="animate-fade-in space-y-6">
       {/* Command Center Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.04] bg-gradient-to-br from-dark-800/80 via-dark-900/90 to-dark-800/80 p-8">
+      <div className="surface-card relative overflow-hidden p-8">
         {/* Background decorations */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-20 -right-20 w-60 h-60 bg-accent-purple/[0.06] rounded-full blur-3xl" />
@@ -368,7 +368,7 @@ export default function RouteIntelligence() {
           </div>
           <div className="flex items-center gap-3">
             {flightsEnabled && <Badge variant="mint" dot>Google Flights Ativo</Badge>}
-            <div className="px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] label-micro text-white/25 tabular-data">
+            <div className="surface-recessed px-3 py-2 rounded-xl label-micro text-white/25 tabular-data">
               {collaborators.length} colab.
             </div>
           </div>
@@ -377,7 +377,7 @@ export default function RouteIntelligence() {
 
       {/* Analysis Form - Integrated Panel */}
       <form onSubmit={handleSearch}>
-        <div className="relative rounded-2xl border border-white/[0.04] bg-gradient-to-b from-dark-800/60 to-dark-900/40 overflow-hidden">
+        <div className="surface-card relative rounded-2xl border border-white/[0.04] overflow-hidden">
           {/* Panel header strip */}
           <div className="px-8 py-4 border-b border-white/[0.04] flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -386,7 +386,7 @@ export default function RouteIntelligence() {
             </div>
             <div className="flex items-center gap-2">
               {/* Trip Type Selector */}
-              <div className="flex items-center rounded-xl bg-white/[0.03] border border-white/[0.04] p-0.5">
+              <div className="surface-recessed flex items-center rounded-xl p-0.5">
                 <button
                   type="button"
                   onClick={() => setTripType('oneway')}
@@ -464,10 +464,7 @@ export default function RouteIntelligence() {
                     {selectedCollabIds.size === collaborators.length ? 'Limpar' : 'Todos'}
                   </button>
                 </div>
-                <div
-                  className="rounded-2xl border border-white/[0.03] overflow-hidden"
-                  style={{ background: 'rgba(4, 10, 10, 0.4)', backdropFilter: 'blur(12px)' }}
-                >
+                <div className="surface-recessed rounded-2xl border border-white/[0.03] overflow-hidden">
                   <div className="max-h-[180px] overflow-y-auto p-2 space-y-1">
                     {collaborators.map(c => {
                       const isSelected = selectedCollabIds.has(c.id);
@@ -553,7 +550,7 @@ export default function RouteIntelligence() {
             </div>
 
             {/* Vehicle Configuration - Logistics parameter (always available) */}
-            <div className="rounded-2xl border border-white/[0.03] bg-white/[0.015] overflow-hidden">
+            <div className="surface-recessed rounded-2xl border border-white/[0.03] overflow-hidden">
                 <div className="px-6 py-3 border-b border-white/[0.03] flex items-center gap-2">
                   <Car className="w-3.5 h-3.5 text-white/25" />
                   <span className="label-micro text-white/30">Configuracao do Veiculo</span>
@@ -621,10 +618,10 @@ export default function RouteIntelligence() {
             OPERATIONAL PARAMETERS — Independent Collapsible Block
             Visually separated from core route search
         ═══════════════════════════════════════════════════════════════ */}
-        <div className={`relative rounded-2xl border overflow-hidden transition-all duration-300 mt-4 ${
+        <div className={`surface-card relative rounded-2xl border overflow-hidden transition-all duration-300 mt-4 ${
             operationalEnabled
-              ? 'border-accent-purple/15 bg-gradient-to-br from-accent-purple/[0.03] via-dark-900/80 to-dark-800/60'
-              : 'border-white/[0.04] bg-gradient-to-b from-dark-800/40 to-dark-900/30'
+              ? 'border-accent-purple/15'
+              : 'border-white/[0.04]'
           }`}>
             {/* Subtle glow when enabled */}
             {operationalEnabled && (
@@ -640,7 +637,7 @@ export default function RouteIntelligence() {
               <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 ${
                 operationalEnabled
                   ? 'bg-gradient-to-br from-accent-purple/20 to-accent-blue/15 border border-accent-purple/20'
-                  : 'bg-white/[0.03] border border-white/[0.06]'
+                  : 'surface-recessed border border-white/[0.06]'
               }`}>
                 <Layers className={`w-5 h-5 transition-colors duration-300 ${
                   operationalEnabled ? 'text-accent-purple' : 'text-white/25'
@@ -698,10 +695,10 @@ export default function RouteIntelligence() {
                     <button
                       type="button"
                       onClick={() => setOperationalMode('logistics-labor')}
-                      className={`relative p-4 rounded-xl border text-left transition-all duration-200 ${
+                        className={`surface-recessed relative p-4 rounded-xl border text-left transition-all duration-200 ${
                         operationalMode === 'logistics-labor'
                           ? 'border-accent-purple/20 bg-accent-purple/[0.06]'
-                          : 'border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03]'
+                          : 'border-white/[0.04] hover:bg-white/[0.03]'
                       }`}
                     >
                       <div className="flex items-center gap-3 mb-2">
@@ -736,10 +733,10 @@ export default function RouteIntelligence() {
                     <button
                       type="button"
                       onClick={() => setOperationalMode('full-operational')}
-                      className={`relative p-4 rounded-xl border text-left transition-all duration-200 ${
+                        className={`surface-recessed relative p-4 rounded-xl border text-left transition-all duration-200 ${
                         operationalMode === 'full-operational'
                           ? 'border-mint/20 bg-mint/[0.06]'
-                          : 'border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03]'
+                          : 'border-white/[0.04] hover:bg-white/[0.03]'
                       }`}
                     >
                       <div className="flex items-center gap-3 mb-2">
@@ -844,7 +841,7 @@ export default function RouteIntelligence() {
       {/* No Alternatives Found State — Intelligent fallback messaging, never dead-end */}
       {analysis?.success && analysis?.noAlternativesFound && (
         <div className="space-y-4 animate-slide-up">
-          <div className="rounded-2xl border border-accent-purple/15 bg-gradient-to-br from-accent-purple/[0.04] via-dark-900/60 to-dark-800/40 backdrop-blur-xl p-6">
+          <div className="surface-card rounded-2xl border border-accent-purple/15 p-6">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-accent-purple/10 flex items-center justify-center flex-shrink-0">
                 <Globe className="w-5 h-5 text-accent-purple" />
@@ -886,7 +883,7 @@ export default function RouteIntelligence() {
 
           {/* Multimodal Discovery Banner */}
           {analysis.multimodal && (
-            <div className="relative overflow-hidden rounded-2xl border border-accent-purple/15 bg-gradient-to-r from-accent-purple/[0.04] via-dark-900/60 to-accent-cyan/[0.03] p-6">
+            <div className="surface-card relative overflow-hidden rounded-2xl border border-accent-purple/15 p-6">
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-accent-purple/[0.06] rounded-full blur-3xl pointer-events-none" />
               <div className="relative flex items-start gap-4">
                 <div className="w-9 h-9 rounded-xl bg-accent-purple/10 flex items-center justify-center flex-shrink-0">
@@ -919,7 +916,7 @@ export default function RouteIntelligence() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Map Panel */}
             <div className="lg:col-span-5">
-              <div className="relative rounded-2xl border border-white/[0.04] bg-gradient-to-b from-dark-800/60 to-dark-900/40 overflow-hidden h-full">
+              <div className="surface-card relative rounded-2xl border border-white/[0.04] overflow-hidden h-full">
                 <div className="px-4 py-3 border-b border-white/[0.04] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Navigation className="w-3.5 h-3.5 text-mint/50" />
@@ -994,7 +991,7 @@ export default function RouteIntelligence() {
 
             {/* Executive Summary Panel */}
             <div className="lg:col-span-7">
-              <div className="relative rounded-2xl border border-mint/10 bg-gradient-to-br from-mint/[0.03] via-dark-900/80 to-dark-800/60 overflow-hidden h-full">
+              <div className="surface-card relative rounded-2xl border border-mint/10 overflow-hidden h-full">
                 {/* Subtle glow effect */}
                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-mint/[0.04] rounded-full blur-3xl pointer-events-none" />
 
@@ -1046,7 +1043,7 @@ export default function RouteIntelligence() {
 
           {/* Flight Price Intelligence Panel */}
           {analysis.flightPriceInsights?.available && (
-            <div className="relative rounded-2xl border border-accent-blue/10 bg-gradient-to-r from-accent-blue/[0.03] via-dark-900/60 to-dark-800/40 p-6">
+            <div className="surface-card relative rounded-2xl border border-accent-blue/10 p-6">
               <div className="flex items-start gap-4">
                 <div className="w-9 h-9 rounded-xl bg-accent-blue/10 flex items-center justify-center flex-shrink-0">
                   <TrendingUp className="w-4.5 h-4.5 text-accent-blue" />
@@ -1096,7 +1093,7 @@ export default function RouteIntelligence() {
           )}
 
           {/* KPI Strip */}
-          <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-r from-dark-850/80 to-dark-900/60 backdrop-blur-xl overflow-hidden">
+          <div className="surface-recessed relative rounded-2xl border border-white/[0.06] overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/15 to-transparent" />
             <div className="grid grid-cols-4 gap-0">
               <MetricCell label="Melhor Opcao" value={formatCurrency(analysis.executive.maisBaratoOperacional?.custos.operacionalTotal || 0)} detail={`${analysis.executive.melhor?.tipo} - Score ${analysis.executive.melhor?.scores.total}/100`} icon={Star} color="mint" />
@@ -1124,10 +1121,10 @@ export default function RouteIntelligence() {
                   return (
                     <section
                       key={c.id}
-                      className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all ${
+                      className={`surface-card relative overflow-hidden rounded-2xl border transition-all ${
                         isBest
-                          ? 'border-mint/[0.15] bg-gradient-to-br from-mint/[0.03] via-dark-900/60 to-dark-950/80'
-                          : 'border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60'
+                          ? 'border-mint/[0.15]'
+                          : 'border-white/[0.06]'
                       }`}
                     >
                       {isBest && (
@@ -1275,7 +1272,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
   const iconColor = isMultimodal ? 'text-accent-cyan' : isBus ? 'text-accent-amber' : isAir ? 'text-accent-blue' : 'text-accent-purple';
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isBest ? 'border-mint/15 bg-gradient-to-r from-mint/[0.03] via-dark-900/60 to-dark-950/40' : 'border-white/[0.06] bg-gradient-to-r from-dark-850/60 to-dark-900/40'}`}>
+    <div className={`surface-card relative overflow-hidden rounded-2xl border transition-all duration-300 ${isBest ? 'border-mint/15' : 'border-white/[0.06]'}`}>
       <button
         onClick={onToggle}
         className="w-full px-6 py-6 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"
@@ -1778,7 +1775,7 @@ function ComparativeDetailTable({ alternatives }) {
   ];
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+    <section className="surface-card relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
       <div className="relative">
         <div className="px-6 py-6 flex items-center gap-3">

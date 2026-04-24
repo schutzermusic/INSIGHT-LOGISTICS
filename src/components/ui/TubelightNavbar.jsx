@@ -43,14 +43,7 @@ export function NavBar({ items, className }) {
       <div
         className={cn(
           'absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5',
-          'py-1.5 px-1.5 rounded-full',
-          'backdrop-blur-2xl saturate-150',
-          isDark
-            ? 'bg-[rgba(14,18,26,0.62)] border border-white/[0.07]'
-            : 'bg-white/70 border border-black/[0.05]',
-          isDark
-            ? 'shadow-[0_12px_44px_-10px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.06)]'
-            : 'shadow-[0_10px_30px_-10px_rgba(15,50,40,0.15),inset_0_1px_0_rgba(255,255,255,0.9)]',
+          'surface-elevated py-1.5 px-1.5 rounded-full',
         )}
       >
         {items.map((item) => {
@@ -109,10 +102,7 @@ export function NavBar({ items, className }) {
       {/* Right cluster — theme toggle in a glass capsule */}
       <div
         className={cn(
-          'flex items-center gap-1 shrink-0 px-1.5 py-1.5 rounded-full backdrop-blur-2xl saturate-150',
-          isDark
-            ? 'bg-[rgba(14,18,26,0.62)] border border-white/[0.07] shadow-[0_12px_44px_-10px_rgba(0,0,0,0.65)]'
-            : 'bg-white/70 border border-black/[0.05] shadow-[0_10px_30px_-10px_rgba(15,50,40,0.15)]',
+          'surface-elevated flex items-center gap-1 shrink-0 px-1.5 py-1.5 rounded-full',
         )}
       >
         <ThemeToggle />

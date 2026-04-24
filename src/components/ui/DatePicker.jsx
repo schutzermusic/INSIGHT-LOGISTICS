@@ -34,10 +34,10 @@ const GLASS_CALENDAR_STYLES = `
 }
 .glass-cal .rdp-caption_label {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: rgb(var(--ink) / 0.85);
   text-transform: capitalize;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
 }
 
 .glass-cal .rdp-nav {
@@ -80,7 +80,7 @@ const GLASS_CALENDAR_STYLES = `
   font-weight: 700;
   color: rgb(var(--ink) / 0.3);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.16em;
   text-align: center;
   vertical-align: middle;
 }
@@ -104,6 +104,7 @@ const GLASS_CALENDAR_STYLES = `
   font-size: 12px;
   font-weight: 500;
   color: rgb(var(--ink) / 0.6);
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
   outline: none;
@@ -244,7 +245,7 @@ export function DatePicker({ name, label, value, onChange, disabled, minDate }) 
       <input type="hidden" name={name} value={selected ? format(selected, 'yyyy-MM-dd') : ''} />
 
       {label && (
-        <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">
+        <label className="block label-micro text-white/35 mb-2">
           {label}
         </label>
       )}
@@ -259,12 +260,12 @@ export function DatePicker({ name, label, value, onChange, disabled, minDate }) 
         } ${open ? 'border-mint/30 shadow-[0_0_0_2px_rgba(73,220,122,0.08)]' : ''}`}
       >
         <Calendar className={`w-4 h-4 flex-shrink-0 transition-colors duration-200 ${open ? 'text-mint' : 'text-white/25'}`} />
-        <span className={`flex-1 text-sm ${displayValue ? 'text-white/70' : 'text-white/20'}`}>
+        <span className={`flex-1 text-sm tabular-data ${displayValue ? 'text-white/70' : 'text-white/20'}`}>
           {displayValue || 'Selecionar data'}
         </span>
         {displayValue && (
           <span
-            className="text-[10px] text-white/15 hover:text-white/40 transition-colors"
+            className="label-micro text-white/15 hover:text-white/40 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               setSelected(undefined);
@@ -279,17 +280,11 @@ export function DatePicker({ name, label, value, onChange, disabled, minDate }) 
       {/* Calendar Dropdown */}
       {open && (
         <div
-          className="absolute z-50 mt-2 rounded-2xl overflow-hidden animate-fade-in"
+          className="absolute z-50 mt-2 rounded-xl overflow-hidden animate-fade-in"
           style={{ minWidth: 296 }}
         >
           {/* Glass container */}
-          <div
-            className="relative border border-white/[0.08] backdrop-blur-2xl rounded-2xl"
-            style={{
-              background: 'rgb(var(--surface-2) / 0.97)',
-              boxShadow: '0 24px 64px rgb(var(--shadow-ink) / 0.22), 0 0 0 1px rgb(var(--glass-ink) / 0.06)',
-            }}
-          >
+          <div className="surface-elevated relative rounded-xl">
             {/* Top glow line */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/25 to-transparent" />
 

@@ -81,6 +81,42 @@
     --sidebar-accent-foreground: rgb(15 30 24);
     --sidebar-border: rgb(15 30 24 / 0.10);
     --sidebar-ring: rgb(12 122 60 / 0.4);
+
+    /* Surface system */
+    --surface-elevated-blur: 26px;
+    --surface-elevated-saturate: 1.3;
+    --surface-elevated-fill: 0.88;
+    --surface-elevated-edge: 0.14;
+    --surface-elevated-highlight: 0.82;
+    --surface-elevated-shadow:
+      0 18px 44px -18px rgb(var(--shadow-ink) / 0.18),
+      0 8px 18px -10px rgb(var(--shadow-ink) / 0.12),
+      inset 0 1px 0 rgb(255 255 255 / 0.82),
+      inset 0 -1px 0 rgb(255 255 255 / 0.18),
+      0 0 0 1px rgb(var(--glass-ink) / 0.14);
+
+    --surface-card-blur: 18px;
+    --surface-card-saturate: 1.18;
+    --surface-card-fill: 0.78;
+    --surface-card-edge: 0.1;
+    --surface-card-highlight: 0.72;
+    --surface-card-shadow:
+      0 14px 34px -18px rgb(var(--shadow-ink) / 0.14),
+      0 4px 12px -8px rgb(var(--shadow-ink) / 0.08),
+      inset 0 1px 0 rgb(255 255 255 / 0.72),
+      inset 0 -1px 0 rgb(255 255 255 / 0.12),
+      0 0 0 1px rgb(var(--glass-ink) / 0.1);
+
+    --surface-recessed-blur: 8px;
+    --surface-recessed-saturate: 1.02;
+    --surface-recessed-fill: 0.94;
+    --surface-recessed-edge: 0.1;
+    --surface-recessed-highlight: 0.22;
+    --surface-recessed-shadow:
+      inset 0 1px 1px rgb(255 255 255 / 0.22),
+      inset 0 0 0 1px rgb(var(--glass-ink) / 0.1),
+      inset 0 -6px 14px -10px rgb(var(--shadow-ink) / 0.1),
+      0 1px 2px rgb(var(--shadow-ink) / 0.04);
   }
 
   .dark {
@@ -142,6 +178,35 @@
     --sidebar-accent-foreground: rgb(245 247 250);
     --sidebar-border: rgb(255 255 255 / 0.06);
     --sidebar-ring: rgb(73 220 122 / 0.45);
+
+    --surface-elevated-fill: 0.94;
+    --surface-elevated-edge: 0.12;
+    --surface-elevated-highlight: 0.1;
+    --surface-elevated-shadow:
+      0 28px 72px -22px rgb(0 0 0 / 0.72),
+      0 10px 24px -12px rgb(0 0 0 / 0.5),
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      inset 0 -1px 0 rgb(0 0 0 / 0.32),
+      0 0 0 1px rgb(255 255 255 / 0.08);
+
+    --surface-card-fill: 0.82;
+    --surface-card-edge: 0.08;
+    --surface-card-highlight: 0.08;
+    --surface-card-shadow:
+      0 22px 58px -24px rgb(0 0 0 / 0.65),
+      0 8px 18px -10px rgb(0 0 0 / 0.42),
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      inset 0 -1px 0 rgb(0 0 0 / 0.28),
+      0 0 0 1px rgb(255 255 255 / 0.06);
+
+    --surface-recessed-fill: 0.92;
+    --surface-recessed-edge: 0.08;
+    --surface-recessed-highlight: 0.05;
+    --surface-recessed-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.05),
+      inset 0 0 0 1px rgb(255 255 255 / 0.08),
+      inset 0 10px 18px -14px rgb(0 0 0 / 0.72),
+      0 1px 2px rgb(0 0 0 / 0.18);
   }
 
   .theme {
@@ -233,64 +298,106 @@
 
 @layer components {
 
+  .surface-elevated,
+  .surface-card,
+  .surface-recessed {
+    position: relative;
+    border-radius: 1rem;
+    color: rgb(var(--ink));
+    isolation: isolate;
+  }
+
+  .surface-elevated::before,
+  .surface-card::before,
+  .surface-recessed::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .surface-elevated {
+    @apply overflow-hidden;
+    background:
+      linear-gradient(
+        160deg,
+        rgb(var(--highlight-ink) / 0.1) 0%,
+        transparent 36%
+      ),
+      linear-gradient(
+        145deg,
+        rgb(var(--surface-0) / var(--surface-elevated-fill)) 0%,
+        rgb(var(--surface-1) / calc(var(--surface-elevated-fill) - 0.08)) 48%,
+        rgb(var(--surface-2) / calc(var(--surface-elevated-fill) - 0.04)) 100%
+      );
+    backdrop-filter: blur(var(--surface-elevated-blur)) saturate(var(--surface-elevated-saturate));
+    -webkit-backdrop-filter: blur(var(--surface-elevated-blur)) saturate(var(--surface-elevated-saturate));
+    box-shadow: var(--surface-elevated-shadow);
+  }
+
+  .surface-elevated::before {
+    background:
+      linear-gradient(
+        180deg,
+        rgb(var(--highlight-ink) / calc(var(--surface-elevated-highlight) * 0.12)) 0%,
+        transparent 26%
+      );
+  }
+
+  .surface-card {
+    @apply overflow-hidden;
+    background:
+      radial-gradient(
+        ellipse 560px 240px at 18% 0%,
+        rgb(var(--highlight-ink) / 0.06) 0%,
+        transparent 60%
+      ),
+      linear-gradient(
+        155deg,
+        rgb(var(--surface-1) / var(--surface-card-fill)) 0%,
+        rgb(var(--surface-2) / calc(var(--surface-card-fill) - 0.06)) 52%,
+        rgb(var(--surface-3) / calc(var(--surface-card-fill) - 0.12)) 100%
+      );
+    backdrop-filter: blur(var(--surface-card-blur)) saturate(var(--surface-card-saturate));
+    -webkit-backdrop-filter: blur(var(--surface-card-blur)) saturate(var(--surface-card-saturate));
+    box-shadow: var(--surface-card-shadow);
+  }
+
+  .surface-card::before {
+    background:
+      linear-gradient(
+        180deg,
+        rgb(var(--highlight-ink) / calc(var(--surface-card-highlight) * 0.1)) 0%,
+        transparent 30%
+      );
+  }
+
+  .surface-recessed {
+    background:
+      linear-gradient(
+        180deg,
+        rgb(var(--surface-3) / calc(var(--surface-recessed-fill) + 0.02)) 0%,
+        rgb(var(--surface-4) / var(--surface-recessed-fill)) 100%
+      );
+    backdrop-filter: blur(var(--surface-recessed-blur)) saturate(var(--surface-recessed-saturate));
+    -webkit-backdrop-filter: blur(var(--surface-recessed-blur)) saturate(var(--surface-recessed-saturate));
+    box-shadow: var(--surface-recessed-shadow);
+  }
+
+  .surface-recessed::before {
+    background:
+      linear-gradient(
+        180deg,
+        rgb(var(--highlight-ink) / calc(var(--surface-recessed-highlight) * 0.35)) 0%,
+        transparent 40%
+      );
+  }
+
   /* ────────── Liquid Glass Cards ────────── */
   .glass-card {
-    @apply relative overflow-hidden rounded-2xl;
-    background:
-      linear-gradient(
-        145deg,
-        rgb(var(--glass-ink) / var(--glass-a1, 0.09)) 0%,
-        rgb(var(--glass-ink) / var(--glass-a2, 0.03)) 50%,
-        rgb(var(--glass-ink) / var(--glass-a3, 0.06)) 100%
-      ),
-      rgb(var(--surface-2) / 0.6);
-    backdrop-filter: blur(24px) saturate(1.2);
-    -webkit-backdrop-filter: blur(24px) saturate(1.2);
-    box-shadow:
-      0 8px 32px rgb(var(--shadow-ink) / var(--shadow-a1, 0.18)),
-      inset 0 1px 0 rgb(var(--highlight-ink) / 0.07),
-      inset 0 -1px 0 rgb(var(--highlight-ink) / 0.02),
-      0 0 0 1px rgb(var(--glass-ink) / 0.06);
-  }
-  /* Light-mode gets a touch more density and a slightly deeper base
-     so cards read as elegant frosted panels, not washed out. */
-  :root .glass-card {
-    --glass-a1: 0.04;
-    --glass-a2: 0.02;
-    --glass-a3: 0.03;
-    --shadow-a1: 0.06;
-    background:
-      linear-gradient(
-        145deg,
-        rgb(255 255 255 / 0.85) 0%,
-        rgb(255 255 255 / 0.72) 50%,
-        rgb(255 255 255 / 0.80) 100%
-      );
-    box-shadow:
-      0 8px 24px rgb(var(--shadow-ink) / 0.06),
-      0 2px 6px rgb(var(--shadow-ink) / 0.04),
-      inset 0 1px 0 rgb(255 255 255 / 0.8),
-      0 0 0 1px rgb(var(--glass-ink) / 0.06);
-  }
-  .dark .glass-card {
-    --glass-a1: 0.06;
-    --glass-a2: 0.02;
-    --glass-a3: 0.04;
-    --shadow-a1: 0.45;
-    background:
-      linear-gradient(
-        145deg,
-        rgb(255 255 255 / 0.05) 0%,
-        rgb(255 255 255 / 0.02) 50%,
-        rgb(255 255 255 / 0.035) 100%
-      ),
-      rgb(var(--surface-2) / 0.78);
-    box-shadow:
-      0 20px 60px -12px rgb(0 0 0 / 0.55),
-      0 4px 14px -2px rgb(0 0 0 / 0.35),
-      inset 0 1px 0 rgb(255 255 255 / 0.07),
-      inset 0 -1px 0 rgb(0 0 0 / 0.25),
-      0 0 0 1px rgb(255 255 255 / 0.055);
+    @apply surface-card;
+    border-radius: 1rem;
   }
   .dark .glass-card-interactive:hover {
     box-shadow:
@@ -302,16 +409,12 @@
   }
 
   .glass-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(
-      180deg,
-      rgb(var(--highlight-ink) / 0.07) 0%,
-      transparent 35%
-    );
-    pointer-events: none;
+    background:
+      linear-gradient(
+        180deg,
+        rgb(var(--highlight-ink) / calc(var(--surface-card-highlight) * 0.1)) 0%,
+        transparent 30%
+      );
   }
 
   .glass-card-interactive {
@@ -335,30 +438,16 @@
 
   /* ────────── Glass Inputs ────────── */
   .glass-input {
-    @apply w-full rounded-xl border-0 px-4 py-3 text-sm outline-none transition-all duration-200;
+    @apply surface-recessed w-full rounded-xl border-0 px-4 py-3 text-sm outline-none transition-all duration-200;
     color: rgb(var(--ink));
-    background: rgb(var(--surface-1) / 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow:
-      inset 0 1px 0 rgb(var(--highlight-ink) / 0.04),
-      0 0 0 1px rgb(var(--glass-ink) / 0.08);
-  }
-  :root .glass-input {
-    background: rgb(255 255 255 / 0.9);
-    box-shadow:
-      inset 0 1px 2px rgb(var(--shadow-ink) / 0.04),
-      0 0 0 1px rgb(var(--glass-ink) / 0.10);
-  }
-  .dark .glass-input {
-    background: rgb(var(--surface-3) / 0.6);
   }
   .glass-input::placeholder {
     color: rgb(var(--ink) / 0.35);
   }
   .glass-input:hover {
     box-shadow:
-      inset 0 1px 0 rgb(var(--highlight-ink) / 0.05),
+      var(--surface-recessed-shadow),
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.08),
       0 0 0 1px rgb(var(--glass-ink) / 0.14);
   }
   .glass-input:focus {
@@ -789,21 +878,10 @@
      specular highlight on top edge, a soft radial on the inside
      so every panel feels like a lit surface. */
   .premium-panel {
-    @apply relative overflow-hidden rounded-2xl;
-    background:
-      radial-gradient(ellipse 600px 300px at 20% 0%, rgb(var(--glass-ink) / 0.06) 0%, transparent 60%),
-      linear-gradient(165deg, rgb(var(--surface-2) / 0.75) 0%, rgb(var(--surface-3) / 0.55) 100%);
-    backdrop-filter: blur(28px) saturate(1.3);
-    -webkit-backdrop-filter: blur(28px) saturate(1.3);
-    box-shadow:
-      0 1px 0 rgb(var(--highlight-ink) / 0.07) inset,
-      0 0 0 1px rgb(var(--glass-ink) / 0.08),
-      0 20px 60px -20px rgb(var(--shadow-ink) / 0.5),
-      0 4px 12px -4px rgb(var(--shadow-ink) / 0.2);
+    @apply surface-card;
+    border-radius: 1rem;
   }
   .premium-panel::before {
-    content: '';
-    position: absolute;
     top: 0;
     left: 10%;
     right: 10%;
@@ -814,27 +892,6 @@
       rgb(var(--highlight-ink) / 0.22) 50%,
       transparent 100%
     );
-    pointer-events: none;
-  }
-  :root .premium-panel {
-    background:
-      radial-gradient(ellipse 600px 300px at 20% 0%, rgb(255 255 255 / 0.8) 0%, transparent 60%),
-      linear-gradient(165deg, rgb(255 255 255 / 0.92) 0%, rgb(255 255 255 / 0.78) 100%);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.9) inset,
-      0 0 0 1px rgb(var(--glass-ink) / 0.08),
-      0 12px 36px -12px rgb(var(--shadow-ink) / 0.14),
-      0 2px 6px -2px rgb(var(--shadow-ink) / 0.06);
-  }
-  .dark .premium-panel {
-    background:
-      radial-gradient(ellipse 600px 300px at 20% 0%, rgb(255 255 255 / 0.05) 0%, transparent 60%),
-      linear-gradient(165deg, rgb(var(--surface-2) / 0.88) 0%, rgb(var(--surface-3) / 0.72) 100%);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.08) inset,
-      0 0 0 1px rgb(255 255 255 / 0.06),
-      0 28px 72px -20px rgb(0 0 0 / 0.7),
-      0 8px 20px -6px rgb(0 0 0 / 0.45);
   }
 
   /* Accent-tinted variants — the same panel shape but with a

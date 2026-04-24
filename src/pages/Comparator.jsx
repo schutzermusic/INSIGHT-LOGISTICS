@@ -43,7 +43,7 @@ export default function Comparator() {
     return (
       <div className="animate-fade-in">
         {/* Hero header for empty state */}
-        <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl mb-8">
+        <section className="surface-card relative overflow-hidden mb-8">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/20 to-transparent" />
           <div className="relative px-8 py-6">
@@ -122,7 +122,7 @@ export default function Comparator() {
       {/* ═══════════════════════════════════════════
           HERO HEADER — Command Center Style
           ═══════════════════════════════════════════ */}
-      <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
+      <section className="surface-card relative overflow-hidden">
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-accent-blue/[0.03] rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/20 to-transparent" />
@@ -142,7 +142,7 @@ export default function Comparator() {
 
             <div className="flex items-center gap-4">
               {/* Analysis engine status */}
-              <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+              <div className="surface-recessed flex items-center gap-3 px-4 py-2 rounded-xl">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-cyan/60 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-cyan" />
@@ -154,7 +154,7 @@ export default function Comparator() {
           </div>
 
           {/* Employee context strip */}
-          <div className="rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden">
+          <div className="surface-recessed rounded-2xl overflow-hidden">
             <div className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -172,7 +172,7 @@ export default function Comparator() {
                   {collaborators.slice(0, 6).map((c, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]"
+                      className="surface-recessed flex items-center gap-2 px-3 py-2 rounded-xl"
                     >
                       <div className="w-5 h-5 rounded-full bg-gradient-to-br from-accent-blue/30 to-accent-cyan/20 flex items-center justify-center">
                         <span className="text-[9px] font-bold text-white/70">
@@ -202,11 +202,11 @@ export default function Comparator() {
           ═══════════════════════════════════════════ */}
       <form onSubmit={handleCompare}>
         {/* Common Parameters */}
-        <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl mb-6">
+        <section className="surface-card relative overflow-hidden mb-6">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
           <div className="relative p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center border border-white/[0.06]">
+              <div className="surface-recessed w-9 h-9 rounded-xl flex items-center justify-center">
                 <Settings className="w-4 h-4 text-white/40" />
               </div>
               <div>
@@ -265,7 +265,7 @@ export default function Comparator() {
           {SCENARIOS.map(s => (
             <section
               key={s.key}
-              className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl"
+              className="surface-card relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent to-transparent" style={{ '--tw-gradient-via': `${s.color}20`, viaColor: s.color }} />
               <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${s.color}20, transparent)` }} />
@@ -319,7 +319,7 @@ export default function Comparator() {
         <div className="space-y-6 animate-slide-up">
 
           {/* AI VERDICT — Best Option Highlight */}
-          <section className="relative overflow-hidden rounded-2xl border border-mint/[0.15] bg-gradient-to-br from-mint/[0.04] via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
+          <section className="surface-card relative overflow-hidden border border-mint/[0.15]">
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-mint/[0.06] rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/30 to-transparent" />
@@ -343,7 +343,7 @@ export default function Comparator() {
               </div>
 
               {/* Best option hero card */}
-              <div className="rounded-xl border border-mint/[0.1] bg-gradient-to-r from-mint/[0.06] to-transparent p-6 mb-6">
+              <div className="surface-recessed rounded-xl border border-mint/[0.1] p-6 mb-6">
                 <div className="flex items-start gap-6">
                   {/* Winner icon */}
                   <div className="flex-shrink-0">
@@ -387,7 +387,7 @@ export default function Comparator() {
               </div>
 
               {/* KPI Strip integrated */}
-              <div className="grid grid-cols-4 gap-0 rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden">
+              <div className="surface-recessed grid grid-cols-4 gap-0 rounded-2xl overflow-hidden">
                 <MetricCell
                   label="Melhor Custo"
                   value={formatCurrency(analysis.melhor.resumo.custoTotalEquipe)}
@@ -437,10 +437,10 @@ export default function Comparator() {
               return (
                 <section
                   key={i}
-                  className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all ${
+                  className={`surface-card relative overflow-hidden rounded-2xl border transition-all ${
                     isBest
-                      ? 'border-mint/[0.15] bg-gradient-to-br from-mint/[0.03] via-dark-900/60 to-dark-950/80'
-                      : 'border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60'
+                      ? 'border-mint/[0.15]'
+                      : 'border-white/[0.06]'
                   }`}
                 >
                   {isBest && (
@@ -508,7 +508,7 @@ export default function Comparator() {
               COST-BENEFIT ANALYSIS
               ═══════════════════════════════════════════ */}
           {analysis.economia > 0 && (
-            <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+            <section className="surface-card relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/15 to-transparent" />
               <div className="relative p-6">
                 <div className="flex items-center gap-3 mb-6">
@@ -523,7 +523,7 @@ export default function Comparator() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Savings */}
-                  <div className="rounded-xl border border-mint/[0.08] bg-mint/[0.02] p-4">
+                  <div className="surface-recessed rounded-xl border border-mint/[0.08] bg-mint/[0.02] p-4">
                     <span className="label-micro text-mint/50">Economia Total</span>
                     <div className="metric-value text-mint mt-2">{formatCurrency(analysis.economia)}</div>
                     <p className="body text-[13px] mt-2">
@@ -532,7 +532,7 @@ export default function Comparator() {
                   </div>
 
                   {/* Time savings */}
-                  <div className="rounded-xl border border-accent-blue/[0.08] bg-accent-blue/[0.02] p-4">
+                  <div className="surface-recessed rounded-xl border border-accent-blue/[0.08] bg-accent-blue/[0.02] p-4">
                     <span className="label-micro text-accent-blue/50">Diferenca de Tempo</span>
                     <div className="metric-value text-accent-blue mt-2">
                       {formatHours(Math.abs(analysis.melhor.resumo.horasTransito - analysis.maisRapido.resumo.horasTransito))}
@@ -546,7 +546,7 @@ export default function Comparator() {
                   </div>
 
                   {/* Cost per hour of transit saved */}
-                  <div className="rounded-xl border border-accent-purple/[0.08] bg-accent-purple/[0.02] p-4">
+                  <div className="surface-recessed rounded-xl border border-accent-purple/[0.08] bg-accent-purple/[0.02] p-4">
                     <span className="label-micro text-accent-purple/50">Custo por Hora Economizada</span>
                     <div className="metric-value text-accent-purple mt-2">
                       {(() => {
@@ -566,7 +566,7 @@ export default function Comparator() {
           {/* ═══════════════════════════════════════════
               CHART — Visual Comparison
               ═══════════════════════════════════════════ */}
-          <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+          <section className="surface-card relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
             <div className="relative p-6">
               <div className="flex items-center gap-3 mb-6">
@@ -597,11 +597,11 @@ export default function Comparator() {
           {/* ═══════════════════════════════════════════
               DETAIL TABLE
               ═══════════════════════════════════════════ */}
-          <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+          <section className="surface-card relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
             <div className="relative">
               <div className="px-6 py-6 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center border border-white/[0.06]">
+                <div className="surface-recessed w-9 h-9 rounded-xl flex items-center justify-center">
                   <Settings className="w-4 h-4 text-white/40" />
                 </div>
                 <h3 className="heading text-white/80">Detalhamento Comparativo</h3>

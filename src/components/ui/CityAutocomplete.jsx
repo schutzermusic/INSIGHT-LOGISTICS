@@ -173,16 +173,11 @@ export function CityAutocomplete({
           placeholder={placeholder}
           required={required}
           autoComplete="off"
-          className="
-            w-full rounded-2xl border-0 pl-10 pr-10 py-3.5 text-sm text-white
-            placeholder-white/25 outline-none transition-all duration-300
-            backdrop-blur-xl
-          "
+          className="glass-input w-full pl-10 pr-10 text-sm text-white placeholder-white/25 transition-all duration-300"
           style={{
-            background: 'rgb(var(--surface-3) / 0.55)',
             boxShadow: open
-              ? `0 0 24px ${c.glow}, 0 0 0 1px rgb(var(--glass-ink) / 0.10), inset 0 1px 0 rgb(var(--highlight-ink) / 0.05)`
-              : 'inset 0 1px 0 rgb(var(--highlight-ink) / 0.03), 0 0 0 1px rgb(var(--glass-ink) / 0.08)',
+              ? `0 0 24px ${c.glow}, var(--surface-recessed-shadow), inset 0 1px 0 rgb(var(--highlight-ink) / 0.08), 0 0 0 1px rgb(var(--glass-ink) / 0.14)`
+              : undefined,
           }}
         />
 
@@ -201,22 +196,12 @@ export function CityAutocomplete({
       {/* Dropdown */}
       {open && results.length > 0 && (
         <div
-          className="absolute z-50 mt-2 w-full rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-          style={{
-            background: 'rgb(var(--surface-2) / 0.95)',
-            backdropFilter: 'blur(24px) saturate(1.5)',
-            WebkitBackdropFilter: 'blur(24px) saturate(1.5)',
-            boxShadow: `
-              0 20px 60px rgb(var(--shadow-ink) / 0.18),
-              0 0 0 1px rgb(var(--glass-ink) / 0.10),
-              inset 0 1px 0 rgb(var(--highlight-ink) / 0.05)
-            `,
-          }}
+          className="surface-elevated absolute z-50 mt-2 w-full rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
         >
           {/* Search hint */}
           <div className="px-4 py-2 border-b border-white/[0.04] flex items-center gap-2">
             <Search className="w-3 h-3 text-white/20" />
-            <span className="text-[10px] text-white/25 uppercase tracking-wider font-medium">
+            <span className="label-micro text-white/25">
               {query.trim() ? `${results.length} resultado${results.length !== 1 ? 's' : ''}` : 'Cidades populares'}
             </span>
           </div>
@@ -241,12 +226,12 @@ export function CityAutocomplete({
                   `}
                 >
                   <MapPin className={`w-3.5 h-3.5 flex-shrink-0 ${isHighlighted ? 'text-white/50' : 'text-white/15'}`} />
-                  <span className={`text-sm truncate ${isHighlighted ? 'text-white/90' : 'text-white/50'}`}>
+                  <span className={`body text-[13px] truncate ${isHighlighted ? 'text-white/90' : 'text-white/50'}`}>
                     {highlightMatch(cityName)}
                   </span>
                   {uf && (
                     <span className={`
-                      ml-auto text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md flex-shrink-0
+                      ml-auto label-micro px-2 py-1 rounded-lg flex-shrink-0 tabular-data
                       ${isHighlighted
                         ? 'bg-white/[0.08] text-white/60'
                         : 'bg-white/[0.03] text-white/25'
@@ -265,17 +250,11 @@ export function CityAutocomplete({
       {/* No results */}
       {open && query.trim() && results.length === 0 && (
         <div
-          className="absolute z-50 mt-2 w-full rounded-2xl px-4 py-6 text-center"
-          style={{
-            background: 'rgb(var(--surface-2) / 0.95)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            boxShadow: '0 20px 60px rgb(var(--shadow-ink) / 0.18), 0 0 0 1px rgb(var(--glass-ink) / 0.10)',
-          }}
+          className="surface-elevated absolute z-50 mt-2 w-full rounded-xl px-4 py-6 text-center"
         >
           <MapPin className="w-5 h-5 text-white/15 mx-auto mb-2" />
-          <p className="text-xs text-white/30">Nenhuma cidade encontrada</p>
-          <p className="text-[10px] text-white/15 mt-1">Tente buscar por nome ou UF</p>
+          <p className="body text-[13px] text-white/30">Nenhuma cidade encontrada</p>
+          <p className="label-micro text-white/15 mt-2">Tente buscar por nome ou UF</p>
         </div>
       )}
     </div>

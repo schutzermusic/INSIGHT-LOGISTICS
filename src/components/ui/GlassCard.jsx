@@ -9,7 +9,7 @@ export function GlassCard({ children, className, hover = false, glow, padding = 
       ref={hover ? ref : undefined}
       onMouseMove={hover ? onMouseMove : undefined}
       className={clsx(
-        hover ? 'glass-card-interactive spotlight' : 'glass-card',
+        hover ? 'surface-card glass-card-interactive spotlight' : 'surface-card glass-card',
         padding,
         glow === 'mint' && 'glow-border-mint',
         glow === 'orange' && 'glow-border-orange',
