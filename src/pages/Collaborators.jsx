@@ -56,7 +56,7 @@ export default function Collaborators() {
   };
 
   return (
-    <div className="animate-fade-in space-y-8">
+    <div className="animate-fade-in space-y-6">
       <PageHeader
         title="Colaboradores"
         subtitle="Cadastre e gerencie os tecnicos e profissionais de campo"
@@ -82,7 +82,7 @@ export default function Collaborators() {
               <thead>
                 <tr className="border-b border-white/[0.04]">
                   {['Nome', 'Cargo', 'Salario Base', 'CH', 'Hora Normal', 'HE 50%', 'HE 100%', 'Noturno', 'H. Tecnica', ''].map((h, i) => (
-                    <th key={i} className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/20 text-left">{h}</th>
+                    <th key={i} className="px-6 py-4 label-micro text-white/20 text-left">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -91,15 +91,15 @@ export default function Collaborators() {
                   const rates = calcHourlyRates(c);
                   return (
                     <tr key={c.id} className="border-b border-white/[0.04]/50 last:border-0 hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4 text-sm font-semibold text-white">{c.nome}</td>
+                      <td className="px-6 py-4 heading text-white">{c.nome}</td>
                       <td className="px-6 py-4"><Badge variant="blue">{c.cargo}</Badge></td>
-                      <td className="px-6 py-4 text-sm text-white/50">{formatCurrency(c.salarioBase)}</td>
-                      <td className="px-6 py-4 text-sm text-white/35">{c.cargaHoraria}h</td>
-                      <td className="px-6 py-4 text-sm text-mint font-medium">{formatCurrency(rates.horaNormal)}</td>
-                      <td className="px-6 py-4 text-sm text-accent-amber font-medium">{formatCurrency(rates.horaExtra50)}</td>
-                      <td className="px-6 py-4 text-sm text-accent-red font-medium">{formatCurrency(rates.horaExtra100)}</td>
-                      <td className="px-6 py-4 text-sm text-accent-purple font-medium">{formatCurrency(rates.horaNoturna)}</td>
-                      <td className="px-6 py-4 text-sm text-accent-cyan font-medium">{formatCurrency(rates.horaTecnica)}</td>
+                      <td className="px-6 py-4 text-sm text-white/50 tabular-data">{formatCurrency(c.salarioBase)}</td>
+                      <td className="px-6 py-4 text-sm text-white/35 tabular-data">{c.cargaHoraria}h</td>
+                      <td className="px-6 py-4 text-sm text-mint font-medium tabular-data">{formatCurrency(rates.horaNormal)}</td>
+                      <td className="px-6 py-4 text-sm text-accent-amber font-medium tabular-data">{formatCurrency(rates.horaExtra50)}</td>
+                      <td className="px-6 py-4 text-sm text-accent-red font-medium tabular-data">{formatCurrency(rates.horaExtra100)}</td>
+                      <td className="px-6 py-4 text-sm text-accent-purple font-medium tabular-data">{formatCurrency(rates.horaNoturna)}</td>
+                      <td className="px-6 py-4 text-sm text-accent-cyan font-medium tabular-data">{formatCurrency(rates.horaTecnica)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
                           <button
@@ -133,48 +133,48 @@ export default function Collaborators() {
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Nome *</label>
+              <label className="block label-micro text-white/35 mb-2">Nome *</label>
               <input className="glass-input" name="nome" defaultValue={editing?.nome || ''} required placeholder="Nome completo" />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Cargo *</label>
+              <label className="block label-micro text-white/35 mb-2">Cargo *</label>
               <input className="glass-input" name="cargo" defaultValue={editing?.cargo || ''} required placeholder="Ex: Tecnico Eletricista" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Salario Base (R$) *</label>
+              <label className="block label-micro text-white/35 mb-2">Salario Base (R$) *</label>
               <input className="glass-input" type="number" name="salarioBase" defaultValue={editing?.salarioBase || ''} required step="0.01" min="0" placeholder="5000.00" />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Carga Horaria Mensal *</label>
+              <label className="block label-micro text-white/35 mb-2">Carga Horaria Mensal *</label>
               <input className="glass-input" type="number" name="cargaHoraria" defaultValue={editing?.cargaHoraria || 220} required min="1" placeholder="220" />
-              <span className="text-[11px] text-white/15 mt-1.5 block">Horas/mes (padrao CLT: 220h)</span>
+              <span className="body text-[13px] mt-2 block">Horas/mes (padrao CLT: 220h)</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Valor Hora Tecnica (R$)</label>
+              <label className="block label-micro text-white/35 mb-2">Valor Hora Tecnica (R$)</label>
               <input className="glass-input" type="number" name="valorHoraTecnica" defaultValue={editing?.valorHoraTecnica || ''} step="0.01" min="0" placeholder="Calculado se vazio" />
-              <span className="text-[11px] text-white/15 mt-1.5 block">Se vazio, usa hora normal</span>
+              <span className="body text-[13px] mt-2 block">Se vazio, usa hora normal</span>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Multiplicador HE 50%</label>
+              <label className="block label-micro text-white/35 mb-2">Multiplicador HE 50%</label>
               <input className="glass-input" type="number" name="multHE50" defaultValue={editing?.multHE50 || 1.5} step="0.01" min="1" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Multiplicador HE 100%</label>
+              <label className="block label-micro text-white/35 mb-2">Multiplicador HE 100%</label>
               <input className="glass-input" type="number" name="multHE100" defaultValue={editing?.multHE100 || 2.0} step="0.01" min="1" />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Adicional Noturno (%)</label>
+              <label className="block label-micro text-white/35 mb-2">Adicional Noturno (%)</label>
               <input className="glass-input" type="number" name="percNoturno" defaultValue={editing?.percNoturno || 20} step="1" min="0" />
             </div>
           </div>

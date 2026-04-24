@@ -24,6 +24,7 @@ import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ChartTooltip } from '../components/charts/ChartTooltip';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
+import { MagneticWrap } from '../components/ui/MagneticWrap';
 import BrazilMap, { latLngToSvg } from '../components/map/BrazilMap';
 const DeckGLMap = lazy(() => import('../components/map/DeckGLMap'));
 import { isGoogleMapsLoaded } from '../services/GoogleMapsLoader';
@@ -162,7 +163,7 @@ export default function RouteIntelligence() {
       <div className="animate-fade-in">
         <PageHeader title="Inteligencia de Rotas" subtitle="Motor de recomendacao logistica com analise multi-modal" icon={Globe} badge="AI-Powered" badgeVariant="purple" />
         <EmptyState icon={AlertTriangle} title="Cadastre colaboradores primeiro" description="O modulo de inteligencia requer colaboradores cadastrados.">
-          <button className="btn-primary-mint" onClick={() => navigate('/colaboradores')}>Ir para Cadastro</button>
+          <MagneticWrap><button className="btn-primary-mint" onClick={() => navigate('/colaboradores')}>Ir para Cadastro</button></MagneticWrap>
         </EmptyState>
       </div>
     );
@@ -318,9 +319,9 @@ export default function RouteIntelligence() {
   };
 
   return (
-    <div className="animate-fade-in space-y-8">
+    <div className="animate-fade-in space-y-6">
       {/* Command Center Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/[0.04] bg-gradient-to-br from-dark-800/80 via-dark-900/90 to-dark-800/80 p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.04] bg-gradient-to-br from-dark-800/80 via-dark-900/90 to-dark-800/80 p-8">
         {/* Background decorations */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-20 -right-20 w-60 h-60 bg-accent-purple/[0.06] rounded-full blur-3xl" />
@@ -334,9 +335,9 @@ export default function RouteIntelligence() {
         </div>
 
         <div className="relative flex items-start justify-between">
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-accent-purple/20 via-accent-blue/15 to-mint/10 flex items-center justify-center border border-white/[0.06]">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-purple/20 via-accent-blue/15 to-mint/10 flex items-center justify-center border border-white/[0.06]">
                 <Globe className="w-8 h-8 text-accent-purple" />
               </div>
               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-mint/20 border border-mint/30 flex items-center justify-center">
@@ -345,20 +346,20 @@ export default function RouteIntelligence() {
             </div>
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-2xl font-bold text-white tracking-tight">Route Intelligence</h2>
+                <h2 className="display-md">Route Intelligence</h2>
                 <Badge variant="purple" dot>AI-Powered</Badge>
               </div>
-              <p className="text-sm text-white/30">Centro de comando logistico com analise multi-modal e otimizacao inteligente</p>
+              <p className="body">Centro de comando logistico com analise multi-modal e otimizacao inteligente</p>
               <div className="flex items-center gap-4 mt-3">
-                <div className="flex items-center gap-1.5 text-[10px] text-white/20 uppercase tracking-wider font-semibold">
+                <div className="flex items-center gap-1.5 label-micro text-white/20">
                   <Target className="w-3 h-3 text-mint/50" />
                   <span>Precisao otimizada</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-white/20 uppercase tracking-wider font-semibold">
+                <div className="flex items-center gap-1.5 label-micro text-white/20">
                   <BarChart3 className="w-3 h-3 text-accent-cyan/50" />
                   <span>Multi-modal scoring</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-white/20 uppercase tracking-wider font-semibold">
+                <div className="flex items-center gap-1.5 label-micro text-white/20">
                   <Route className="w-3 h-3 text-accent-purple/50" />
                   <span>Rota inteligente</span>
                 </div>
@@ -367,7 +368,7 @@ export default function RouteIntelligence() {
           </div>
           <div className="flex items-center gap-3">
             {flightsEnabled && <Badge variant="mint" dot>Google Flights Ativo</Badge>}
-            <div className="px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[10px] text-white/25 font-semibold uppercase tracking-wider">
+            <div className="px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] label-micro text-white/25 tabular-data">
               {collaborators.length} colab.
             </div>
           </div>
@@ -376,12 +377,12 @@ export default function RouteIntelligence() {
 
       {/* Analysis Form - Integrated Panel */}
       <form onSubmit={handleSearch}>
-        <div className="relative rounded-3xl border border-white/[0.04] bg-gradient-to-b from-dark-800/60 to-dark-900/40 overflow-hidden">
+        <div className="relative rounded-2xl border border-white/[0.04] bg-gradient-to-b from-dark-800/60 to-dark-900/40 overflow-hidden">
           {/* Panel header strip */}
           <div className="px-8 py-4 border-b border-white/[0.04] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-mint/60 animate-pulse" />
-              <span className="text-xs font-semibold text-white/40 uppercase tracking-wider">Painel de Configuracao da Analise</span>
+              <span className="label-micro text-white/40">Painel de Configuracao da Analise</span>
             </div>
             <div className="flex items-center gap-2">
               {/* Trip Type Selector */}
@@ -421,11 +422,11 @@ export default function RouteIntelligence() {
               <div className="lg:col-span-8">
                 <div className="flex items-center gap-2 mb-4">
                   <MapPin className="w-4 h-4 text-mint/60" />
-                  <span className="text-xs font-semibold text-white/40 uppercase tracking-wider">Rota</span>
+                  <span className="label-micro text-white/40">Rota</span>
                 </div>
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Cidade de Origem</label>
+                    <label className="block label-micro text-white/35 mb-2">Cidade de Origem</label>
                     <CityAutocomplete
                       name="origem"
                       placeholder="Ex: sao paulo, londrina..."
@@ -435,7 +436,7 @@ export default function RouteIntelligence() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Cidade de Destino</label>
+                    <label className="block label-micro text-white/35 mb-2">Cidade de Destino</label>
                     <CityAutocomplete
                       name="destino"
                       placeholder="Ex: alta floresta, cuiaba..."
@@ -453,12 +454,12 @@ export default function RouteIntelligence() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-accent-purple/60" />
-                    <span className="text-xs font-semibold text-white/40 uppercase tracking-wider">Equipe</span>
+                    <span className="label-micro text-white/40">Equipe</span>
                   </div>
                   <button
                     type="button"
                     onClick={toggleAllCollabs}
-                    className="text-[10px] font-semibold text-accent-purple/60 hover:text-accent-purple transition-colors uppercase tracking-wider"
+                    className="label-micro text-accent-purple/60 hover:text-accent-purple transition-colors"
                   >
                     {selectedCollabIds.size === collaborators.length ? 'Limpar' : 'Todos'}
                   </button>
@@ -496,8 +497,8 @@ export default function RouteIntelligence() {
                             {c.nome.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className={`text-xs truncate block ${isSelected ? 'text-white/70' : 'text-white/35'}`}>{c.nome}</span>
-                            {c.cargo && <span className={`text-[9px] truncate block ${isSelected ? 'text-white/30' : 'text-white/15'}`}>{c.cargo}</span>}
+                        <span className={`body text-[13px] truncate block ${isSelected ? 'text-white/70' : 'text-white/35'}`}>{c.nome}</span>
+                            {c.cargo && <span className={`label-micro truncate block mt-1 ${isSelected ? 'text-white/30' : 'text-white/15'}`}>{c.cargo}</span>}
                           </div>
                         </button>
                       );
@@ -508,24 +509,24 @@ export default function RouteIntelligence() {
                   <div className="px-4 py-3 border-t border-white/[0.04]">
                     <div className="flex items-center justify-between">
                       <div className="flex items-baseline gap-2">
-                        <span className={`text-xl font-bold ${selectedCollaborators.length > 0 ? 'text-white' : 'text-white/20'}`}>
+                        <span className={`metric-value ${selectedCollaborators.length > 0 ? 'text-white' : 'text-white/20'}`}>
                           {selectedCollaborators.length}
                         </span>
-                        <span className="text-[10px] text-white/25 uppercase tracking-wider font-semibold">
+                        <span className="label-micro text-white/25">
                           selecionado{selectedCollaborators.length !== 1 ? 's' : ''}
                         </span>
                       </div>
                       {selectedCollaborators.length > 0 && (
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent-cyan/[0.08] border border-accent-cyan/10">
                           <Car className="w-3 h-3 text-accent-cyan" />
-                          <span className="text-[10px] font-bold text-accent-cyan">
+                          <span className="label-micro text-accent-cyan tabular-data">
                             {veiculosNecessarios} {veiculosNecessarios === 1 ? 'veiculo' : 'veiculos'}
                           </span>
                         </div>
                       )}
                     </div>
                     {selectedCollaborators.length > 4 && (
-                      <p className="text-[9px] text-white/15 mt-1.5">
+                      <p className="label-micro text-white/15 mt-2">
                         Maximo 4 pessoas por veiculo
                       </p>
                     )}
@@ -535,7 +536,7 @@ export default function RouteIntelligence() {
             </div>
 
             {/* Date Filters Row */}
-            <div className={`grid gap-5 ${tripType === 'roundtrip' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-4 ${tripType === 'roundtrip' ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <DatePicker
                 label="Data Ida"
                 value={dataIda}
@@ -555,32 +556,32 @@ export default function RouteIntelligence() {
             <div className="rounded-2xl border border-white/[0.03] bg-white/[0.015] overflow-hidden">
                 <div className="px-6 py-3 border-b border-white/[0.03] flex items-center gap-2">
                   <Car className="w-3.5 h-3.5 text-white/25" />
-                  <span className="text-[11px] font-semibold text-white/30 uppercase tracking-wider">Configuracao do Veiculo</span>
-                  <span className="text-[9px] text-white/15 ml-auto uppercase tracking-wider">Logistica</span>
+                  <span className="label-micro text-white/30">Configuracao do Veiculo</span>
+                  <span className="label-micro text-white/15 ml-auto">Logistica</span>
                 </div>
                 <div className="p-6">
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-5">
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                     <div>
-                      <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Consumo (km/L)</label>
+                      <label className="block label-micro text-white/35 mb-2">Consumo (km/L)</label>
                       <input className="glass-input" type="number" name="consumoKmL" defaultValue="10" step="0.1" min="1" />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Preco Litro (R$)</label>
+                      <label className="block label-micro text-white/35 mb-2">Preco Litro (R$)</label>
                       <input className="glass-input" type="number" name="precoLitro" defaultValue="5.50" step="0.01" min="0" />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Aluguel/dia (R$)</label>
+                      <label className="block label-micro text-white/35 mb-2">Aluguel/dia (R$)</label>
                       <input className="glass-input" type="number" name="aluguelDia" defaultValue="180" step="0.01" min="0" />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Pedagios</label>
+                      <label className="block label-micro text-white/35 mb-2">Pedagios</label>
                       <div className="glass-input flex items-center gap-1.5 text-white/40 cursor-default select-none" title="Calculado automaticamente via Google Routes API">
                         <Zap className="w-3 h-3 text-accent-cyan" />
-                        <span className="text-[11px]">Auto</span>
+                        <span className="body text-[13px]">Auto</span>
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Categoria</label>
+                      <label className="block label-micro text-white/35 mb-2">Categoria</label>
                       <select className="glass-select" name="categoriaVeiculo">
                         <option value="">Padrao</option>
                         <option value="compacto">Compacto</option>
@@ -608,7 +609,7 @@ export default function RouteIntelligence() {
                   {activeOptimizationMode === 'full-operational' && 'Modo: Full Operational Cost'}
                 </div>
                 <div className="flex-1 h-px bg-white/[0.04]" />
-                <span className="text-[9px] text-white/15 uppercase tracking-wider">
+                <span className="label-micro text-white/15">
                   {operationalEnabled ? 'Parametros operacionais ativos' : 'Apenas variaveis logisticas'}
                 </span>
               </div>
@@ -620,7 +621,7 @@ export default function RouteIntelligence() {
             OPERATIONAL PARAMETERS — Independent Collapsible Block
             Visually separated from core route search
         ═══════════════════════════════════════════════════════════════ */}
-        <div className={`relative rounded-3xl border overflow-hidden transition-all duration-300 mt-4 ${
+        <div className={`relative rounded-2xl border overflow-hidden transition-all duration-300 mt-4 ${
             operationalEnabled
               ? 'border-accent-purple/15 bg-gradient-to-br from-accent-purple/[0.03] via-dark-900/80 to-dark-800/60'
               : 'border-white/[0.04] bg-gradient-to-b from-dark-800/40 to-dark-900/30'
@@ -634,9 +635,9 @@ export default function RouteIntelligence() {
             <button
               type="button"
               onClick={() => setOperationalEnabled(!operationalEnabled)}
-              className="relative w-full px-8 py-5 flex items-center gap-4 text-left hover:bg-white/[0.01] transition-colors"
+              className="relative w-full px-8 py-6 flex items-center gap-4 text-left hover:bg-white/[0.01] transition-colors"
             >
-              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 ${
                 operationalEnabled
                   ? 'bg-gradient-to-br from-accent-purple/20 to-accent-blue/15 border border-accent-purple/20'
                   : 'bg-white/[0.03] border border-white/[0.06]'
@@ -648,7 +649,7 @@ export default function RouteIntelligence() {
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-0.5">
-                  <h3 className={`text-sm font-bold tracking-tight transition-colors duration-300 ${
+                  <h3 className={`heading transition-colors duration-300 ${
                     operationalEnabled ? 'text-white' : 'text-white/40'
                   }`}>
                     Parametros Operacionais
@@ -657,7 +658,7 @@ export default function RouteIntelligence() {
                     <Badge variant="purple" dot>Ativo</Badge>
                   )}
                 </div>
-                <p className={`text-[11px] transition-colors duration-300 ${
+                <p className={`body text-[13px] transition-colors duration-300 ${
                   operationalEnabled ? 'text-white/30' : 'text-white/15'
                 }`}>
                   {operationalEnabled
@@ -691,13 +692,13 @@ export default function RouteIntelligence() {
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <Info className="w-3.5 h-3.5 text-accent-purple/40" />
-                    <span className="text-[11px] font-semibold text-white/30 uppercase tracking-wider">Nivel de Otimizacao</span>
+                    <span className="label-micro text-white/30">Nivel de Otimizacao</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <button
                       type="button"
                       onClick={() => setOperationalMode('logistics-labor')}
-                      className={`relative p-4 rounded-2xl border text-left transition-all duration-200 ${
+                      className={`relative p-4 rounded-xl border text-left transition-all duration-200 ${
                         operationalMode === 'logistics-labor'
                           ? 'border-accent-purple/20 bg-accent-purple/[0.06]'
                           : 'border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03]'
@@ -714,15 +715,15 @@ export default function RouteIntelligence() {
                           }`} />
                         </div>
                         <div>
-                          <div className={`text-xs font-semibold ${
+                          <div className={`heading text-[15px] ${
                             operationalMode === 'logistics-labor' ? 'text-white' : 'text-white/40'
                           }`}>Logistics + Labor Cost</div>
-                          <div className={`text-[10px] ${
+                          <div className={`label-micro mt-1 ${
                             operationalMode === 'logistics-labor' ? 'text-white/30' : 'text-white/15'
                           }`}>Custo hora tecnica + horas extras</div>
                         </div>
                       </div>
-                      <div className={`text-[10px] leading-relaxed ${
+                      <div className={`body text-[13px] leading-relaxed ${
                         operationalMode === 'logistics-labor' ? 'text-white/25' : 'text-white/12'
                       }`}>
                         Inclui custo hora tecnica, hora normal, HE 50%, HE 100%, adicional noturno
@@ -735,7 +736,7 @@ export default function RouteIntelligence() {
                     <button
                       type="button"
                       onClick={() => setOperationalMode('full-operational')}
-                      className={`relative p-4 rounded-2xl border text-left transition-all duration-200 ${
+                      className={`relative p-4 rounded-xl border text-left transition-all duration-200 ${
                         operationalMode === 'full-operational'
                           ? 'border-mint/20 bg-mint/[0.06]'
                           : 'border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03]'
@@ -752,15 +753,15 @@ export default function RouteIntelligence() {
                           }`} />
                         </div>
                         <div>
-                          <div className={`text-xs font-semibold ${
+                          <div className={`heading text-[15px] ${
                             operationalMode === 'full-operational' ? 'text-white' : 'text-white/40'
                           }`}>Full Operational Cost</div>
-                          <div className={`text-[10px] ${
+                          <div className={`label-micro mt-1 ${
                             operationalMode === 'full-operational' ? 'text-white/30' : 'text-white/15'
                           }`}>Custo operacional completo</div>
                         </div>
                       </div>
-                      <div className={`text-[10px] leading-relaxed ${
+                      <div className={`body text-[13px] leading-relaxed ${
                         operationalMode === 'full-operational' ? 'text-white/25' : 'text-white/12'
                       }`}>
                         Inclui tudo acima + hospedagem, alimentacao, deslocamento local
@@ -776,23 +777,23 @@ export default function RouteIntelligence() {
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <Briefcase className="w-3.5 h-3.5 text-accent-purple/40" />
-                    <span className="text-[11px] font-semibold text-white/30 uppercase tracking-wider">Jornada de Trabalho</span>
+                    <span className="label-micro text-white/30">Jornada de Trabalho</span>
                   </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Horas Normais/dia</label>
+                      <label className="block label-micro text-white/35 mb-2">Horas Normais/dia</label>
                       <input className="glass-input" type="number" name="horasNormais" defaultValue="8" step="0.5" min="0" />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">HE 50%/dia</label>
+                      <label className="block label-micro text-white/35 mb-2">HE 50%/dia</label>
                       <input className="glass-input" type="number" name="he50" defaultValue="2" step="0.5" min="0" />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">HE 100%/dia</label>
+                      <label className="block label-micro text-white/35 mb-2">HE 100%/dia</label>
                       <input className="glass-input" type="number" name="he100" defaultValue="0" step="0.5" min="0" />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Horas Noturnas/dia</label>
+                      <label className="block label-micro text-white/35 mb-2">Horas Noturnas/dia</label>
                       <input className="glass-input" type="number" name="horasNoturnas" defaultValue="0" step="0.5" min="0" />
                     </div>
                   </div>
@@ -803,19 +804,19 @@ export default function RouteIntelligence() {
                   <div className="animate-fade-in">
                     <div className="flex items-center gap-2 mb-4">
                       <DollarSign className="w-3.5 h-3.5 text-mint/40" />
-                      <span className="text-[11px] font-semibold text-white/30 uppercase tracking-wider">Custos de Permanencia</span>
+                      <span className="label-micro text-white/30">Custos de Permanencia</span>
                     </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Hospedagem/dia (R$)</label>
+                        <label className="block label-micro text-white/35 mb-2">Hospedagem/dia (R$)</label>
                         <input className="glass-input" type="number" name="hospedagem" defaultValue="150" step="0.01" min="0" />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Alimentacao/dia (R$)</label>
+                        <label className="block label-micro text-white/35 mb-2">Alimentacao/dia (R$)</label>
                         <input className="glass-input" type="number" name="alimentacao" defaultValue="80" step="0.01" min="0" />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Deslocamento Local/dia (R$)</label>
+                        <label className="block label-micro text-white/35 mb-2">Deslocamento Local/dia (R$)</label>
                         <input className="glass-input" type="number" name="deslocamentoLocal" defaultValue="40" step="0.01" min="0" />
                       </div>
                     </div>
@@ -828,7 +829,7 @@ export default function RouteIntelligence() {
         {/* Premium CTA Button */}
         <div className="flex flex-col items-center w-full pt-4 pb-2 gap-2">
           {selectedCollaborators.length === 0 && (
-            <span className="text-[11px] text-accent-orange/60 font-medium">Selecione ao menos 1 colaborador</span>
+            <span className="body text-[13px] text-accent-orange/60 font-medium">Selecione ao menos 1 colaborador</span>
           )}
           <LiquidMetalButton
             label={loading ? (progress || 'Analisando...') : 'Buscar Rotas'}
@@ -845,29 +846,29 @@ export default function RouteIntelligence() {
         <div className="space-y-4 animate-slide-up">
           <div className="rounded-2xl border border-accent-purple/15 bg-gradient-to-br from-accent-purple/[0.04] via-dark-900/60 to-dark-800/40 backdrop-blur-xl p-6">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-accent-purple/10 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-accent-purple/10 flex items-center justify-center flex-shrink-0">
                 <Globe className="w-5 h-5 text-accent-purple" />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-white mb-2">Este destino requer composicao regional de acesso</h3>
-                <p className="text-xs text-white/35 mb-3">
+                <h3 className="heading text-white mb-2">Este destino requer composicao regional de acesso</h3>
+                <p className="body text-[13px] mb-3">
                   Nenhuma rota direta simples encontrada. O motor de inteligencia gerou alternativas multimodais, mas nenhuma atendeu aos parametros de viabilidade. Abaixo, o resumo da exploracao realizada.
                 </p>
                 <div className="space-y-2">
                   {analysis.executive?.paragraphs?.map((p, i) => (
-                    <p key={i} className="text-sm text-white/45 leading-relaxed"
+                    <p key={i} className="body text-[15px]"
                       dangerouslySetInnerHTML={{ __html: p.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white/70 font-semibold">$1</strong>') }}
                     />
                   ))}
                 </div>
                 {analysis.explorationLog?.length > 0 && (
                   <div className="mt-4 pt-3 border-t border-white/[0.04]">
-                    <p className="text-[10px] text-white/20 uppercase tracking-wider font-semibold mb-2">Estrategias exploradas</p>
+                    <p className="label-micro text-white/20 mb-2">Estrategias exploradas</p>
                     <div className="space-y-1">
                       {analysis.explorationLog.map((log, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <CheckCircle className="w-2.5 h-2.5 text-accent-purple/40" />
-                          <span className="text-[11px] text-white/30">{log}</span>
+                          <span className="body text-[13px]">{log}</span>
                         </div>
                       ))}
                     </div>
@@ -885,7 +886,7 @@ export default function RouteIntelligence() {
 
           {/* Multimodal Discovery Banner */}
           {analysis.multimodal && (
-            <div className="relative overflow-hidden rounded-2xl border border-accent-purple/15 bg-gradient-to-r from-accent-purple/[0.04] via-dark-900/60 to-accent-cyan/[0.03] p-5">
+            <div className="relative overflow-hidden rounded-2xl border border-accent-purple/15 bg-gradient-to-r from-accent-purple/[0.04] via-dark-900/60 to-accent-cyan/[0.03] p-6">
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-accent-purple/[0.06] rounded-full blur-3xl pointer-events-none" />
               <div className="relative flex items-start gap-4">
                 <div className="w-9 h-9 rounded-xl bg-accent-purple/10 flex items-center justify-center flex-shrink-0">
@@ -893,16 +894,16 @@ export default function RouteIntelligence() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className="text-sm font-semibold text-white">Motor Multimodal Ativo</h4>
+                    <h4 className="heading text-white">Motor Multimodal Ativo</h4>
                     <Badge variant="purple" dot>Exploração Inteligente</Badge>
                   </div>
-                  <p className="text-xs text-white/35 leading-relaxed">
+                  <p className="body text-[13px]">
                     Rota direta simples nao encontrada. O motor de inteligencia explorou aeroportos proximos, hubs regionais e composicoes multimodais para construir {analysis.alternatives?.length || 0} alternativa(s) porta-a-porta.
                   </p>
                   {analysis.explorationLog?.length > 0 && (
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
                       {analysis.explorationLog.map((log, i) => (
-                        <span key={i} className="text-[10px] text-white/20 flex items-center gap-1">
+                        <span key={i} className="label-micro text-white/20 flex items-center gap-1">
                           <CheckCircle className="w-2.5 h-2.5 text-mint/40" />
                           {log}
                         </span>
@@ -918,21 +919,21 @@ export default function RouteIntelligence() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Map Panel */}
             <div className="lg:col-span-5">
-              <div className="relative rounded-3xl border border-white/[0.04] bg-gradient-to-b from-dark-800/60 to-dark-900/40 overflow-hidden h-full">
-                <div className="px-5 py-3 border-b border-white/[0.04] flex items-center justify-between">
+              <div className="relative rounded-2xl border border-white/[0.04] bg-gradient-to-b from-dark-800/60 to-dark-900/40 overflow-hidden h-full">
+                <div className="px-4 py-3 border-b border-white/[0.04] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Navigation className="w-3.5 h-3.5 text-mint/50" />
-                    <span className="text-[11px] font-semibold text-white/30 uppercase tracking-wider">Mapa da Rota</span>
+                    <span className="label-micro text-white/30">Mapa da Rota</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full bg-mint" />
-                      <span className="text-[9px] text-white/25">{analysis.origem?.split(' - ')[0]}</span>
+                      <span className="label-micro text-white/25">{analysis.origem?.split(' - ')[0]}</span>
                     </div>
                     <ArrowRight className="w-2.5 h-2.5 text-white/15" />
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full bg-accent-orange" />
-                      <span className="text-[9px] text-white/25">{analysis.destino?.split(' - ')[0]}</span>
+                      <span className="label-micro text-white/25">{analysis.destino?.split(' - ')[0]}</span>
                     </div>
                   </div>
                 </div>
@@ -942,7 +943,7 @@ export default function RouteIntelligence() {
                       <div className="h-[420px] flex items-center justify-center bg-dark-900/50 rounded-2xl">
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 border-2 border-mint/30 border-t-mint rounded-full animate-spin" />
-                          <span className="text-xs text-white/30">Carregando mapa...</span>
+                          <span className="body text-[13px]">Carregando mapa...</span>
                         </div>
                       </div>
                     }>
@@ -967,16 +968,16 @@ export default function RouteIntelligence() {
                   )}
                 </div>
                 {/* Route info footer */}
-                <div className="px-5 py-3 border-t border-white/[0.04] flex items-center justify-between">
+                <div className="px-4 py-3 border-t border-white/[0.04] flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div>
-                      <div className="text-[9px] text-white/20 uppercase tracking-wider font-semibold">Distancia</div>
-                      <div className="text-sm font-bold text-white">{(analysis.distanciaKm || 0).toLocaleString('pt-BR')} km</div>
+                      <div className="label-micro text-white/20">Distancia</div>
+                      <div className="tabular-data text-sm font-bold text-white">{(analysis.distanciaKm || 0).toLocaleString('pt-BR')} km</div>
                     </div>
                     <div className="w-px h-6 bg-white/[0.06]" />
                     <div>
-                      <div className="text-[9px] text-white/20 uppercase tracking-wider font-semibold">Alternativas</div>
-                      <div className="text-sm font-bold text-accent-purple">{analysis.totalAlternativas || analysis.alternatives?.length}</div>
+                      <div className="label-micro text-white/20">Alternativas</div>
+                      <div className="tabular-data text-sm font-bold text-accent-purple">{analysis.totalAlternativas || analysis.alternatives?.length}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -993,20 +994,20 @@ export default function RouteIntelligence() {
 
             {/* Executive Summary Panel */}
             <div className="lg:col-span-7">
-              <div className="relative rounded-3xl border border-mint/10 bg-gradient-to-br from-mint/[0.03] via-dark-900/80 to-dark-800/60 overflow-hidden h-full">
+              <div className="relative rounded-2xl border border-mint/10 bg-gradient-to-br from-mint/[0.03] via-dark-900/80 to-dark-800/60 overflow-hidden h-full">
                 {/* Subtle glow effect */}
                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-mint/[0.04] rounded-full blur-3xl pointer-events-none" />
 
                 <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-mint to-accent-cyan flex items-center justify-center flex-shrink-0 shadow-glow-mint-strong">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-mint to-accent-cyan flex items-center justify-center flex-shrink-0 shadow-glow-mint-strong">
                     <Sparkles className="w-5 h-5 text-dark-900" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2.5">
-                      <h3 className="text-base font-bold text-white tracking-tight">Recomendacao AI</h3>
+                      <h3 className="heading text-white">Recomendacao AI</h3>
                       <Badge variant="mint" dot>Score {analysis.executive.scoreTotal}/100</Badge>
                     </div>
-                    <p className="text-[10px] text-white/25 mt-0.5">Analise completa multi-modal com otimizacao de custos</p>
+                    <p className="label-micro text-white/25 mt-1">Analise completa multi-modal com otimizacao de custos</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <OptimizationModeBadge mode={analysis.optimizationMode} />
@@ -1017,7 +1018,7 @@ export default function RouteIntelligence() {
                 <div className="p-6 relative">
                   <div className="space-y-3">
                     {analysis.executive.paragraphs.map((p, i) => (
-                      <p key={i} className="text-sm text-white/45 leading-relaxed"
+                      <p key={i} className="body text-[15px]"
                         dangerouslySetInnerHTML={{ __html: p.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>') }}
                       />
                     ))}
@@ -1026,16 +1027,16 @@ export default function RouteIntelligence() {
                   {/* Quick stats row inside executive */}
                   <div className="grid grid-cols-3 gap-4 mt-6 pt-5 border-t border-white/[0.04]">
                     <div className="text-center">
-                      <div className="text-lg font-bold text-mint">{formatCurrency(analysis.executive.maisBaratoOperacional?.custos.operacionalTotal || 0)}</div>
-                      <div className="text-[10px] text-white/20 uppercase tracking-wider font-semibold mt-0.5">Melhor opcao</div>
+                      <div className="metric-value text-mint">{formatCurrency(analysis.executive.maisBaratoOperacional?.custos.operacionalTotal || 0)}</div>
+                      <div className="label-micro text-white/20 mt-1">Melhor opcao</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-accent-orange">{formatCurrency(analysis.executive.economiaOperacional || 0)}</div>
-                      <div className="text-[10px] text-white/20 uppercase tracking-wider font-semibold mt-0.5">Economia</div>
+                      <div className="metric-value text-accent-orange">{formatCurrency(analysis.executive.economiaOperacional || 0)}</div>
+                      <div className="label-micro text-white/20 mt-1">Economia</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-accent-cyan">{(analysis.executive.tempoSalvo || 0).toFixed(1)}h</div>
-                      <div className="text-[10px] text-white/20 uppercase tracking-wider font-semibold mt-0.5">Tempo salvo</div>
+                      <div className="metric-value text-accent-cyan">{(analysis.executive.tempoSalvo || 0).toFixed(1)}h</div>
+                      <div className="label-micro text-white/20 mt-1">Tempo salvo</div>
                     </div>
                   </div>
                 </div>
@@ -1045,32 +1046,32 @@ export default function RouteIntelligence() {
 
           {/* Flight Price Intelligence Panel */}
           {analysis.flightPriceInsights?.available && (
-            <div className="relative rounded-2xl border border-accent-blue/10 bg-gradient-to-r from-accent-blue/[0.03] via-dark-900/60 to-dark-800/40 p-5">
+            <div className="relative rounded-2xl border border-accent-blue/10 bg-gradient-to-r from-accent-blue/[0.03] via-dark-900/60 to-dark-800/40 p-6">
               <div className="flex items-start gap-4">
                 <div className="w-9 h-9 rounded-xl bg-accent-blue/10 flex items-center justify-center flex-shrink-0">
                   <TrendingUp className="w-4.5 h-4.5 text-accent-blue" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <h4 className="text-sm font-semibold text-white">Inteligencia de Precos — Voos</h4>
+                    <h4 className="heading text-white">Inteligencia de Precos — Voos</h4>
                     <Badge variant="cyan">Google Flights</Badge>
                   </div>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <div className="text-[10px] text-white/20 uppercase tracking-wider">Melhor Preco</div>
-                      <div className="text-lg font-bold text-accent-cyan">{formatCurrency(analysis.flightPriceInsights.precoAtual || 0)}</div>
+                      <div className="label-micro text-white/20">Melhor Preco</div>
+                      <div className="metric-value text-accent-cyan">{formatCurrency(analysis.flightPriceInsights.precoAtual || 0)}</div>
                     </div>
                     {analysis.flightPriceInsights.faixaPreco?.length >= 2 && (
                       <div>
-                        <div className="text-[10px] text-white/20 uppercase tracking-wider">Faixa Tipica</div>
-                        <div className="text-sm font-semibold text-white/50">
+                        <div className="label-micro text-white/20">Faixa Tipica</div>
+                        <div className="tabular-data text-sm font-semibold text-white/50">
                           {formatCurrency(analysis.flightPriceInsights.faixaPreco[0])} — {formatCurrency(analysis.flightPriceInsights.faixaPreco[1])}
                         </div>
                       </div>
                     )}
                     {analysis.flightPriceInsights.precoAtualNivel && (
                       <div>
-                        <div className="text-[10px] text-white/20 uppercase tracking-wider">Nivel de Preco</div>
+                        <div className="label-micro text-white/20">Nivel de Preco</div>
                         <div className={`text-sm font-semibold ${
                           analysis.flightPriceInsights.precoAtualNivel === 'low' ? 'text-mint' :
                           analysis.flightPriceInsights.precoAtualNivel === 'high' ? 'text-accent-orange' : 'text-white/50'
@@ -1082,9 +1083,9 @@ export default function RouteIntelligence() {
                       </div>
                     )}
                     <div>
-                      <div className="text-[10px] text-white/20 uppercase tracking-wider">Fonte</div>
-                      <div className="text-xs text-accent-blue/50 font-medium">{analysis.flightPriceInsights.fonte}</div>
-                      <div className="text-[9px] text-white/15 mt-0.5">
+                      <div className="label-micro text-white/20">Fonte</div>
+                      <div className="body text-[13px] text-accent-blue/50 font-medium">{analysis.flightPriceInsights.fonte}</div>
+                      <div className="label-micro text-white/15 mt-1">
                         {new Date(analysis.flightPriceInsights.ultimaAtualizacao).toLocaleString('pt-BR')}
                       </div>
                     </div>
@@ -1095,7 +1096,7 @@ export default function RouteIntelligence() {
           )}
 
           {/* KPI Strip */}
-          <div className="relative rounded-3xl border border-white/[0.06] bg-gradient-to-r from-dark-850/80 to-dark-900/60 backdrop-blur-xl overflow-hidden">
+          <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-r from-dark-850/80 to-dark-900/60 backdrop-blur-xl overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/15 to-transparent" />
             <div className="grid grid-cols-4 gap-0">
               <MetricCell label="Melhor Opcao" value={formatCurrency(analysis.executive.maisBaratoOperacional?.custos.operacionalTotal || 0)} detail={`${analysis.executive.melhor?.tipo} - Score ${analysis.executive.melhor?.scores.total}/100`} icon={Star} color="mint" />
@@ -1109,11 +1110,11 @@ export default function RouteIntelligence() {
           {scenarioComparison.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <h3 className="text-base font-semibold text-white/60 tracking-tight">Comparador de Cenarios da Pesquisa</h3>
+                <h3 className="heading text-white/60">Comparador de Cenarios da Pesquisa</h3>
                 <div className="flex-1 h-px bg-white/[0.04]" />
-                <span className="text-[10px] text-white/20 uppercase tracking-wider font-semibold">Veiculo / Aereo / Onibus</span>
+                <span className="label-micro text-white/20">Veiculo / Aereo / Onibus</span>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {scenarioComparison.map((c) => {
                   const isBest = c.nome === routeBestScenarioName;
                   const isFastest = c.nome === routeFastestScenarioName;
@@ -1123,7 +1124,7 @@ export default function RouteIntelligence() {
                   return (
                     <section
                       key={c.id}
-                      className={`relative overflow-hidden rounded-3xl border backdrop-blur-xl transition-all ${
+                      className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all ${
                         isBest
                           ? 'border-mint/[0.15] bg-gradient-to-br from-mint/[0.03] via-dark-900/60 to-dark-950/80'
                           : 'border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60'
@@ -1136,8 +1137,8 @@ export default function RouteIntelligence() {
                         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${scenarioMeta.color}15, transparent)` }} />
                       )}
 
-                      <div className="relative p-7">
-                        <div className="flex items-center justify-between mb-5">
+                      <div className="relative p-6">
+                        <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-3">
                             <div
                               className="w-10 h-10 rounded-xl flex items-center justify-center border"
@@ -1149,7 +1150,7 @@ export default function RouteIntelligence() {
                             >
                               <ScenarioIcon className="w-5 h-5" style={{ color: isBest ? '#49DC7A' : scenarioMeta.color }} />
                             </div>
-                            <h3 className={`text-base font-bold tracking-tight ${isBest ? 'text-mint' : 'text-white/80'}`}>{c.nome}</h3>
+                            <h3 className={`heading ${isBest ? 'text-mint' : 'text-white/80'}`}>{c.nome}</h3>
                           </div>
                           <div className="flex gap-1.5">
                             {isBest && <Badge variant="mint" dot>Melhor Custo</Badge>}
@@ -1157,10 +1158,10 @@ export default function RouteIntelligence() {
                           </div>
                         </div>
 
-                        <div className={`text-3xl font-bold tracking-tight mb-1 ${isBest ? 'text-mint' : 'text-white'}`}>
+                        <div className={`display-lg mb-1.5 ${isBest ? 'text-mint' : ''}`}>
                           {formatCurrency(c.resumo.custoTotalEquipe)}
                         </div>
-                        <p className="text-[11px] text-white/25 mb-5">Custo total da equipe ({selectedCollaborators.length} colab.)</p>
+                        <p className="label-micro mb-4">Custo total · {selectedCollaborators.length} colab.</p>
 
                         <div className="space-y-3">
                           <RouteScenarioCostRow label="Horas Trabalhadas" value={c.resumo.custoEquipeHoras} total={c.resumo.custoTotalEquipe} color="#3B82F6" />
@@ -1171,10 +1172,10 @@ export default function RouteIntelligence() {
                           <RouteScenarioCostRow label="Logistico" value={c.resumo.custoLogistico} total={c.resumo.custoTotalEquipe} color="#EF4444" />
                         </div>
 
-                        <div className="mt-5 pt-5 border-t border-white/[0.04]">
+                        <div className="mt-4 pt-4 border-t border-white/[0.04]">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-white/30 uppercase tracking-wider font-semibold">Tempo de Transito</span>
-                            <span className={`text-sm font-bold ${isFastest ? 'text-accent-blue' : 'text-white/60'}`}>
+                            <span className="label-micro text-white/30">Tempo de Transito</span>
+                            <span className={`tabular-data text-sm font-bold ${isFastest ? 'text-accent-blue' : 'text-white/60'}`}>
                               {formatHours(c.resumo.horasTransito)}
                             </span>
                           </div>
@@ -1190,10 +1191,10 @@ export default function RouteIntelligence() {
           {/* Alternative Cards */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <h3 className="text-base font-semibold text-white/60 tracking-tight">Alternativas Analisadas</h3>
+              <h3 className="heading text-white/60">Alternativas Analisadas</h3>
               <OptimizationModeBadge mode={analysis.optimizationMode} />
               <div className="flex-1 h-px bg-white/[0.04]" />
-              <span className="text-[10px] text-white/20 uppercase tracking-wider font-semibold">Ordenado por score</span>
+              <span className="label-micro text-white/20">Ordenado por score</span>
             </div>
             {analysis.alternatives?.sort((a, b) => b.scores.total - a.scores.total).map((alt, i) => (
               <AlternativeCard
@@ -1216,14 +1217,14 @@ export default function RouteIntelligence() {
 
           {/* Scores Radar */}
           {analysis.alternatives?.length > 1 && (
-            <div className="relative rounded-3xl border border-white/[0.04] bg-gradient-to-b from-dark-800/60 to-dark-900/40 overflow-hidden">
+            <div className="relative rounded-2xl border border-white/[0.04] bg-gradient-to-b from-dark-800/60 to-dark-900/40 overflow-hidden">
               <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-accent-purple/[0.08] flex items-center justify-center">
                   <Star className="w-4 h-4 text-accent-purple/60" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white/70">Comparativo de Scores</h3>
-                  <p className="text-[10px] text-white/25 mt-0.5">Analise radar multi-dimensional das alternativas</p>
+                  <h3 className="heading text-white/70">Comparativo de Scores</h3>
+                  <p className="label-micro text-white/25 mt-1">Analise radar multi-dimensional das alternativas</p>
                 </div>
               </div>
               <div className="p-6">
@@ -1274,10 +1275,10 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
   const iconColor = isMultimodal ? 'text-accent-cyan' : isBus ? 'text-accent-amber' : isAir ? 'text-accent-blue' : 'text-accent-purple';
 
   return (
-    <div className={`relative overflow-hidden rounded-3xl border backdrop-blur-xl transition-all duration-300 ${isBest ? 'border-mint/15 bg-gradient-to-r from-mint/[0.03] via-dark-900/60 to-dark-950/40' : 'border-white/[0.06] bg-gradient-to-r from-dark-850/60 to-dark-900/40'}`}>
+    <div className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isBest ? 'border-mint/15 bg-gradient-to-r from-mint/[0.03] via-dark-900/60 to-dark-950/40' : 'border-white/[0.06] bg-gradient-to-r from-dark-850/60 to-dark-900/40'}`}>
       <button
         onClick={onToggle}
-        className="w-full px-6 py-5 flex items-center gap-5 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full px-6 py-6 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"
       >
         {/* Rank */}
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold ${isBest ? 'bg-mint/10 text-mint' : 'bg-white/[0.04] text-white/35'}`}>
@@ -1285,48 +1286,48 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
         </div>
 
         {/* Icon */}
-        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${iconBg}`}>
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${iconBg}`}>
           <TypeIcon className={`w-5 h-5 ${iconColor}`} />
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5">
-            <span className="text-sm font-semibold text-white">{alt.tipo}</span>
+            <span className="heading text-white">{alt.tipo}</span>
             {isBest && <Badge variant="mint" dot>Recomendado</Badge>}
             {isMultimodal && <Badge variant="purple">Multimodal</Badge>}
             {alt.detalhes?.fonte === 'realtime' || alt.detalhes?.fonte === 'quero_passagem' ? <Badge variant="cyan">Tempo Real</Badge> : null}
             {alt.detalhes?.purchaseUrl && <Badge variant="orange">Compra Disponivel</Badge>}
             {alt.detalhes?.bookingOptions?.length > 0 && <Badge variant="blue">Reserva Online</Badge>}
           </div>
-          <p className="text-xs text-white/25 truncate mt-1">{alt.descricao}</p>
+          <p className="body text-[13px] truncate mt-1">{alt.descricao}</p>
         </div>
 
         {/* Score */}
         <div className="text-center px-4">
-          <div className={`text-xl font-bold ${isBest ? 'text-mint' : 'text-white/60'}`}>{alt.scores.total}</div>
-          <div className="text-[10px] text-white/20 uppercase font-semibold tracking-wider">Score</div>
+          <div className={`metric-value ${isBest ? 'text-mint' : 'text-white/60'}`}>{alt.scores.total}</div>
+          <div className="label-micro text-white/20">Score</div>
         </div>
 
         {/* Cost */}
         <div className="text-right px-4">
-          <div className="text-sm font-bold text-white">{formatCurrency(alt.custos.operacionalTotal)}</div>
-          <div className="text-[10px] text-white/20">Custo operacional</div>
+          <div className="tabular-data text-sm font-bold text-white">{formatCurrency(alt.custos.operacionalTotal)}</div>
+          <div className="label-micro text-white/20">Custo operacional</div>
         </div>
 
         {/* Time */}
         <div className="text-right px-4">
-          <div className="text-sm font-semibold text-white/60">{alt.tempoViagemH}h</div>
-          <div className="text-[10px] text-white/20">so ida</div>
+          <div className="tabular-data text-sm font-semibold text-white/60">{alt.tempoViagemH}h</div>
+          <div className="label-micro text-white/20">so ida</div>
         </div>
 
         <ChevronDown className={`w-4 h-4 text-white/15 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       {expanded && (
-        <div className="px-6 pb-6 pt-5 animate-fade-in space-y-5">
+        <div className="px-6 pb-6 pt-5 animate-fade-in space-y-4">
           {/* Route Summary */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <MiniStat label="Tempo porta-a-porta (ida)" value={`${alt.tempoViagemH}h`} />
             <MiniStat label="Transporte Total" value={formatCurrency(alt.custos.transporteTotal)} />
             <MiniStat label="Transporte/Pessoa" value={formatCurrency(alt.custos.transportePessoa)} />
@@ -1334,7 +1335,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
           </div>
 
           {/* Operational Cost Breakdown */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <MiniStat label="Mao de Obra" value={formatCurrency(alt.custos.maoObra)} />
             <MiniStat label="Transito (horas)" value={formatCurrency(alt.custos.transito)} />
             <MiniStat label="Hospedagem" value={formatCurrency(alt.custos.hospedagem)} />
@@ -1351,7 +1352,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
           {alt.isVehicle && alt.detalhes?.pedagios > 0 && (
             <div className="flex items-center gap-2 px-1">
               <Zap className="w-3 h-3 text-accent-cyan" />
-              <span className="text-[11px] text-white/35">
+              <span className="body text-[13px]">
                 Pedagios: <span className="text-white/55 font-semibold">{formatCurrency(alt.detalhes.pedagios)}</span>
                 <span className="ml-1.5 text-accent-cyan/60">
                   ({alt.detalhes.pedagioSource === 'google_routes_api' ? 'Google Routes API' : 'Estimativa por regiao'})
@@ -1365,20 +1366,20 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
             <div className="p-3 rounded-xl bg-accent-purple/[0.03] border border-accent-purple/10">
               <div className="flex items-center gap-2 mb-2">
                 <Route className="w-3.5 h-3.5 text-accent-purple/60" />
-                <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Trecho Terrestre Final</span>
+                <span className="label-micro text-white/40">Trecho Terrestre Final</span>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <div className="text-[10px] text-white/20">Trecho</div>
-                  <div className="text-xs text-white/50 font-medium">{alt.detalhes.trechoTerrestre.de?.split(' - ')[0]} → {alt.detalhes.trechoTerrestre.para?.split(' - ')[0]}</div>
+                  <div className="label-micro text-white/20">Trecho</div>
+                  <div className="body text-[13px] font-medium text-white/50">{alt.detalhes.trechoTerrestre.de?.split(' - ')[0]} → {alt.detalhes.trechoTerrestre.para?.split(' - ')[0]}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-white/20">Distancia</div>
-                  <div className="text-xs text-white/50 font-medium">{alt.detalhes.trechoTerrestre.distanciaKm} km</div>
+                  <div className="label-micro text-white/20">Distancia</div>
+                  <div className="body text-[13px] font-medium text-white/50 tabular-data">{alt.detalhes.trechoTerrestre.distanciaKm} km</div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-white/20">Tempo / Tipo</div>
-                  <div className="text-xs text-white/50 font-medium">{alt.detalhes.trechoTerrestre.tempoH}h — {alt.detalhes.trechoTerrestre.tipo === 'carro_alugado' ? 'Carro alugado' : alt.detalhes.trechoTerrestre.tipo === 'onibus' ? 'Onibus' : alt.detalhes.trechoTerrestre.tipo}</div>
+                  <div className="label-micro text-white/20">Tempo / Tipo</div>
+                  <div className="body text-[13px] font-medium text-white/50 tabular-data">{alt.detalhes.trechoTerrestre.tempoH}h — {alt.detalhes.trechoTerrestre.tipo === 'carro_alugado' ? 'Carro alugado' : alt.detalhes.trechoTerrestre.tipo === 'onibus' ? 'Onibus' : alt.detalhes.trechoTerrestre.tipo}</div>
                 </div>
               </div>
             </div>
@@ -1388,7 +1389,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
           {isAir && alt.detalhes?.aeroportoOrigem && (
             <div className="flex items-center gap-2 px-1">
               <Plane className="w-3 h-3 text-accent-blue/60" />
-              <span className="text-[11px] text-white/35">
+              <span className="body text-[13px]">
                 Aeroportos: <span className="text-white/55 font-semibold">{alt.detalhes.aeroportoOrigem} → {alt.detalhes.aeroportoDestino}</span>
                 {alt.detalhes.cias?.length > 0 && (
                   <span className="ml-2 text-accent-blue/50">({alt.detalhes.cias.join(', ')})</span>
@@ -1402,25 +1403,25 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
             <div className="p-4 rounded-xl bg-accent-blue/[0.03] border border-accent-blue/10">
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-3.5 h-3.5 text-accent-blue/60" />
-                <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Inteligencia de Precos</span>
-                <span className="text-[9px] text-accent-blue/40 ml-auto">{alt.detalhes.priceInsights.fonte}</span>
+                <span className="label-micro text-white/40">Inteligencia de Precos</span>
+                <span className="label-micro text-accent-blue/40 ml-auto">{alt.detalhes.priceInsights.fonte}</span>
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
-                  <div className="text-[10px] text-white/20">Preco Atual</div>
-                  <div className="text-xs text-white/60 font-semibold">{formatCurrency(alt.custos.transportePessoa)}</div>
+                  <div className="label-micro text-white/20">Preco Atual</div>
+                  <div className="tabular-data text-xs text-white/60 font-semibold">{formatCurrency(alt.custos.transportePessoa)}</div>
                 </div>
                 {alt.detalhes.priceInsights.faixaPreco?.length >= 2 && (
                   <div>
-                    <div className="text-[10px] text-white/20">Faixa Tipica</div>
-                    <div className="text-xs text-white/50 font-medium">
+                    <div className="label-micro text-white/20">Faixa Tipica</div>
+                    <div className="tabular-data text-xs text-white/50 font-medium">
                       {formatCurrency(alt.detalhes.priceInsights.faixaPreco[0])} — {formatCurrency(alt.detalhes.priceInsights.faixaPreco[1])}
                     </div>
                   </div>
                 )}
                 {alt.detalhes.priceInsights.precoAtualNivel && (
                   <div>
-                    <div className="text-[10px] text-white/20">Nivel</div>
+                    <div className="label-micro text-white/20">Nivel</div>
                     <div className={`text-xs font-semibold ${
                       alt.detalhes.priceInsights.precoAtualNivel === 'low' ? 'text-mint' :
                       alt.detalhes.priceInsights.precoAtualNivel === 'high' ? 'text-accent-orange' : 'text-white/50'
@@ -1432,8 +1433,8 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                   </div>
                 )}
                 <div>
-                  <div className="text-[10px] text-white/20">Fonte</div>
-                  <div className="text-xs text-accent-blue/50 font-medium">{alt.detalhes.priceInsights.fonte || 'Google Flights'}</div>
+                  <div className="label-micro text-white/20">Fonte</div>
+                  <div className="body text-[13px] text-accent-blue/50 font-medium">{alt.detalhes.priceInsights.fonte || 'Google Flights'}</div>
                 </div>
               </div>
             </div>
@@ -1444,37 +1445,37 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
             <div className="p-4 rounded-xl bg-accent-amber/[0.03] border border-accent-amber/10">
               <div className="flex items-center gap-2 mb-3">
                 <Tag className="w-3.5 h-3.5 text-accent-amber/60" />
-                <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Dados de Passagem</span>
-                <span className="text-[9px] text-accent-amber/40 ml-auto">{alt.detalhes.fonteLabel || 'Quero Passagem'}</span>
+                <span className="label-micro text-white/40">Dados de Passagem</span>
+                <span className="label-micro text-accent-amber/40 ml-auto">{alt.detalhes.fonteLabel || 'Quero Passagem'}</span>
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {alt.detalhes.horarioPartida && (
                   <div>
-                    <div className="text-[10px] text-white/20">Partida</div>
-                    <div className="text-xs text-white/55 font-medium">{alt.detalhes.horarioPartida}</div>
+                    <div className="label-micro text-white/20">Partida</div>
+                    <div className="body text-[13px] text-white/55 font-medium">{alt.detalhes.horarioPartida}</div>
                   </div>
                 )}
                 {alt.detalhes.horarioChegada && (
                   <div>
-                    <div className="text-[10px] text-white/20">Chegada</div>
-                    <div className="text-xs text-white/55 font-medium">{alt.detalhes.horarioChegada}</div>
+                    <div className="label-micro text-white/20">Chegada</div>
+                    <div className="body text-[13px] text-white/55 font-medium">{alt.detalhes.horarioChegada}</div>
                   </div>
                 )}
                 {alt.detalhes.assentosDisponiveis != null && (
                   <div>
-                    <div className="text-[10px] text-white/20">Assentos</div>
-                    <div className="text-xs text-white/55 font-medium">{alt.detalhes.assentosDisponiveis} disponiveis</div>
+                    <div className="label-micro text-white/20">Assentos</div>
+                    <div className="body text-[13px] text-white/55 font-medium tabular-data">{alt.detalhes.assentosDisponiveis} disponiveis</div>
                   </div>
                 )}
                 {alt.detalhes.totalOpcoes > 1 && (
                   <div>
-                    <div className="text-[10px] text-white/20">Opcoes</div>
-                    <div className="text-xs text-white/55 font-medium">{alt.detalhes.totalOpcoes} horarios</div>
+                    <div className="label-micro text-white/20">Opcoes</div>
+                    <div className="body text-[13px] text-white/55 font-medium tabular-data">{alt.detalhes.totalOpcoes} horarios</div>
                   </div>
                 )}
               </div>
               {alt.detalhes.ultimaAtualizacao && (
-                <div className="mt-2 text-[9px] text-white/15">
+                <div className="mt-2 label-micro text-white/15">
                   Atualizado: {new Date(alt.detalhes.ultimaAtualizacao).toLocaleString('pt-BR')} | Fonte: {alt.detalhes.fonteLabel || 'Quero Passagem'}
                 </div>
               )}
@@ -1488,11 +1489,11 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                 <div className="p-3 rounded-xl bg-mint/[0.03] border border-mint/10">
                   <div className="flex items-center gap-1.5 mb-2">
                     <ThumbsUp className="w-3 h-3 text-mint/60" />
-                    <span className="text-[10px] font-semibold text-mint/50 uppercase tracking-wider">Vantagens</span>
+                    <span className="label-micro text-mint/50">Vantagens</span>
                   </div>
                   <ul className="space-y-1">
                     {alt.strengths.map((s, i) => (
-                      <li key={i} className="text-[11px] text-white/35 flex items-start gap-1.5">
+                      <li key={i} className="body text-[13px] flex items-start gap-1.5">
                         <CheckCircle className="w-2.5 h-2.5 text-mint/40 mt-0.5 flex-shrink-0" />
                         {s}
                       </li>
@@ -1504,11 +1505,11 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                 <div className="p-3 rounded-xl bg-accent-orange/[0.03] border border-accent-orange/10">
                   <div className="flex items-center gap-1.5 mb-2">
                     <ThumbsDown className="w-3 h-3 text-accent-orange/60" />
-                    <span className="text-[10px] font-semibold text-accent-orange/50 uppercase tracking-wider">Limitacoes</span>
+                    <span className="label-micro text-accent-orange/50">Limitacoes</span>
                   </div>
                   <ul className="space-y-1">
                     {alt.limitations.map((l, i) => (
-                      <li key={i} className="text-[11px] text-white/35 flex items-start gap-1.5">
+                      <li key={i} className="body text-[13px] flex items-start gap-1.5">
                         <AlertTriangle className="w-2.5 h-2.5 text-accent-orange/40 mt-0.5 flex-shrink-0" />
                         {l}
                       </li>
@@ -1531,7 +1532,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
           {alt.detalhes?.fonte && (
             <div className="flex items-center gap-2 px-1">
               <Eye className="w-3 h-3 text-white/20" />
-              <span className="text-[10px] text-white/20">
+              <span className="label-micro text-white/20">
                 Fonte: <span className="text-white/30">{alt.detalhes.fonteLabel || alt.detalhes.fonte}</span>
                 {alt.detalhes.dataConsulta && (
                   <span className="ml-2">| Consultado: {new Date(alt.detalhes.dataConsulta).toLocaleString('pt-BR')}</span>
@@ -1547,13 +1548,13 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
               {confirmed ? (
                 <div className="flex items-center gap-2.5 text-mint">
                   <CheckCircle className="w-5 h-5" />
-                  <span className="text-sm font-semibold">Rota Confirmada</span>
+                <span className="heading">Rota Confirmada</span>
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onConfirm(); }}
-                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-mint/10 border border-mint/20 text-mint text-sm font-semibold hover:bg-mint/15 transition-all duration-200"
+                  className="flex items-center gap-3 px-6 py-3 rounded-xl bg-mint/10 border border-mint/20 text-mint text-sm font-semibold hover:bg-mint/15 transition-all duration-200"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Confirmar Rota
@@ -1613,7 +1614,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
               )}
 
               {confirmed && (
-                <span className="text-[10px] text-white/20 uppercase tracking-wider font-semibold">Salvo no Dashboard</span>
+                <span className="label-micro text-white/20">Salvo no Dashboard</span>
               )}
             </div>
           </div>
@@ -1626,8 +1627,8 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
 function MiniStat({ label, value }) {
   return (
     <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-      <div className="text-[10px] text-white/20 uppercase tracking-wider font-semibold">{label}</div>
-      <div className="text-sm font-semibold text-white/55 mt-1">{value}</div>
+      <div className="label-micro text-white/20">{label}</div>
+      <div className="tabular-data text-sm font-semibold text-white/55 mt-2">{value}</div>
     </div>
   );
 }
@@ -1642,17 +1643,17 @@ function MetricCell({ label, value, detail, icon: Icon, color, border }) {
   const c = colors[color] || colors.mint;
 
   return (
-    <div className={`relative px-6 py-5 ${border ? 'border-l border-white/[0.04]' : ''}`}>
+    <div className={`relative px-6 py-6 ${border ? 'border-l border-white/[0.04]' : ''}`}>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.1em]">{label}</span>
+        <span className="label-micro text-white/30">{label}</span>
         {Icon && (
           <div className={`w-8 h-8 rounded-xl ${c.bg} flex items-center justify-center`}>
             <Icon className={`w-[15px] h-[15px] ${c.icon}`} />
           </div>
         )}
       </div>
-      <div className={`text-2xl font-bold tracking-tight ${c.value}`}>{value}</div>
-      {detail && <p className="text-[11px] text-white/20 mt-1">{detail}</p>}
+      <div className={`metric-value ${c.value}`}>{value}</div>
+      {detail && <p className="body text-[13px] mt-2">{detail}</p>}
     </div>
   );
 }
@@ -1661,8 +1662,8 @@ function ScoreBar({ label, value }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] text-white/25 font-medium">{label}</span>
-        <span className="text-[10px] font-bold text-white/45">{value}</span>
+        <span className="label-micro text-white/25">{label}</span>
+        <span className="label-micro text-white/45 tabular-data">{value}</span>
       </div>
       <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
         <div
@@ -1680,8 +1681,8 @@ function RouteScenarioCostRow({ label, value, total, color }) {
     <div className="flex items-center gap-3">
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-white/40 font-medium">{label}</span>
-          <span className="text-[11px] text-white/50 font-semibold">{formatCurrency(value)}</span>
+          <span className="body text-[13px]">{label}</span>
+          <span className="tabular-data text-[11px] text-white/50 font-semibold">{formatCurrency(value)}</span>
         </div>
         <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
           <div
@@ -1690,7 +1691,7 @@ function RouteScenarioCostRow({ label, value, total, color }) {
           />
         </div>
       </div>
-      <span className="text-[10px] text-white/20 font-medium w-10 text-right">{pct.toFixed(0)}%</span>
+      <span className="tabular-data text-[10px] text-white/20 font-medium w-10 text-right">{pct.toFixed(0)}%</span>
     </div>
   );
 }
@@ -1716,7 +1717,7 @@ function OptimizationModeBadge({ mode }) {
   const c = config[mode] || config['full-operational'];
   const IconComp = c.icon;
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider ${
+    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full label-micro ${
       mode === 'logistics'
         ? 'bg-accent-cyan/[0.08] text-accent-cyan border border-accent-cyan/15'
         : mode === 'logistics-labor'
@@ -1777,31 +1778,31 @@ function ComparativeDetailTable({ alternatives }) {
   ];
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+    <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
       <div className="relative">
-        <div className="px-7 py-5 flex items-center gap-3">
+        <div className="px-6 py-6 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-accent-cyan/10 flex items-center justify-center border border-accent-cyan/10">
             <ArrowLeftRight className="w-4 h-4 text-accent-cyan" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white/80 tracking-tight">Detalhamento Comparativo</h3>
-            <p className="text-[10px] text-white/25 mt-0.5">Comparacao lado a lado de todas as alternativas</p>
+            <h3 className="heading text-white/80">Detalhamento Comparativo</h3>
+            <p className="label-micro text-white/25 mt-1">Comparacao lado a lado de todas as alternativas</p>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.04]">
-                <th className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/20 text-left">Categoria</th>
+                <th className="px-6 py-4 label-micro text-white/20 text-left">Categoria</th>
                 {alternatives.map((alt, i) => {
                   const isBest = i === bestIdx;
                   const { Icon: AltIcon, color } = getIconAndColor(alt.tipo);
                   return (
-                    <th key={alt.id} className="px-5 py-4 text-right">
+                    <th key={alt.id} className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <AltIcon className="w-3.5 h-3.5" style={{ color: isBest ? '#49DC7A' : color }} />
-                        <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${isBest ? 'text-mint/60' : 'text-white/20'}`}>
+                        <span className={`label-micro ${isBest ? 'text-mint/60' : 'text-white/20'}`}>
                           {alt.tipo}
                         </span>
                         {isBest && <span className="w-1.5 h-1.5 rounded-full bg-mint" />}
@@ -1814,13 +1815,13 @@ function ComparativeDetailTable({ alternatives }) {
             <tbody>
               {/* Time row */}
               <tr className="border-b border-white/[0.04]/50 hover:bg-white/[0.02] transition-colors">
-                <td className="px-7 py-3.5 text-sm text-white/50">Tempo Viagem (ida)</td>
+                <td className="px-6 py-3 text-sm text-white/50">Tempo Viagem (ida)</td>
                 {alternatives.map((alt, i) => {
                   const vals = alternatives.map(a => a.tempoViagemH);
                   const minVal = Math.min(...vals);
                   const isMin = alt.tempoViagemH === minVal;
                   return (
-                    <td key={alt.id} className={`px-5 py-3.5 text-sm text-right font-medium ${isMin ? 'text-mint/80' : 'text-white/60'}`}>
+                    <td key={alt.id} className={`px-6 py-3 tabular-data text-sm text-right font-medium ${isMin ? 'text-mint/80' : 'text-white/60'}`}>
                       {alt.tempoViagemH}h
                       {isMin && <span className="ml-1 text-mint/40 text-[10px]">min</span>}
                     </td>
@@ -1837,12 +1838,12 @@ function ComparativeDetailTable({ alternatives }) {
                 if (allZero) return null;
                 return (
                   <tr key={row.key} className="border-b border-white/[0.04]/50 hover:bg-white/[0.02] transition-colors">
-                    <td className="px-7 py-3.5 text-sm text-white/50">{row.label}</td>
+                    <td className="px-6 py-3 text-sm text-white/50">{row.label}</td>
                     {alternatives.map((alt) => {
                       const val = alt.custos[row.key] || 0;
                       const isMin = val === minVal && val > 0;
                       return (
-                        <td key={alt.id} className={`px-5 py-3.5 text-sm text-right font-medium ${isMin ? 'text-mint/80' : 'text-white/60'}`}>
+                        <td key={alt.id} className={`px-6 py-3 tabular-data text-sm text-right font-medium ${isMin ? 'text-mint/80' : 'text-white/60'}`}>
                           {formatCurrency(val)}
                           {isMin && <span className="ml-1 text-mint/40 text-[10px]">min</span>}
                         </td>
@@ -1854,11 +1855,11 @@ function ComparativeDetailTable({ alternatives }) {
 
               {/* Total row */}
               <tr className="bg-white/[0.02] border-b border-white/[0.04]">
-                <td className="px-7 py-4 text-sm font-bold text-white">CUSTO OPERACIONAL</td>
+                <td className="px-6 py-4 label-micro text-white">Custo Operacional</td>
                 {alternatives.map((alt, i) => {
                   const isBest = i === bestIdx;
                   return (
-                    <td key={alt.id} className={`px-5 py-4 text-sm font-bold text-right ${isBest ? 'text-mint' : 'text-white'}`}>
+                    <td key={alt.id} className={`px-6 py-4 tabular-data text-sm font-bold text-right ${isBest ? 'text-mint' : 'text-white'}`}>
                       {formatCurrency(alt.custos.operacionalTotal)}
                       {isBest && <CheckCircle className="w-3.5 h-3.5 text-mint inline ml-1.5 -mt-0.5" />}
                     </td>
@@ -1868,8 +1869,8 @@ function ComparativeDetailTable({ alternatives }) {
 
               {/* Separator for scores */}
               <tr className="border-b border-white/[0.06]">
-                <td colSpan={alternatives.length + 1} className="px-7 py-2">
-                  <span className="text-[10px] font-semibold text-white/15 uppercase tracking-[0.1em]">Scores (0-100)</span>
+                <td colSpan={alternatives.length + 1} className="px-6 py-2">
+                  <span className="label-micro text-white/15">Scores (0-100)</span>
                 </td>
               </tr>
 
@@ -1879,12 +1880,12 @@ function ComparativeDetailTable({ alternatives }) {
                 const maxVal = Math.max(...values);
                 return (
                   <tr key={row.key} className="border-b border-white/[0.04]/50 hover:bg-white/[0.02] transition-colors">
-                    <td className="px-7 py-3.5 text-sm text-white/50">{row.label}</td>
+                    <td className="px-6 py-3 text-sm text-white/50">{row.label}</td>
                     {alternatives.map((alt) => {
                       const val = alt.scores[row.key] || 0;
                       const isMax = val === maxVal && val > 0;
                       return (
-                        <td key={alt.id} className={`px-5 py-3.5 text-sm text-right font-medium ${isMax ? 'text-mint/80' : 'text-white/60'}`}>
+                        <td key={alt.id} className={`px-6 py-3 tabular-data text-sm text-right font-medium ${isMax ? 'text-mint/80' : 'text-white/60'}`}>
                           {val}
                           {isMax && <span className="ml-1 text-mint/40 text-[10px]">max</span>}
                         </td>
@@ -1896,11 +1897,11 @@ function ComparativeDetailTable({ alternatives }) {
 
               {/* Total score row */}
               <tr className="bg-white/[0.02]">
-                <td className="px-7 py-4 text-sm font-bold text-white">SCORE TOTAL</td>
+                <td className="px-6 py-4 label-micro text-white">Score Total</td>
                 {alternatives.map((alt, i) => {
                   const isBest = i === bestIdx;
                   return (
-                    <td key={alt.id} className={`px-5 py-4 text-sm font-bold text-right ${isBest ? 'text-mint' : 'text-white'}`}>
+                    <td key={alt.id} className={`px-6 py-4 tabular-data text-sm font-bold text-right ${isBest ? 'text-mint' : 'text-white'}`}>
                       {alt.scores.total}/100
                       {isBest && <CheckCircle className="w-3.5 h-3.5 text-mint inline ml-1.5 -mt-0.5" />}
                     </td>

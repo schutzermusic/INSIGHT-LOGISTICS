@@ -3,28 +3,28 @@ import { isGoogleMapsLoaded } from '../../services/GoogleMapsLoader';
 import { fetchDrivingRoutes } from '../../services/BackendApiClient';
 import { useTheme } from '../../hooks/useTheme';
 
-// Dark futuristic map style — deep green-tinted for command-center look
+// Dark cinematic basemap — neutral blue-black palette, no green cast
 const DARK_MAP_STYLES = [
-  { elementType: 'geometry', stylers: [{ color: '#0a0f0f' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#0a0f0f' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#2a3a3a' }] },
-  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#0f1a1a' }] },
-  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#1a3030' }] },
-  { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#122222' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#3a5555' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#080e0e' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#0b1414' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#1f3333' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#0a1612' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#111c1c' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#0d1616' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#162222' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#0f1919' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#2a4444' }] },
-  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#0d1818' }] },
-  { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{ color: '#2a4444' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#040a0d' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#0f2030' }] },
+  { elementType: 'geometry', stylers: [{ color: '#0b0e14' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#0b0e14' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#3a4052' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#11151e' }] },
+  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#2a3042' }] },
+  { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#1a1f2c' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#5a6278' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#090c12' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#0e1220' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#2e3444' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#0d1a14' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#151a26' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#10141e' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#1e2538' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#151a28' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#4a5370' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#111622' }] },
+  { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{ color: '#4a5370' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#05070d' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#1a2338' }] },
 ];
 
 // Light premium map style — soft off-white + green accents, same identity
@@ -119,9 +119,9 @@ export default function DeckGLMap({
 
   // Theme-aware map chrome (applied to Google Maps styles and canvas bg)
   const mapStyles = isDark ? DARK_MAP_STYLES : LIGHT_MAP_STYLES;
-  const mapBg = isDark ? '#0A1E18' : '#F3F8F5';
-  const overlayFade = isDark ? '4, 10, 10' : '243, 248, 245';
-  const panelBg = isDark ? 'rgba(10,30,24,0.80)' : 'rgba(255,255,255,0.92)';
+  const mapBg = isDark ? '#0a0d14' : '#F3F8F5';
+  const overlayFade = isDark ? '10, 13, 20' : '243, 248, 245';
+  const panelBg = isDark ? 'rgba(14,18,26,0.82)' : 'rgba(255,255,255,0.92)';
   const panelBorder = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,30,24,0.08)';
 
   // Calculate center and zoom

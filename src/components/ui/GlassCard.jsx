@@ -1,10 +1,15 @@
 import { clsx } from 'clsx';
+import { useSpotlight } from '../../hooks/useSpotlight';
 
 export function GlassCard({ children, className, hover = false, glow, padding = 'p-6', onClick, ...props }) {
+  const { ref, onMouseMove } = useSpotlight();
+
   return (
     <div
+      ref={hover ? ref : undefined}
+      onMouseMove={hover ? onMouseMove : undefined}
       className={clsx(
-        hover ? 'glass-card-interactive' : 'glass-card',
+        hover ? 'glass-card-interactive spotlight' : 'glass-card',
         padding,
         glow === 'mint' && 'glow-border-mint',
         glow === 'orange' && 'glow-border-orange',
@@ -29,7 +34,7 @@ export function GlassCardHeader({ children, className, action }) {
 
 export function GlassCardTitle({ children, className, icon: Icon }) {
   return (
-    <h4 className={clsx('text-base font-semibold text-white flex items-center gap-2.5', className)}>
+    <h4 className={clsx('heading flex items-center gap-3', className)}>
       {Icon && (
         <div className="w-7 h-7 rounded-lg bg-mint/[0.08] flex items-center justify-center">
           <Icon className="w-[15px] h-[15px] text-mint/60" />

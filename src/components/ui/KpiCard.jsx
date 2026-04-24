@@ -55,7 +55,7 @@ export function KpiCard({ label, value, detail, icon: Icon, accent = 'mint', cla
       className
     )}>
       {/* Specular highlight */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] via-transparent to-transparent pointer-events-none" />
 
       {/* Top accent line */}
       <div className={clsx(
@@ -63,19 +63,21 @@ export function KpiCard({ label, value, detail, icon: Icon, accent = 'mint', cla
         a.topLine
       )} />
 
-      <div className="relative flex items-start justify-between mb-4">
-        <span className="text-[11px] font-semibold text-white/35 uppercase tracking-[0.08em]">{label}</span>
+      <div className="relative flex items-start justify-between mb-5">
+        <span className="label-micro">{label}</span>
         {Icon && (
-          <div className={clsx('w-10 h-10 rounded-2xl flex items-center justify-center', a.icon)}>
+          <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center', a.icon)}>
             <Icon className="w-[18px] h-[18px]" />
           </div>
         )}
       </div>
 
-      <div className={clsx('kpi-value mb-1.5', a.value)}>{value}</div>
+      <div className={clsx('metric-value mb-1.5', a.value)}>
+        {value}
+      </div>
 
       {detail && (
-        <p className="text-xs text-white/25 mt-1">{detail}</p>
+        <p className="body mt-1.5">{detail}</p>
       )}
     </div>
   );

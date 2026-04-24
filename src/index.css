@@ -84,22 +84,26 @@
   }
 
   .dark {
-    /* DARK — premium dark green glass, white ink, saturated mint. */
+    /* DARK — cinematic near-black with blue-black tilt.
+       Neutral base so green is an ACCENT only (mint-ink, status,
+       focus ring, selection, explicit gradients), never a wash. */
 
-    --ink: 255 255 255;
-    --glass-ink: 255 255 255;
+    --ink: 245 247 250;            /* off-white, reduces eye fatigue */
+    --glass-ink: 230 236 244;      /* cool neutral tint for glass/borders */
     --highlight-ink: 255 255 255;
     --shadow-ink: 0 0 0;
     --mint-ink: 73 220 122;
 
-    --surface--1: 34 94 80;        /* dark-600 */
-    --surface-0: 26 74 62;         /* dark-700 */
-    --surface-1: 18 54 44;         /* dark-800 */
-    --surface-2: 14 42 34;         /* dark-850 */
-    --surface-3: 10 30 24;         /* dark-900 */
-    --surface-4: 6 18 16;          /* dark-950 */
+    /* Surface ladder — neutral blue-black, no green hue */
+    --surface--1: 30 34 44;        /* elevated highlight (rare) */
+    --surface-0: 24 28 38;         /* raised panel */
+    --surface-1: 20 24 32;         /* elevated card */
+    --surface-2: 16 20 28;         /* standard card */
+    --surface-3: 12 15 22;         /* page-adjacent panel */
+    --surface-4: 8 10 16;          /* deepest (behind glass) */
 
-    --page-base: 10 30 24;
+    /* Page background — near-black with subtle blue tilt */
+    --page-base: 10 13 20;
 
     --chart-1: #49DC7A;
     --chart-2: #F97316;
@@ -112,32 +116,32 @@
     --chart-text: 255 255 255;
 
     /* shadcn variables (dark) — full color values */
-    --background: rgb(10 30 24);
-    --foreground: rgb(255 255 255);
-    --card: rgb(14 42 34);
-    --card-foreground: rgb(255 255 255);
-    --popover: rgb(14 42 34);
-    --popover-foreground: rgb(255 255 255);
+    --background: rgb(10 13 20);
+    --foreground: rgb(245 247 250);
+    --card: rgb(16 20 28);
+    --card-foreground: rgb(245 247 250);
+    --popover: rgb(16 20 28);
+    --popover-foreground: rgb(245 247 250);
     --primary: rgb(73 220 122);
-    --primary-foreground: rgb(10 30 24);
-    --secondary: rgb(18 54 44);
-    --secondary-foreground: rgb(255 255 255);
-    --muted: rgb(18 54 44);
-    --muted-foreground: rgb(180 200 192);
-    --accent: rgb(18 54 44);
-    --accent-foreground: rgb(255 255 255);
+    --primary-foreground: rgb(8 10 16);
+    --secondary: rgb(20 24 32);
+    --secondary-foreground: rgb(245 247 250);
+    --muted: rgb(20 24 32);
+    --muted-foreground: rgb(168 178 195);
+    --accent: rgb(20 24 32);
+    --accent-foreground: rgb(245 247 250);
     --destructive: rgb(239 68 68);
-    --border: rgb(255 255 255 / 0.14);
-    --input: rgb(255 255 255 / 0.18);
-    --ring: rgb(73 220 122 / 0.5);
-    --sidebar: rgb(6 18 16);
-    --sidebar-foreground: rgb(255 255 255);
+    --border: rgb(255 255 255 / 0.08);
+    --input: rgb(255 255 255 / 0.12);
+    --ring: rgb(73 220 122 / 0.45);
+    --sidebar: rgb(8 10 16);
+    --sidebar-foreground: rgb(245 247 250);
     --sidebar-primary: rgb(73 220 122);
-    --sidebar-primary-foreground: rgb(10 30 24);
-    --sidebar-accent: rgb(18 54 44);
-    --sidebar-accent-foreground: rgb(255 255 255);
-    --sidebar-border: rgb(255 255 255 / 0.10);
-    --sidebar-ring: rgb(73 220 122 / 0.5);
+    --sidebar-primary-foreground: rgb(8 10 16);
+    --sidebar-accent: rgb(20 24 32);
+    --sidebar-accent-foreground: rgb(245 247 250);
+    --sidebar-border: rgb(255 255 255 / 0.06);
+    --sidebar-ring: rgb(73 220 122 / 0.45);
   }
 
   .theme {
@@ -184,10 +188,18 @@
     height: 100vh;
     margin: 0;
     font-family: 'Outfit', system-ui, sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-feature-settings: "ss01", "cv11", "tnum";
     background: rgb(var(--page-base));
     color: rgb(var(--ink));
+    font-variant-numeric: lining-nums;
     transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-feature-settings: "ss01", "cv11", "tnum";
   }
 
   #root {
@@ -223,7 +235,7 @@
 
   /* ────────── Liquid Glass Cards ────────── */
   .glass-card {
-    @apply relative overflow-hidden rounded-3xl;
+    @apply relative overflow-hidden rounded-2xl;
     background:
       linear-gradient(
         145deg,
@@ -261,10 +273,32 @@
       0 0 0 1px rgb(var(--glass-ink) / 0.06);
   }
   .dark .glass-card {
-    --glass-a1: 0.09;
-    --glass-a2: 0.03;
-    --glass-a3: 0.06;
-    --shadow-a1: 0.35;
+    --glass-a1: 0.06;
+    --glass-a2: 0.02;
+    --glass-a3: 0.04;
+    --shadow-a1: 0.45;
+    background:
+      linear-gradient(
+        145deg,
+        rgb(255 255 255 / 0.05) 0%,
+        rgb(255 255 255 / 0.02) 50%,
+        rgb(255 255 255 / 0.035) 100%
+      ),
+      rgb(var(--surface-2) / 0.78);
+    box-shadow:
+      0 20px 60px -12px rgb(0 0 0 / 0.55),
+      0 4px 14px -2px rgb(0 0 0 / 0.35),
+      inset 0 1px 0 rgb(255 255 255 / 0.07),
+      inset 0 -1px 0 rgb(0 0 0 / 0.25),
+      0 0 0 1px rgb(255 255 255 / 0.055);
+  }
+  .dark .glass-card-interactive:hover {
+    box-shadow:
+      0 28px 72px -12px rgb(0 0 0 / 0.6),
+      0 6px 18px -2px rgb(0 0 0 / 0.4),
+      inset 0 1px 0 rgb(255 255 255 / 0.10),
+      inset 0 -1px 0 rgb(0 0 0 / 0.3),
+      0 0 0 1px rgb(255 255 255 / 0.09);
   }
 
   .glass-card::before {
@@ -301,7 +335,7 @@
 
   /* ────────── Glass Inputs ────────── */
   .glass-input {
-    @apply w-full rounded-2xl border-0 px-4 py-3 text-sm outline-none transition-all duration-200;
+    @apply w-full rounded-xl border-0 px-4 py-3 text-sm outline-none transition-all duration-200;
     color: rgb(var(--ink));
     background: rgb(var(--surface-1) / 0.85);
     backdrop-filter: blur(12px);
@@ -348,7 +382,7 @@
 
   /* ────────── Premium Buttons ────────── */
   .btn-premium {
-    @apply relative inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3
+    @apply relative inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3
       text-sm font-semibold tracking-wide transition-all duration-300 overflow-hidden;
     font-family: 'Outfit', system-ui, sans-serif;
   }
@@ -415,6 +449,218 @@
   .kpi-value {
     @apply text-3xl font-bold tracking-tight;
     font-family: 'Outfit', system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ────────── Premium Typography Helpers ──────────
+     Matches the reference's uppercase micro-labels + display-weight
+     hero values. Use .label-micro for small caption labels ("From",
+     "Departure Date", etc.) and .display-xl for the huge hero values
+     ("JFK", "MXP", big KPI numbers). */
+  .label-micro {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.1;
+    font-family: 'Outfit', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: rgb(var(--ink) / 0.5);
+  }
+  .label-micro-strong {
+    @apply label-micro;
+    color: rgb(var(--ink) / 0.72);
+  }
+  .display-xl {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: clamp(2.75rem, 5vw, 4rem);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .display-lg {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: clamp(2.125rem, 3.5vw, 2.75rem);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+  .display-md {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: clamp(1.625rem, 2vw, 1.875rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+  .heading {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    color: rgb(var(--ink) / 0.9);
+  }
+  .body {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: rgb(var(--ink) / 0.5);
+  }
+  .metric-value {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: clamp(1.625rem, 2vw, 2rem);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+  .tabular-data {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .recharts-text,
+  .recharts-cartesian-axis-tick-value,
+  .recharts-legend-item-text {
+    font-feature-settings: "ss01", "cv11", "tnum";
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ────────── Skeleton Shimmer ──────────
+     Lightweight placeholder with a diagonal sheen. Use .skeleton on
+     blocks that represent loading content (e.g. <div className="skeleton h-8 w-40 rounded-lg" />). */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgb(var(--glass-ink) / 0.06);
+    border-radius: 12px;
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(var(--highlight-ink) / 0.06) 50%,
+      transparent 100%
+    );
+    animation: skeletonShimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes skeletonShimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton::after { animation: none; }
+  }
+
+  /* ────────── Magnetic Hover ──────────
+     Apply `.magnetic` and use the useMagnetic() hook which sets
+     --mag-x / --mag-y based on cursor position. The element slides
+     up to 8px toward the cursor with a smooth spring. */
+  .magnetic {
+    transform: translate3d(var(--mag-x, 0px), var(--mag-y, 0px), 0);
+    transition: transform 200ms cubic-bezier(0.2, 0.9, 0.2, 1);
+    will-change: transform;
+  }
+  .magnetic:active {
+    transition: transform 80ms ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .magnetic { transform: none !important; transition: none; }
+  }
+
+  /* ────────── Global Focus Ring ──────────
+     Premium accessibility ring: mint outer ring + softly-glowing halo.
+     Only appears on keyboard focus thanks to `:focus-visible`. Reset
+     default focus/outline everywhere and provide this as replacement. */
+  *:focus { outline: none; }
+  *:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgb(var(--page-base)),
+      0 0 0 4px rgb(var(--mint-ink) / 0.55),
+      0 0 24px -2px rgb(var(--mint-ink) / 0.35);
+    border-radius: 8px;
+    transition: box-shadow 140ms ease;
+  }
+  /* Buttons and links with existing border-radius should preserve it */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible {
+    border-radius: inherit;
+  }
+  /* Inputs use inset ring so it doesn't collide with adjacent layout */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    box-shadow:
+      0 0 0 2px rgb(var(--mint-ink) / 0.45),
+      0 0 20px rgb(var(--mint-ink) / 0.15),
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.05);
+  }
+
+  /* ────────── Cursor-follow Spotlight ──────────
+     Apply `.spotlight` to any interactive card. A radial highlight
+     tracks the cursor (driven by CSS vars --mx / --my set in JS).
+     Gracefully no-ops without JS: spotlight stays at center. */
+  .spotlight {
+    position: relative;
+    overflow: hidden;
+  }
+  .spotlight::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 220ms ease;
+    background: radial-gradient(
+      360px circle at var(--mx, 50%) var(--my, 0%),
+      rgb(var(--highlight-ink) / 0.08) 0%,
+      transparent 55%
+    );
+    z-index: 0;
+  }
+  .spotlight:hover::before {
+    opacity: 1;
+  }
+
+  /* ────────── Stagger Animation ──────────
+     Put `.stagger-children` on any grid or flex container and each
+     direct child fades+slides up with an incremental delay. Keeps
+     perceived performance high while adding cinematic entrance. */
+  .stagger-children > * {
+    animation: staggerIn 0.5s ease-out both;
+  }
+  .stagger-children > *:nth-child(1)  { animation-delay: 40ms; }
+  .stagger-children > *:nth-child(2)  { animation-delay: 90ms; }
+  .stagger-children > *:nth-child(3)  { animation-delay: 140ms; }
+  .stagger-children > *:nth-child(4)  { animation-delay: 190ms; }
+  .stagger-children > *:nth-child(5)  { animation-delay: 240ms; }
+  .stagger-children > *:nth-child(6)  { animation-delay: 290ms; }
+  .stagger-children > *:nth-child(7)  { animation-delay: 340ms; }
+  .stagger-children > *:nth-child(8)  { animation-delay: 390ms; }
+  .stagger-children > *:nth-child(n+9) { animation-delay: 440ms; }
+  @keyframes staggerIn {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stagger-children > * {
+      animation: none;
+    }
   }
 
   /* ────────── Glow Borders ────────── */
@@ -470,32 +716,342 @@
     background-image: linear-gradient(135deg, #49DC7A 0%, #22F2EF 50%, #49DC7A 100%);
   }
 
-  /* ────────── Ambient Glow (top) ────────── */
+  /* ────────── Cinematic Ambient Stage ──────────
+     Volumetric light bathing the top of the viewport, plus a
+     subtle floor vignette. Built on multiple radials so the
+     scene reads as a cinematic stage rather than a flat page. */
   .ambient-glow {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    height: 800px;
-    background:
-      radial-gradient(ellipse at 25% -15%, rgba(73, 220, 122, 0.14) 0%, transparent 55%),
-      radial-gradient(ellipse at 75% -10%, rgba(34, 242, 239, 0.08) 0%, transparent 45%),
-      radial-gradient(ellipse at 50% 20%, rgba(73, 220, 122, 0.05) 0%, transparent 60%);
+    bottom: 0;
     pointer-events: none;
     z-index: 0;
+    background:
+      /* Top-left teal gleam — restrained, not a green wash */
+      radial-gradient(ellipse 900px 520px at 15% -10%, rgba(52, 211, 153, 0.09) 0%, transparent 55%),
+      /* Top-right cool accent */
+      radial-gradient(ellipse 780px 420px at 85% -8%, rgba(96, 165, 220, 0.055) 0%, transparent 55%),
+      /* Deep floor vignette — keeps the stage dark */
+      radial-gradient(ellipse 1600px 820px at 50% 115%, rgba(0, 0, 0, 0.55) 0%, transparent 55%);
   }
   :root .ambient-glow {
     background:
-      radial-gradient(ellipse at 25% -15%, rgba(73, 220, 122, 0.08) 0%, transparent 55%),
-      radial-gradient(ellipse at 75% -10%, rgba(34, 242, 239, 0.05) 0%, transparent 45%),
-      radial-gradient(ellipse at 50% 20%, rgba(249, 115, 22, 0.03) 0%, transparent 60%);
+      radial-gradient(ellipse 1200px 600px at 18% -12%, rgba(73, 220, 122, 0.10) 0%, transparent 55%),
+      radial-gradient(ellipse 900px 480px at 82% -8%, rgba(34, 242, 239, 0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 1400px 700px at 50% 25%, rgba(249, 115, 22, 0.03) 0%, transparent 60%),
+      radial-gradient(ellipse 1600px 800px at 50% 110%, rgba(15, 50, 40, 0.04) 0%, transparent 55%);
+  }
+
+  /* ────────── Top spotlight beam ──────────
+     A narrow, oblique beam of light, like a key light from off
+     screen. Adds cinematic direction. Dark-mode only — it would
+     look muddy on a luminous background. */
+  .stage-beam {
+    position: fixed;
+    top: -20%;
+    left: 8%;
+    width: 60%;
+    height: 95%;
+    pointer-events: none;
+    z-index: 0;
+    background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(180, 210, 230, 0.025) 30%,
+      transparent 60%
+    );
+    filter: blur(60px);
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity 500ms ease;
+  }
+  .dark .stage-beam { opacity: 0.75; }
+
+  /* ────────── Film grain ──────────
+     Tiny SVG noise overlay. Breaks up banding on the radial
+     gradients and adds the "shot on film" texture that premium
+     dashboards use to avoid looking sterile. */
+  .stage-grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  :root .stage-grain { opacity: 0.025; }
+
+  /* ────────── Premium Panel ──────────
+     The house card style for this redesign. Deeper tint, sharper
+     specular highlight on top edge, a soft radial on the inside
+     so every panel feels like a lit surface. */
+  .premium-panel {
+    @apply relative overflow-hidden rounded-2xl;
+    background:
+      radial-gradient(ellipse 600px 300px at 20% 0%, rgb(var(--glass-ink) / 0.06) 0%, transparent 60%),
+      linear-gradient(165deg, rgb(var(--surface-2) / 0.75) 0%, rgb(var(--surface-3) / 0.55) 100%);
+    backdrop-filter: blur(28px) saturate(1.3);
+    -webkit-backdrop-filter: blur(28px) saturate(1.3);
+    box-shadow:
+      0 1px 0 rgb(var(--highlight-ink) / 0.07) inset,
+      0 0 0 1px rgb(var(--glass-ink) / 0.08),
+      0 20px 60px -20px rgb(var(--shadow-ink) / 0.5),
+      0 4px 12px -4px rgb(var(--shadow-ink) / 0.2);
+  }
+  .premium-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(var(--highlight-ink) / 0.22) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+  :root .premium-panel {
+    background:
+      radial-gradient(ellipse 600px 300px at 20% 0%, rgb(255 255 255 / 0.8) 0%, transparent 60%),
+      linear-gradient(165deg, rgb(255 255 255 / 0.92) 0%, rgb(255 255 255 / 0.78) 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.9) inset,
+      0 0 0 1px rgb(var(--glass-ink) / 0.08),
+      0 12px 36px -12px rgb(var(--shadow-ink) / 0.14),
+      0 2px 6px -2px rgb(var(--shadow-ink) / 0.06);
+  }
+  .dark .premium-panel {
+    background:
+      radial-gradient(ellipse 600px 300px at 20% 0%, rgb(255 255 255 / 0.05) 0%, transparent 60%),
+      linear-gradient(165deg, rgb(var(--surface-2) / 0.88) 0%, rgb(var(--surface-3) / 0.72) 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.08) inset,
+      0 0 0 1px rgb(255 255 255 / 0.06),
+      0 28px 72px -20px rgb(0 0 0 / 0.7),
+      0 8px 20px -6px rgb(0 0 0 / 0.45);
+  }
+
+  /* Accent-tinted variants — the same panel shape but with a
+     whisper of brand color bleeding through the top-left. Use
+     for hero / featured panels. */
+  .premium-panel-mint {
+    @apply premium-panel;
+  }
+  .premium-panel-mint::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 500px 260px at 0% 0%, rgba(73, 220, 122, 0.10) 0%, transparent 55%),
+      radial-gradient(ellipse 400px 220px at 100% 100%, rgba(34, 242, 239, 0.06) 0%, transparent 55%);
+  }
+  .premium-panel-orange {
+    @apply premium-panel;
+  }
+  .premium-panel-orange::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 500px 260px at 100% 0%, rgba(249, 115, 22, 0.08) 0%, transparent 55%);
+  }
+
+  .premium-panel-purple {
+    @apply premium-panel;
+  }
+  .premium-panel-purple::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 500px 260px at 0% 0%, rgba(168, 85, 247, 0.10) 0%, transparent 55%),
+      radial-gradient(ellipse 400px 220px at 100% 100%, rgba(73, 220, 122, 0.05) 0%, transparent 55%);
+  }
+
+  /* ────────── Premium Panel — HERO variant ──────────
+     Signature "featured" panel used for the most important card on a
+     page. Combines the premium-panel stage with a thin gradient border
+     (mint → cyan) and a soft internal spotlight — inspired by the
+     reference's hero card. Do not use on secondary panels. */
+  .premium-panel-hero {
+    @apply premium-panel;
+    position: relative;
+    isolation: isolate;
+  }
+  .premium-panel-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 640px 340px at 8% -5%, rgba(73, 220, 122, 0.11) 0%, transparent 55%),
+      radial-gradient(ellipse 500px 260px at 100% 100%, rgba(34, 242, 239, 0.06) 0%, transparent 55%);
+  }
+  .premium-panel-hero::before {
+    /* Gradient border via mask. Overrides base premium-panel::before. */
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(73, 220, 122, 0.45) 0%,
+      rgba(34, 242, 239, 0.22) 35%,
+      rgba(255, 255, 255, 0.04) 65%,
+      rgba(73, 220, 122, 0.18) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+    height: auto;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: transparent;
+  }
+  .dark .premium-panel-hero {
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.08) inset,
+      0 32px 80px -22px rgb(0 0 0 / 0.7),
+      0 10px 28px -8px rgb(0 0 0 / 0.5),
+      0 0 40px -12px rgba(73, 220, 122, 0.18);
+  }
+
+  /* ────────── Premium CTAs ──────────
+     Inspired by the Velox "Search Ticket" and "Checkout" buttons —
+     a bright solid pill that cuts through the dark stage. */
+  .cta-white {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-full px-6 py-3
+      text-sm font-semibold tracking-wide transition-all duration-300;
+    color: #0A1E18;
+    background: linear-gradient(180deg, #ffffff 0%, #f0f4f1 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.9) inset,
+      0 0 0 1px rgb(0 0 0 / 0.04),
+      0 10px 30px -10px rgba(0, 0, 0, 0.4),
+      0 2px 6px -2px rgba(0, 0, 0, 0.15);
+    font-family: 'Outfit', system-ui, sans-serif;
+  }
+  .cta-white:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.95) inset,
+      0 0 0 1px rgb(0 0 0 / 0.04),
+      0 14px 36px -10px rgba(0, 0, 0, 0.45),
+      0 4px 10px -4px rgba(0, 0, 0, 0.2);
+  }
+  .cta-white:active { transform: translateY(0); }
+
+  .cta-white-with-accent {
+    @apply cta-white;
+    padding-right: 6px;
+  }
+  .cta-white-with-accent .accent-chip {
+    @apply inline-flex items-center justify-center rounded-full;
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+    color: #fff;
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.2) inset,
+      0 4px 14px -2px rgba(249, 115, 22, 0.5);
+  }
+
+  /* ────────── Premium Chart Tooltip ──────────
+     Solid base for instant readability, left accent bar colored by
+     the primary series, and a soft color-tinted outer glow. Keeps a
+     sharp entrance animation but respects reduced-motion. */
+  .premium-tooltip {
+    position: relative;
+    min-width: 168px;
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+      linear-gradient(
+        160deg,
+        rgb(var(--surface-1) / 0.98) 0%,
+        rgb(var(--surface-2) / 0.98) 100%
+      );
+    backdrop-filter: blur(24px) saturate(1.3);
+    -webkit-backdrop-filter: blur(24px) saturate(1.3);
+    box-shadow:
+      0 1px 0 rgb(var(--highlight-ink) / 0.08) inset,
+      0 0 0 1px rgb(255 255 255 / 0.06),
+      0 18px 48px -12px rgb(0 0 0 / 0.55),
+      0 6px 16px -4px rgb(0 0 0 / 0.35),
+      0 0 24px -6px var(--accent, transparent);
+    animation: tooltipIn 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: transform, opacity;
+  }
+  :root .premium-tooltip {
+    background:
+      linear-gradient(
+        160deg,
+        rgb(255 255 255 / 0.98) 0%,
+        rgb(252 253 252 / 0.98) 100%
+      );
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.9) inset,
+      0 0 0 1px rgb(var(--glass-ink) / 0.08),
+      0 14px 36px -12px rgb(var(--shadow-ink) / 0.16),
+      0 4px 10px -2px rgb(var(--shadow-ink) / 0.08),
+      0 0 20px -6px var(--accent, transparent);
+  }
+  .premium-tooltip__bar {
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--accent, #49DC7A);
+    box-shadow: 0 0 12px var(--accent, rgba(73, 220, 122, 0.6));
+  }
+  @keyframes tooltipIn {
+    from { opacity: 0; transform: translateY(4px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .premium-tooltip { animation: none; }
+  }
+
+  /* Recharts wrapper: remove default outline, ensure no clipping
+     of the glow shadow around our custom tooltip. */
+  .recharts-tooltip-wrapper {
+    outline: none !important;
+    filter: none !important;
+  }
+
+  /* Cursor hint when tooltip is active — subtle vertical guide */
+  .recharts-tooltip-cursor {
+    stroke: rgb(var(--ink) / 0.18) !important;
+    stroke-dasharray: 3 3 !important;
   }
 
   /* ────────── Recharts premium styles ──────────
      Use theme vars — no more white-only hardcodes. */
   .recharts-cartesian-grid-horizontal line,
   .recharts-cartesian-grid-vertical line {
-    stroke: rgb(var(--chart-grid) / 0.08) !important;
+    stroke: rgb(var(--chart-grid) / 0.10) !important;
   }
   :root .recharts-cartesian-grid-horizontal line,
   :root .recharts-cartesian-grid-vertical line {
@@ -514,7 +1070,6 @@
   .recharts-yAxis .recharts-cartesian-axis-line {
     stroke: rgb(var(--chart-grid) / 0.12) !important;
   }
-  .recharts-tooltip-wrapper { outline: none !important; }
   .recharts-legend-item-text {
     font-family: 'Outfit', system-ui, sans-serif !important;
     color: rgb(var(--ink) / 0.6) !important;
@@ -527,6 +1082,17 @@
   .map-tile-fade {
     background: rgb(var(--page-base));
   }
+
+  /* ────────── Dark-mode readability floor ──────────
+     Many components set very low alpha text (`text-white/15`, `/20`,
+     `/25`) for tertiary metadata. On the neutral near-black base these
+     drop below AA contrast. Globally bump the minimum legible alpha
+     in dark mode. Light mode is untouched (text is dark ink on
+     luminous background, so low alpha reads fine). */
+  .dark .text-white\/15 { color: rgb(var(--ink) / 0.32); }
+  .dark .text-white\/20 { color: rgb(var(--ink) / 0.38); }
+  .dark .text-white\/25 { color: rgb(var(--ink) / 0.44); }
+  .dark .text-white\/30 { color: rgb(var(--ink) / 0.50); }
 
   /* ────────── Light-mode lift for custom panels ──────────
      Many pages build premium panels with

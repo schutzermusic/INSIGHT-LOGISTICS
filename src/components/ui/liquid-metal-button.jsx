@@ -1,6 +1,7 @@
 import { liquidMetalFragmentShader, ShaderMount } from "@paper-design/shaders";
 import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useMagnetic } from "../../hooks/useMagnetic";
 
 export function LiquidMetalButton({
   label = "Get Started",
@@ -19,6 +20,7 @@ export function LiquidMetalButton({
   const shaderMount = useRef(null);
   const buttonRef = useRef(null);
   const rippleId = useRef(0);
+  const magnetic = useMagnetic({ strength: 6 });
 
   const dimensions = useMemo(() => {
     if (viewMode === "icon") {
@@ -153,7 +155,12 @@ export function LiquidMetalButton({
   };
 
   return (
-    <div className="relative inline-block">
+    <div
+      ref={magnetic.ref}
+      onMouseMove={disabled ? undefined : magnetic.onMouseMove}
+      onMouseLeave={disabled ? undefined : magnetic.onMouseLeave}
+      className="relative inline-block magnetic"
+    >
       <div
         style={{
           perspective: "1000px",

@@ -47,8 +47,8 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
         size === 'xl' && 'max-w-4xl',
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between px-7 py-5">
-          <h3 className="text-lg font-semibold text-white tracking-tight">{title}</h3>
+        <div className="flex items-center justify-between px-6 py-6">
+          <h3 className="heading">{title}</h3>
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
@@ -58,7 +58,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
         </div>
 
         {/* Body */}
-        <div className="px-7 py-6 max-h-[70vh] overflow-y-auto">
+        <div className="px-6 pb-6 max-h-[70vh] overflow-y-auto">
           {children}
         </div>
       </div>

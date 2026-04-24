@@ -13,6 +13,7 @@ import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ChartTooltip } from '../components/charts/ChartTooltip';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
+import { MagneticWrap } from '../components/ui/MagneticWrap';
 
 const SCENARIOS = [
   { key: 'onibus', label: 'Onibus', icon: Bus, color: '#F59E0B', defaultTime: 24, defaultFare: 250 },
@@ -42,23 +43,23 @@ export default function Comparator() {
     return (
       <div className="animate-fade-in">
         {/* Hero header for empty state */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl mb-8">
+        <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl mb-8">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/20 to-transparent" />
-          <div className="relative px-8 py-7">
+          <div className="relative px-8 py-6">
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-accent-cyan/15 to-accent-blue/10 flex items-center justify-center border border-accent-cyan/10">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-cyan/15 to-accent-blue/10 flex items-center justify-center border border-accent-cyan/10">
                 <BarChart3 className="w-5 h-5 text-accent-cyan" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Comparador de Cenarios</h1>
-                <p className="text-[13px] text-white/30 mt-0.5">Compare diferentes modais de transporte lado a lado</p>
+                <h1 className="display-md text-white">Comparador de Cenarios</h1>
+                <p className="body text-[13px] mt-1">Compare diferentes modais de transporte lado a lado</p>
               </div>
             </div>
           </div>
         </section>
         <EmptyState icon={AlertTriangle} title="Cadastre colaboradores primeiro" description="Para comparar cenarios, e necessario ter pelo menos um colaborador cadastrado.">
-          <button className="btn-primary-mint" onClick={() => navigate('/colaboradores')}>Ir para Cadastro</button>
+          <MagneticWrap><button className="btn-primary-mint" onClick={() => navigate('/colaboradores')}>Ir para Cadastro</button></MagneticWrap>
         </EmptyState>
       </div>
     );
@@ -121,32 +122,32 @@ export default function Comparator() {
       {/* ═══════════════════════════════════════════
           HERO HEADER — Command Center Style
           ═══════════════════════════════════════════ */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
+      <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-accent-blue/[0.03] rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/20 to-transparent" />
 
-        <div className="relative px-8 py-7">
+        <div className="relative px-8 py-6">
           {/* Top row */}
-          <div className="flex items-center justify-between mb-7">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-accent-cyan/15 to-accent-blue/10 flex items-center justify-center border border-accent-cyan/10">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-cyan/15 to-accent-blue/10 flex items-center justify-center border border-accent-cyan/10">
                 <BarChart3 className="w-5 h-5 text-accent-cyan" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Comparador de Cenarios</h1>
-                <p className="text-[13px] text-white/30 mt-0.5">Analise custos e tempo entre onibus, aereo e veiculo proprio/locado</p>
+                <h1 className="display-md text-white">Comparador de Cenarios</h1>
+                <p className="body text-[13px] mt-1">Analise custos e tempo entre onibus, aereo e veiculo proprio/locado</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               {/* Analysis engine status */}
-              <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+              <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-cyan/60 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-cyan" />
                 </span>
-                <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Motor Comparativo</span>
+                <span className="label-micro text-white/40">Motor Comparativo</span>
               </div>
               <Badge variant="blue" dot>{collaborators.length} colaborador(es)</Badge>
             </div>
@@ -161,8 +162,8 @@ export default function Comparator() {
                     <Users className="w-[15px] h-[15px] text-accent-blue" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.1em]">Equipe na Comparacao</span>
-                    <div className="text-sm font-medium text-white/70 mt-0.5">
+                    <span className="label-micro text-white/30">Equipe na Comparacao</span>
+                    <div className="body text-[13px] font-medium text-white/70 mt-1">
                       {collaborators.length} colaborador(es) serao incluidos em cada cenario
                     </div>
                   </div>
@@ -171,7 +172,7 @@ export default function Comparator() {
                   {collaborators.slice(0, 6).map((c, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06]"
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]"
                     >
                       <div className="w-5 h-5 rounded-full bg-gradient-to-br from-accent-blue/30 to-accent-cyan/20 flex items-center justify-center">
                         <span className="text-[9px] font-bold text-white/70">
@@ -182,7 +183,7 @@ export default function Comparator() {
                         {c.nome || c.name || `Colab. ${i + 1}`}
                       </span>
                       {c.salarioBase && (
-                        <span className="text-[10px] text-white/25">{formatCurrency(c.salarioBase)}</span>
+                        <span className="tabular-data text-[10px] text-white/25">{formatCurrency(c.salarioBase)}</span>
                       )}
                     </div>
                   ))}
@@ -201,58 +202,58 @@ export default function Comparator() {
           ═══════════════════════════════════════════ */}
       <form onSubmit={handleCompare}>
         {/* Common Parameters */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl mb-6">
+        <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl mb-6">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
-          <div className="relative p-7">
+          <div className="relative p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center border border-white/[0.06]">
                 <Settings className="w-4 h-4 text-white/40" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white/80 tracking-tight">Parametros Comuns</h3>
-                <p className="text-[11px] text-white/25 mt-0.5">Aplicados a todos os cenarios de transporte</p>
+                <h3 className="heading text-white/80">Parametros Comuns</h3>
+                <p className="body text-[13px] mt-1">Aplicados a todos os cenarios de transporte</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Origem</label>
+                <label className="block label-micro text-white/35 mb-2">Origem</label>
                 <input className="glass-input" name="origem" placeholder="Sao Paulo - SP" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Destino</label>
+                <label className="block label-micro text-white/35 mb-2">Destino</label>
                 <input className="glass-input" name="destino" placeholder="Manaus - AM" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Dias em Campo</label>
+                <label className="block label-micro text-white/35 mb-2">Dias em Campo</label>
                 <input className="glass-input" type="number" name="diasCampo" defaultValue="5" min="1" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Horas Normais/dia</label>
+                <label className="block label-micro text-white/35 mb-2">Horas Normais/dia</label>
                 <input className="glass-input" type="number" name="horasNormais" defaultValue="8" step="0.5" min="0" />
               </div>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mt-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
               <div>
-                <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">HE 50%/dia</label>
+                <label className="block label-micro text-white/35 mb-2">HE 50%/dia</label>
                 <input className="glass-input" type="number" name="he50" defaultValue="2" step="0.5" min="0" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">HE 100%/dia</label>
+                <label className="block label-micro text-white/35 mb-2">HE 100%/dia</label>
                 <input className="glass-input" type="number" name="he100" defaultValue="0" step="0.5" min="0" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Hospedagem/dia (R$)</label>
+                <label className="block label-micro text-white/35 mb-2">Hospedagem/dia (R$)</label>
                 <input className="glass-input" type="number" name="hospedagem" defaultValue="150" step="0.01" min="0" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Alimentacao/dia (R$)</label>
+                <label className="block label-micro text-white/35 mb-2">Alimentacao/dia (R$)</label>
                 <input className="glass-input" type="number" name="alimentacao" defaultValue="80" step="0.01" min="0" />
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-5 mt-5">
+            <div className="grid grid-cols-1 gap-4 mt-4">
               <div>
-                <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Noturnas/dia</label>
+                <label className="block label-micro text-white/35 mb-2">Noturnas/dia</label>
                 <input className="glass-input max-w-[200px]" type="number" name="noturnas" defaultValue="0" step="0.5" min="0" />
               </div>
             </div>
@@ -260,42 +261,42 @@ export default function Comparator() {
         </section>
 
         {/* Scenario Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {SCENARIOS.map(s => (
             <section
               key={s.key}
-              className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl"
+              className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl"
             >
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent to-transparent" style={{ '--tw-gradient-via': `${s.color}20`, viaColor: s.color }} />
               <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${s.color}20, transparent)` }} />
-              <div className="relative p-7">
+              <div className="relative p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center border" style={{ backgroundColor: `${s.color}10`, borderColor: `${s.color}15` }}>
                     <s.icon className="w-4 h-4" style={{ color: s.color }} />
                   </div>
-                  <h3 className="text-sm font-semibold text-white/80 tracking-tight">{s.label}</h3>
+                  <h3 className="heading text-white/80">{s.label}</h3>
                 </div>
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Tempo Viagem (h, so ida)</label>
+                    <label className="block label-micro text-white/35 mb-2">Tempo Viagem (h, so ida)</label>
                     <input className="glass-input" type="number" name={`${s.key}-tempo`} defaultValue={s.defaultTime} step="0.5" min="0" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Passagem/pessoa (R$)</label>
+                    <label className="block label-micro text-white/35 mb-2">Passagem/pessoa (R$)</label>
                     <input className="glass-input" type="number" name={`${s.key}-passagem`} defaultValue={s.defaultFare} step="0.01" min="0" />
                   </div>
                   {s.key === 'veiculo' && (
                     <>
                       <div>
-                        <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Aluguel Veiculo (R$)</label>
+                        <label className="block label-micro text-white/35 mb-2">Aluguel Veiculo (R$)</label>
                         <input className="glass-input" type="number" name="veiculo-aluguel" defaultValue="800" step="0.01" min="0" />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Combustivel (R$)</label>
+                        <label className="block label-micro text-white/35 mb-2">Combustivel (R$)</label>
                         <input className="glass-input" type="number" name="veiculo-comb" defaultValue="600" step="0.01" min="0" />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wider mb-2">Pedagios (R$)</label>
+                        <label className="block label-micro text-white/35 mb-2">Pedagios (R$)</label>
                         <input className="glass-input" type="number" name="veiculo-pedagios" defaultValue="150" step="0.01" min="0" />
                       </div>
                     </>
@@ -318,21 +319,21 @@ export default function Comparator() {
         <div className="space-y-6 animate-slide-up">
 
           {/* AI VERDICT — Best Option Highlight */}
-          <section className="relative overflow-hidden rounded-3xl border border-mint/[0.15] bg-gradient-to-br from-mint/[0.04] via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
+          <section className="relative overflow-hidden rounded-2xl border border-mint/[0.15] bg-gradient-to-br from-mint/[0.04] via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-mint/[0.06] rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/30 to-transparent" />
 
-            <div className="relative px-8 py-7">
+            <div className="relative px-8 py-6">
               {/* Header row */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-mint/20 to-mint/5 flex items-center justify-center border border-mint/15">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-mint/20 to-mint/5 flex items-center justify-center border border-mint/15">
                     <Brain className="w-5 h-5 text-mint" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white tracking-tight">Veredito AI</h2>
-                    <p className="text-[13px] text-white/30 mt-0.5">Recomendacao baseada em custo-beneficio</p>
+                    <h2 className="display-md text-white">Veredito AI</h2>
+                    <p className="body text-[13px] mt-1">Recomendacao baseada em custo-beneficio</p>
                   </div>
                 </div>
                 <Badge variant="mint" dot className="text-xs px-4 py-1.5">
@@ -342,11 +343,11 @@ export default function Comparator() {
               </div>
 
               {/* Best option hero card */}
-              <div className="rounded-2xl border border-mint/[0.1] bg-gradient-to-r from-mint/[0.06] to-transparent p-6 mb-6">
+              <div className="rounded-xl border border-mint/[0.1] bg-gradient-to-r from-mint/[0.06] to-transparent p-6 mb-6">
                 <div className="flex items-start gap-6">
                   {/* Winner icon */}
                   <div className="flex-shrink-0">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-mint/20 to-accent-cyan/10 flex items-center justify-center border border-mint/15">
+                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-mint/20 to-accent-cyan/10 flex items-center justify-center border border-mint/15">
                       {(() => {
                         const WinnerIcon = SCENARIO_ICON_MAP[analysis.melhor.nome] || CheckCircle;
                         return <WinnerIcon className="w-8 h-8 text-mint" />;
@@ -356,29 +357,29 @@ export default function Comparator() {
                   {/* Winner details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-2xl font-bold text-mint tracking-tight">{analysis.melhor.nome}</h3>
+                      <h3 className="display-md text-mint">{analysis.melhor.nome}</h3>
                       <Badge variant="mint">RECOMENDADO</Badge>
                     </div>
-                    <p className="text-sm text-white/45 leading-relaxed mb-4">{analysis.recomendacao}</p>
+                    <p className="body text-[15px] mb-4">{analysis.recomendacao}</p>
                     <div className="flex items-center gap-6">
                       <div>
-                        <span className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.1em]">Custo Total</span>
-                        <div className="text-xl font-bold text-mint mt-0.5">{formatCurrency(analysis.melhor.resumo.custoTotalEquipe)}</div>
+                        <span className="label-micro text-white/25">Custo Total</span>
+                        <div className="metric-value text-mint mt-2">{formatCurrency(analysis.melhor.resumo.custoTotalEquipe)}</div>
                       </div>
                       <div className="w-px h-10 bg-white/[0.06]" />
                       <div>
-                        <span className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.1em]">Economia vs. Pior</span>
-                        <div className="text-xl font-bold text-accent-cyan mt-0.5">{formatCurrency(analysis.economia)}</div>
+                        <span className="label-micro text-white/25">Economia vs. Pior</span>
+                        <div className="metric-value text-accent-cyan mt-2">{formatCurrency(analysis.economia)}</div>
                       </div>
                       <div className="w-px h-10 bg-white/[0.06]" />
                       <div>
-                        <span className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.1em]">Tempo Transito</span>
-                        <div className="text-xl font-bold text-white/70 mt-0.5">{formatHours(analysis.melhor.resumo.horasTransito)}</div>
+                        <span className="label-micro text-white/25">Tempo Transito</span>
+                        <div className="metric-value text-white/70 mt-2">{formatHours(analysis.melhor.resumo.horasTransito)}</div>
                       </div>
                       <div className="w-px h-10 bg-white/[0.06]" />
                       <div>
-                        <span className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.1em]">Mais Rapido</span>
-                        <div className="text-xl font-bold text-accent-purple mt-0.5">{analysis.maisRapido.nome} ({formatHours(analysis.maisRapido.resumo.horasTransito)})</div>
+                        <span className="label-micro text-white/25">Mais Rapido</span>
+                        <div className="text-[1.125rem] font-semibold text-accent-purple mt-2 tabular-data">{analysis.maisRapido.nome} ({formatHours(analysis.maisRapido.resumo.horasTransito)})</div>
                       </div>
                     </div>
                   </div>
@@ -426,7 +427,7 @@ export default function Comparator() {
           {/* ═══════════════════════════════════════════
               COMPARISON CARDS — Side by side modals
               ═══════════════════════════════════════════ */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {analysis.cenarios.map((c, i) => {
               const isBest = c.nome === bestName;
               const isFastest = c.nome === fastestName;
@@ -436,7 +437,7 @@ export default function Comparator() {
               return (
                 <section
                   key={i}
-                  className={`relative overflow-hidden rounded-3xl border backdrop-blur-xl transition-all ${
+                  className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all ${
                     isBest
                       ? 'border-mint/[0.15] bg-gradient-to-br from-mint/[0.03] via-dark-900/60 to-dark-950/80'
                       : 'border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60'
@@ -449,9 +450,9 @@ export default function Comparator() {
                     <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${scenarioColor}15, transparent)` }} />
                   )}
 
-                  <div className="relative p-7">
+                  <div className="relative p-6">
                     {/* Header with badges */}
-                    <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div
                           className="w-10 h-10 rounded-xl flex items-center justify-center border"
@@ -463,7 +464,7 @@ export default function Comparator() {
                         >
                           <ScenarioIcon className="w-5 h-5" style={{ color: isBest ? '#49DC7A' : scenarioColor }} />
                         </div>
-                        <h3 className={`text-base font-bold tracking-tight ${isBest ? 'text-mint' : 'text-white/80'}`}>{c.nome}</h3>
+                        <h3 className={`heading ${isBest ? 'text-mint' : 'text-white/80'}`}>{c.nome}</h3>
                       </div>
                       <div className="flex gap-1.5">
                         {isBest && <Badge variant="mint" dot>Melhor Custo</Badge>}
@@ -472,10 +473,10 @@ export default function Comparator() {
                     </div>
 
                     {/* Total cost prominent */}
-                    <div className={`text-3xl font-bold tracking-tight mb-1 ${isBest ? 'text-mint' : 'text-white'}`}>
+                    <div className={`display-lg mb-2 ${isBest ? 'text-mint' : ''}`}>
                       {formatCurrency(c.resumo.custoTotalEquipe)}
                     </div>
-                    <p className="text-[11px] text-white/25 mb-5">Custo total da equipe ({c.qtdColaboradores} colab.)</p>
+                    <p className="label-micro mb-4">Custo total · {c.qtdColaboradores} colab.</p>
 
                     {/* Cost breakdown */}
                     <div className="space-y-3">
@@ -488,10 +489,10 @@ export default function Comparator() {
                     </div>
 
                     {/* Time info */}
-                    <div className="mt-5 pt-5 border-t border-white/[0.04]">
+                    <div className="mt-4 pt-4 border-t border-white/[0.04]">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-white/30 uppercase tracking-wider font-semibold">Tempo de Transito</span>
-                        <span className={`text-sm font-bold ${isFastest ? 'text-accent-blue' : 'text-white/60'}`}>
+                        <span className="label-micro text-white/30">Tempo de Transito</span>
+                        <span className={`tabular-data text-sm font-bold ${isFastest ? 'text-accent-blue' : 'text-white/60'}`}>
                           {formatHours(c.resumo.horasTransito)}
                           {isFastest && <span className="ml-1.5 text-[10px] text-accent-blue/60">(ida)</span>}
                         </span>
@@ -507,36 +508,36 @@ export default function Comparator() {
               COST-BENEFIT ANALYSIS
               ═══════════════════════════════════════════ */}
           {analysis.economia > 0 && (
-            <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+            <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/15 to-transparent" />
-              <div className="relative p-7">
+              <div className="relative p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-9 h-9 rounded-xl bg-accent-cyan/10 flex items-center justify-center border border-accent-cyan/10">
                     <Shield className="w-4 h-4 text-accent-cyan" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white/80 tracking-tight">Analise Custo-Beneficio</h3>
-                    <p className="text-[11px] text-white/25 mt-0.5">Economia e eficiencia temporal entre cenarios</p>
+                    <h3 className="heading text-white/80">Analise Custo-Beneficio</h3>
+                    <p className="body text-[13px] mt-1">Economia e eficiencia temporal entre cenarios</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Savings */}
-                  <div className="rounded-2xl border border-mint/[0.08] bg-mint/[0.02] p-5">
-                    <span className="text-[10px] font-semibold text-mint/50 uppercase tracking-[0.1em]">Economia Total</span>
-                    <div className="text-2xl font-bold text-mint mt-1">{formatCurrency(analysis.economia)}</div>
-                    <p className="text-[11px] text-white/25 mt-1">
+                  <div className="rounded-xl border border-mint/[0.08] bg-mint/[0.02] p-4">
+                    <span className="label-micro text-mint/50">Economia Total</span>
+                    <div className="metric-value text-mint mt-2">{formatCurrency(analysis.economia)}</div>
+                    <p className="body text-[13px] mt-2">
                       Escolhendo {analysis.melhor.nome} ao inves de {analysis.pior.nome}
                     </p>
                   </div>
 
                   {/* Time savings */}
-                  <div className="rounded-2xl border border-accent-blue/[0.08] bg-accent-blue/[0.02] p-5">
-                    <span className="text-[10px] font-semibold text-accent-blue/50 uppercase tracking-[0.1em]">Diferenca de Tempo</span>
-                    <div className="text-2xl font-bold text-accent-blue mt-1">
+                  <div className="rounded-xl border border-accent-blue/[0.08] bg-accent-blue/[0.02] p-4">
+                    <span className="label-micro text-accent-blue/50">Diferenca de Tempo</span>
+                    <div className="metric-value text-accent-blue mt-2">
                       {formatHours(Math.abs(analysis.melhor.resumo.horasTransito - analysis.maisRapido.resumo.horasTransito))}
                     </div>
-                    <p className="text-[11px] text-white/25 mt-1">
+                    <p className="body text-[13px] mt-2">
                       {analysis.melhor.nome === analysis.maisRapido.nome
                         ? 'Melhor custo E mais rapido'
                         : `${analysis.maisRapido.nome} e mais rapido que ${analysis.melhor.nome}`
@@ -545,15 +546,15 @@ export default function Comparator() {
                   </div>
 
                   {/* Cost per hour of transit saved */}
-                  <div className="rounded-2xl border border-accent-purple/[0.08] bg-accent-purple/[0.02] p-5">
-                    <span className="text-[10px] font-semibold text-accent-purple/50 uppercase tracking-[0.1em]">Custo por Hora Economizada</span>
-                    <div className="text-2xl font-bold text-accent-purple mt-1">
+                  <div className="rounded-xl border border-accent-purple/[0.08] bg-accent-purple/[0.02] p-4">
+                    <span className="label-micro text-accent-purple/50">Custo por Hora Economizada</span>
+                    <div className="metric-value text-accent-purple mt-2">
                       {(() => {
                         const timeDiff = Math.abs(analysis.pior.resumo.horasTransito - analysis.melhor.resumo.horasTransito);
                         return timeDiff > 0 ? formatCurrency(analysis.economia / timeDiff) : '--';
                       })()}
                     </div>
-                    <p className="text-[11px] text-white/25 mt-1">
+                    <p className="body text-[13px] mt-2">
                       Valor economizado por hora de transito reduzida
                     </p>
                   </div>
@@ -565,14 +566,14 @@ export default function Comparator() {
           {/* ═══════════════════════════════════════════
               CHART — Visual Comparison
               ═══════════════════════════════════════════ */}
-          <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+          <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
-            <div className="relative p-7">
+            <div className="relative p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-9 h-9 rounded-xl bg-accent-blue/10 flex items-center justify-center border border-accent-blue/10">
                   <BarChart3 className="w-4 h-4 text-accent-blue" />
                 </div>
-                <h3 className="text-sm font-semibold text-white/80 tracking-tight">Comparativo Visual</h3>
+                <h3 className="heading text-white/80">Comparativo Visual</h3>
               </div>
               <div className="h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -596,20 +597,20 @@ export default function Comparator() {
           {/* ═══════════════════════════════════════════
               DETAIL TABLE
               ═══════════════════════════════════════════ */}
-          <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+          <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/60 via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
             <div className="relative">
-              <div className="px-7 py-5 flex items-center gap-3">
+              <div className="px-6 py-6 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center border border-white/[0.06]">
                   <Settings className="w-4 h-4 text-white/40" />
                 </div>
-                <h3 className="text-sm font-semibold text-white/80 tracking-tight">Detalhamento Comparativo</h3>
+                <h3 className="heading text-white/80">Detalhamento Comparativo</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-white/[0.04]">
-                      <th className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/20 text-left">Categoria</th>
+                      <th className="px-6 py-4 label-micro text-white/20 text-left">Categoria</th>
                       {analysis.cenarios.map((c, i) => {
                         const isBest = c.nome === bestName;
                         const ScIcon = SCENARIO_ICON_MAP[c.nome] || BarChart3;
@@ -618,7 +619,7 @@ export default function Comparator() {
                           <th key={i} className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <ScIcon className="w-3.5 h-3.5" style={{ color: isBest ? '#49DC7A' : scColor }} />
-                              <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${isBest ? 'text-mint/60' : 'text-white/20'}`}>
+                              <span className={`label-micro ${isBest ? 'text-mint/60' : 'text-white/20'}`}>
                                 {c.nome}
                               </span>
                               {isBest && (
@@ -644,11 +645,11 @@ export default function Comparator() {
                       const minVal = Math.min(...values);
                       return (
                         <tr key={ri} className="border-b border-white/[0.04]/50 hover:bg-white/[0.02] transition-colors">
-                          <td className="px-7 py-3.5 text-sm text-white/50">{row.label}</td>
+                          <td className="px-6 py-3 text-sm text-white/50">{row.label}</td>
                           {analysis.cenarios.map((c, ci) => {
                             const isMin = c.resumo[row.key] === minVal && minVal > 0;
                             return (
-                              <td key={ci} className={`px-6 py-3.5 text-sm text-right font-medium ${isMin ? 'text-mint/80' : 'text-white/60'}`}>
+                              <td key={ci} className={`px-6 py-3 tabular-data text-sm text-right font-medium ${isMin ? 'text-mint/80' : 'text-white/60'}`}>
                                 {formatCurrency(c.resumo[row.key])}
                                 {isMin && <span className="ml-1 text-mint/40 text-[10px]">min</span>}
                               </td>
@@ -658,11 +659,11 @@ export default function Comparator() {
                       );
                     })}
                     <tr className="bg-white/[0.02]">
-                      <td className="px-7 py-4 text-sm font-bold text-white">CUSTO TOTAL</td>
+                      <td className="px-6 py-4 label-micro text-white">Custo Total</td>
                       {analysis.cenarios.map((c, ci) => {
                         const isBest = c.nome === bestName;
                         return (
-                          <td key={ci} className={`px-6 py-4 text-sm font-bold text-right ${isBest ? 'text-mint' : 'text-white'}`}>
+                          <td key={ci} className={`px-6 py-4 tabular-data text-sm font-bold text-right ${isBest ? 'text-mint' : 'text-white'}`}>
                             {formatCurrency(c.resumo.custoTotalEquipe)}
                             {isBest && (
                               <CheckCircle className="w-3.5 h-3.5 text-mint inline ml-1.5 -mt-0.5" />
@@ -697,21 +698,21 @@ function MetricCell({ label, value, detail, icon: Icon, color, border, highlight
   const c = colors[color] || colors.mint;
 
   return (
-    <div className={`relative px-6 py-5 ${border ? 'border-l border-white/[0.04]' : ''}`}>
+    <div className={`relative px-6 py-6 ${border ? 'border-l border-white/[0.04]' : ''}`}>
       {highlight && (
         <div className="absolute inset-0 bg-gradient-to-r from-accent-cyan/[0.03] to-transparent pointer-events-none" />
       )}
       <div className="relative">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.1em]">{label}</span>
+          <span className="label-micro text-white/30">{label}</span>
           {Icon && (
             <div className={`w-8 h-8 rounded-xl ${c.bg} flex items-center justify-center`}>
               <Icon className={`w-[15px] h-[15px] ${c.icon}`} />
             </div>
           )}
         </div>
-        <div className={`text-2xl font-bold tracking-tight ${c.value}`}>{value}</div>
-        {detail && <p className="text-[11px] text-white/20 mt-1">{detail}</p>}
+        <div className={`metric-value ${c.value}`}>{value}</div>
+        {detail && <p className="body text-[13px] mt-2">{detail}</p>}
       </div>
     </div>
   );
@@ -723,8 +724,8 @@ function CostRow({ label, value, total, color }) {
     <div className="flex items-center gap-3">
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-white/40 font-medium">{label}</span>
-          <span className="text-[11px] text-white/50 font-semibold">{formatCurrency(value)}</span>
+          <span className="body text-[13px]">{label}</span>
+          <span className="tabular-data text-[11px] text-white/50 font-semibold">{formatCurrency(value)}</span>
         </div>
         <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
           <div
@@ -733,7 +734,7 @@ function CostRow({ label, value, total, color }) {
           />
         </div>
       </div>
-      <span className="text-[10px] text-white/20 font-medium w-10 text-right">{pct.toFixed(0)}%</span>
+      <span className="tabular-data text-[10px] text-white/20 font-medium w-10 text-right">{pct.toFixed(0)}%</span>
     </div>
   );
 }

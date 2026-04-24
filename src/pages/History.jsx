@@ -70,23 +70,23 @@ export default function History() {
   return (
     <div className="animate-fade-in space-y-6">
       {/* Hero Header */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
+      <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-blue/20 to-transparent" />
         <div className="relative px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-accent-blue/15 to-accent-purple/10 flex items-center justify-center border border-accent-blue/10">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-blue/15 to-accent-purple/10 flex items-center justify-center border border-accent-blue/10">
                 <HistoryIcon className="w-5 h-5 text-accent-blue" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Historico de Analises</h1>
-                <p className="text-[13px] text-white/30 mt-0.5">Registro completo de simulacoes e recomendacoes</p>
+                <h1 className="display-md text-white">Historico de Analises</h1>
+                <p className="body text-[13px] mt-1">Registro completo de simulacoes e recomendacoes</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Badge variant="blue" dot>{simulations.length} registro(s)</Badge>
               {simulations.length > 0 && (
-                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-accent-red/50 hover:text-accent-red hover:bg-accent-red/10 transition-all" onClick={handleClear}>
+                <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold text-accent-red/50 hover:text-accent-red hover:bg-accent-red/10 transition-all" onClick={handleClear}>
                   <Trash2 className="w-3.5 h-3.5" /> Limpar
                 </button>
               )}
@@ -95,7 +95,7 @@ export default function History() {
 
           {/* Summary stats strip */}
           {summaryStats && (
-            <div className="grid grid-cols-5 gap-0 mt-5 rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden">
+            <div className="grid grid-cols-5 gap-0 mt-6 rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden">
               <SummaryCell label="Total Registros" value={simulations.length} />
               <SummaryCell label="Analises AI" value={summaryStats.aiCount} border />
               <SummaryCell label="Comparacoes" value={summaryStats.compCount} border />
@@ -157,10 +157,10 @@ export default function History() {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-3.5 h-3.5 text-white/15" />
-                    <span className="text-[11px] font-semibold text-white/25 uppercase tracking-[0.1em]">{date}</span>
+                    <span className="label-micro text-white/25">{date}</span>
                   </div>
                   <div className="flex-1 h-px bg-white/[0.04]" />
-                  <span className="text-[10px] text-white/15">{items.length} registro(s)</span>
+                  <span className="label-micro text-white/15 tabular-data">{items.length} registro(s)</span>
                 </div>
 
                 <div className="space-y-2">
@@ -173,7 +173,7 @@ export default function History() {
                       <div key={sim.id} className="relative overflow-hidden rounded-2xl border border-white/[0.05] bg-gradient-to-r from-dark-850/40 to-dark-900/30 backdrop-blur-xl">
                         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
                         <button
-                          className="w-full px-5 py-4 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"
+                          className="w-full px-4 py-4 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"
                           onClick={() => setExpanded(isExpanded ? null : sim.id)}
                         >
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${sim.type === 'ai-analysis' ? 'bg-accent-purple/10' : sim.type === 'comparison' ? 'bg-accent-amber/10' : 'bg-accent-blue/10'
@@ -183,8 +183,8 @@ export default function History() {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-white/80 truncate">{sim.nome || 'Simulacao'}</div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-white/20 mt-0.5">
+                            <div className="heading text-white/80 truncate">{sim.nome || 'Simulacao'}</div>
+                            <div className="flex items-center gap-2 label-micro text-white/20 mt-1">
                               <MapPin className="w-3 h-3" />
                               {sim.origem || '-'}
                               <ArrowRight className="w-3 h-3" />
@@ -204,11 +204,11 @@ export default function History() {
                           )}
 
                           <div className="text-right min-w-[100px]">
-                            <span className="text-sm font-bold text-mint">
+                            <span className="tabular-data text-sm font-bold text-mint">
                               {formatCurrency(sim.resumo?.custoTotalEquipe || 0)}
                             </span>
                             {sim.resumo?.horasTransito > 0 && (
-                              <div className="text-[10px] text-white/20">{sim.resumo.horasTransito}h transito</div>
+                              <div className="label-micro text-white/20 tabular-data mt-1">{sim.resumo.horasTransito}h transito</div>
                             )}
                           </div>
 
@@ -223,7 +223,7 @@ export default function History() {
                         </button>
 
                         {isExpanded && (
-                          <div className="px-5 pb-5 pt-3 animate-fade-in border-t border-white/[0.03]">
+                          <div className="px-4 pb-4 pt-3 animate-fade-in border-t border-white/[0.03]">
                             <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
                               <DetailCell label="Mao de Obra" value={formatCurrency(sim.resumo?.custoEquipeHoras || 0)} />
                               <DetailCell label="Transito" value={formatCurrency(sim.resumo?.custoEquipeTransito || 0)} />
@@ -249,18 +249,18 @@ export default function History() {
 
 function SummaryCell({ label, value, border }) {
   return (
-    <div className={`px-5 py-3.5 ${border ? 'border-l border-white/[0.04]' : ''}`}>
-      <span className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.1em] block">{label}</span>
-      <span className="text-lg font-bold text-white/70 mt-1 block">{value}</span>
+    <div className={`px-6 py-4 ${border ? 'border-l border-white/[0.04]' : ''}`}>
+      <span className="label-micro text-white/25 block">{label}</span>
+      <span className="metric-value text-white/70 mt-2 block">{value}</span>
     </div>
   );
 }
 
 function DetailCell({ label, value }) {
   return (
-    <div className="px-3 py-2.5 rounded-xl bg-white/[0.02]">
-      <span className="text-[10px] text-white/20 uppercase font-semibold tracking-wider block">{label}</span>
-      <span className="text-[13px] font-semibold text-white/55 mt-1 block">{value}</span>
+    <div className="px-3 py-3 rounded-xl bg-white/[0.02]">
+      <span className="label-micro text-white/20 block">{label}</span>
+      <span className="tabular-data text-[13px] font-semibold text-white/55 mt-2 block">{value}</span>
     </div>
   );
 }

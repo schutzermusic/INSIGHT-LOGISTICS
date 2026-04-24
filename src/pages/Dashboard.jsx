@@ -18,7 +18,9 @@ import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ChartTooltip } from '../components/charts/ChartTooltip';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
+import { MagneticWrap } from '../components/ui/MagneticWrap';
 import BrazilMap, { buildMapRoutes, buildMapPoints } from '../components/map/BrazilMap';
+import { useSpotlight } from '../hooks/useSpotlight';
 
 const CHART_COLORS = ['#49DC7A', '#F97316', '#22F2EF', '#A855F7', '#3B82F6', '#EF4444'];
 
@@ -212,7 +214,7 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-mint/20 to-accent-cyan/10 flex items-center justify-center">
               <Activity className="w-5 h-5 text-mint" />
             </div>
-            <h2 className="text-heading text-white">Centro de Comando</h2>
+            <h2 className="display-md">Centro de Comando</h2>
           </div>
         </div>
         <EmptyState
@@ -231,48 +233,65 @@ export default function Dashboard() {
     : '—';
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="stagger-children space-y-6">
 
       {/* ═══════════════════════════════════════════
           ZONE 1 — EXECUTIVE HERO / COMMAND HEADER
           ═══════════════════════════════════════════ */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-dark-850/80 via-dark-900/60 to-dark-950/80 backdrop-blur-xl">
-        {/* Ambient gradient orbs */}
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-mint/[0.04] rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-accent-cyan/[0.03] rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/20 to-transparent" />
+      <section className="premium-panel-hero">
+        {/* Orbital ambient lights — lit from within */}
+        <div className="absolute -top-40 -right-24 w-[420px] h-[420px] bg-mint/[0.06] rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -left-16 w-[320px] h-[320px] bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative px-8 py-7">
+        <div className="relative px-8 py-8">
           {/* Top row: title + status + action */}
-          <div className="flex items-center justify-between mb-7">
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-mint/15 to-accent-cyan/10 flex items-center justify-center border border-mint/10">
-                <Crosshair className="w-5 h-5 text-mint" />
+              <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-mint/20 to-accent-cyan/10 flex items-center justify-center border border-mint/15 shadow-[0_8px_24px_-8px_rgba(73,220,122,0.4)]">
+                <Crosshair className="w-[22px] h-[22px] text-mint" />
+                <div className="absolute inset-0 rounded-xl bg-mint/[0.05] blur-lg -z-10" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Centro de Comando</h1>
-                <p className="text-[13px] text-white/30 mt-0.5">Inteligencia logistica em tempo real</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="label-micro text-mint/80">Command Center</span>
+                  <span className="w-1 h-1 rounded-full bg-mint/50" />
+                  <span className="label-micro text-white/30">v2.4</span>
+                </div>
+                <h1 className="display-md">
+                  <span className="text-gradient-premium">Insight</span>
+                  <span className="text-white/90 ml-2">Logistics</span>
+                </h1>
+                <p className="body mt-2">Inteligencia logistica em tempo real · cenarios multi-modais · otimizacao AI</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {/* AI Engine Status */}
-              <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+              <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-mint/60 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-mint" />
                 </span>
-                <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">AI Engine Ativo</span>
+                <span className="label-micro text-white/50">AI Engine Ativo</span>
                 {stats.aiCount > 0 && (
-                  <Badge variant="purple" className="ml-1">{stats.aiCount} analises</Badge>
+                  <span className="ml-1 px-2 py-1 rounded-full bg-accent-purple/15 border border-accent-purple/20 text-[11px] font-semibold text-accent-purple tabular-data">
+                    {stats.aiCount} analises
+                  </span>
                 )}
               </div>
-              <LiquidMetalButton label="Nova Analise" onClick={() => navigate('/inteligencia-rotas')} />
+              <MagneticWrap strength={7}>
+                <button onClick={() => navigate('/inteligencia-rotas')} className="cta-white-with-accent">
+                  <span className="pl-2">Nova Analise</span>
+                  <span className="accent-chip">
+                    <Sparkles className="w-4 h-4" strokeWidth={2.5} />
+                  </span>
+                </button>
+              </MagneticWrap>
             </div>
           </div>
 
-          {/* KPI INTEGRATED STRIP */}
-          <div className="grid grid-cols-4 gap-0 rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden">
+          {/* KPI INTEGRATED STRIP — lifted off the panel like floating shelves */}
+          <div className="grid grid-cols-4 gap-0 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-white/[0.01] overflow-hidden backdrop-blur-xl">
             <MetricCell
               label="Mobilizacoes"
               value={stats.totalSims}
@@ -313,19 +332,19 @@ export default function Dashboard() {
           ZONE 2 — MAIN INTELLIGENCE PANEL
           Cost Evolution (8 cols) + Brazil Map (4 cols)
           ═══════════════════════════════════════════ */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Primary panel — cost evolution, dominant */}
-        <div className="lg:col-span-8 relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-b from-dark-850/60 to-dark-900/40 backdrop-blur-xl">
+        <div className="lg:col-span-8 premium-panel">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/15 to-transparent" />
-          <div className="p-7">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-mint/[0.08] flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-mint/70" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-semibold text-white">Evolucao de Custos</h3>
-                  <p className="text-[11px] text-white/25 mt-0.5">Tendencia das ultimas mobilizacoes</p>
+                  <h3 className="heading">Evolucao de Custos</h3>
+                  <p className="body text-[13px] mt-1">Tendencia das ultimas mobilizacoes</p>
                 </div>
               </div>
               <Badge variant="mint" dot>Tempo real</Badge>
@@ -363,7 +382,7 @@ export default function Dashboard() {
         </div>
 
         {/* Brazil Map — territorial intelligence */}
-        <div className="lg:col-span-4 relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-b from-dark-850/60 to-dark-900/40 backdrop-blur-xl">
+        <div className="lg:col-span-4 premium-panel">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/15 to-transparent" />
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -372,12 +391,12 @@ export default function Dashboard() {
                   <Globe className="w-[14px] h-[14px] text-accent-cyan/60" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-white">Mapa de Operacoes</h4>
-                  <p className="text-[10px] text-white/20 mt-0.5">{mapRoutes.length} rotas ativas</p>
+                  <h4 className="heading">Mapa de Operacoes</h4>
+                  <p className="label-micro mt-1">{mapRoutes.length} rotas ativas</p>
                 </div>
               </div>
               {mapPoints.length > 0 && (
-                <Badge variant="cyan" className="text-[10px]">{mapPoints.length} pontos</Badge>
+                <Badge variant="cyan" className="tabular-data">{mapPoints.length} pontos</Badge>
               )}
             </div>
 
@@ -392,7 +411,7 @@ export default function Dashboard() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <Globe className="w-8 h-8 text-white/10 mx-auto mb-2" />
-                    <p className="text-[11px] text-white/20">Crie simulacoes para visualizar rotas no mapa</p>
+                    <p className="body text-[13px]">Crie simulacoes para visualizar rotas no mapa</p>
                   </div>
                 </div>
               )}
@@ -401,7 +420,7 @@ export default function Dashboard() {
             {/* Map legend */}
             {mapPoints.length > 0 && (
               <div className="mt-3 pt-3 border-t border-white/[0.04]">
-                <div className="flex items-center gap-4 text-[10px] text-white/25">
+                <div className="flex items-center gap-4 text-[11px] text-white/25 tabular-data">
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-mint" />
                     <span>Origem/Destino</span>
@@ -421,16 +440,16 @@ export default function Dashboard() {
           ZONE 3 — SECONDARY ANALYTICS (4x3 grid)
           Modal Distribution + Cost Composition + Top Destinations + AI Summary
           ═══════════════════════════════════════════ */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
         {/* Modal Distribution */}
-        <div className="lg:col-span-3 relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-b from-dark-850/60 to-dark-900/40 backdrop-blur-xl">
+        <div className="lg:col-span-3 premium-panel">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-purple/15 to-transparent" />
           <div className="p-6">
-            <div className="flex items-center gap-2.5 mb-5">
+            <div className="flex items-center gap-3 mb-4">
               <div className="w-7 h-7 rounded-lg bg-accent-purple/[0.08] flex items-center justify-center">
                 <Layers className="w-[14px] h-[14px] text-accent-purple/60" />
               </div>
-              <h4 className="text-sm font-semibold text-white">Modais</h4>
+              <h4 className="heading">Modais</h4>
             </div>
 
             {modalDistribution.length > 0 ? (
@@ -464,10 +483,10 @@ export default function Dashboard() {
             {modalDistribution.length > 0 && (
               <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-2">
                 {modalDistribution.map((entry, i) => (
-                  <div key={entry.name} className="flex items-center gap-1.5">
+                  <div key={entry.name} className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                    <span className="text-[10px] text-white/35">{entry.name}</span>
-                    <span className="text-[10px] text-white/60 font-semibold">{entry.value}</span>
+                    <span className="body text-[13px]">{entry.name}</span>
+                    <span className="tabular-data text-[11px] text-white/60 font-semibold">{entry.value}</span>
                   </div>
                 ))}
               </div>
@@ -476,23 +495,23 @@ export default function Dashboard() {
         </div>
 
         {/* Cost Composition Breakdown */}
-        <div className="lg:col-span-3 relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-b from-dark-850/60 to-dark-900/40 backdrop-blur-xl">
+        <div className="lg:col-span-3 premium-panel">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-orange/15 to-transparent" />
           <div className="p-6">
-            <div className="flex items-center gap-2.5 mb-5">
+            <div className="flex items-center gap-3 mb-4">
               <div className="w-7 h-7 rounded-lg bg-accent-orange/[0.08] flex items-center justify-center">
                 <Target className="w-[14px] h-[14px] text-accent-orange/60" />
               </div>
-              <h4 className="text-sm font-semibold text-white">Composicao de Custos</h4>
+              <h4 className="heading">Composicao de Custos</h4>
             </div>
 
             {costComposition.length > 0 ? (
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {costComposition.map((item, i) => (
                   <div key={item.name}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] text-white/40">{item.name}</span>
-                      <span className="text-[11px] text-white/60 font-semibold">{item.pct}%</span>
+                      <span className="body text-[13px]">{item.name}</span>
+                      <span className="tabular-data text-[11px] text-white/60 font-semibold">{item.pct}%</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
                       <div
@@ -516,31 +535,28 @@ export default function Dashboard() {
         </div>
 
         {/* Top Destinations */}
-        <div className="lg:col-span-3 relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-b from-dark-850/60 to-dark-900/40 backdrop-blur-xl">
+        <div className="lg:col-span-3 premium-panel">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/15 to-transparent" />
           <div className="p-6">
-            <div className="flex items-center gap-2.5 mb-5">
+            <div className="flex items-center gap-3 mb-4">
               <div className="w-7 h-7 rounded-lg bg-accent-cyan/[0.08] flex items-center justify-center">
                 <MapPin className="w-[14px] h-[14px] text-accent-cyan/60" />
               </div>
-              <h4 className="text-sm font-semibold text-white">Top Destinos</h4>
+              <h4 className="heading">Top Destinos</h4>
             </div>
 
             {topDestinations.length > 0 ? (
               <div className="space-y-2">
                 {topDestinations.map((dest, i) => (
-                  <div
-                    key={dest.name}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
-                  >
+                  <div key={dest.name} className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
                     <div className="w-6 h-6 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0">
                       <span className="text-[10px] font-bold text-white/25">{i + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[12px] font-medium text-white/70 block truncate">{dest.shortName}</span>
-                      <span className="text-[10px] text-white/25">{dest.count} mobilizacao(es)</span>
+                      <span className="body text-[13px] font-medium text-white/70 block truncate">{dest.shortName}</span>
+                      <span className="label-micro mt-1 block">{dest.count} mobilizacao(es)</span>
                     </div>
-                    <span className="text-[11px] font-semibold text-mint flex-shrink-0">{formatCurrency(dest.avgCost)}</span>
+                    <span className="tabular-data text-[11px] font-semibold text-mint flex-shrink-0">{formatCurrency(dest.avgCost)}</span>
                   </div>
                 ))}
               </div>
@@ -553,14 +569,14 @@ export default function Dashboard() {
         </div>
 
         {/* AI Summary Card */}
-        <div className="lg:col-span-3 relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-mint/[0.03] via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+        <div className="lg:col-span-3 premium-panel-mint">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/20 to-transparent" />
           <div className="p-6">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="w-7 h-7 rounded-lg bg-mint/[0.08] flex items-center justify-center">
                 <Brain className="w-[14px] h-[14px] text-mint/60" />
               </div>
-              <h4 className="text-sm font-semibold text-white">Resumo AI</h4>
+              <h4 className="heading">Resumo AI</h4>
             </div>
             <div className="space-y-3">
               <InsightRow label="Modal predominante" value={topModal} />
@@ -580,23 +596,23 @@ export default function Dashboard() {
           ZONE 4 — AI INSIGHTS STRIP (full width)
           ═══════════════════════════════════════════ */}
       {aiInsights.length > 0 && (
-        <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-accent-purple/[0.03] via-dark-900/40 to-dark-950/60 backdrop-blur-xl">
+        <section className="premium-panel-purple">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-purple/20 to-transparent" />
-          <div className="p-7">
-            <div className="flex items-center justify-between mb-5">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-accent-purple/[0.08] flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-accent-purple/70" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-semibold text-white">Insights AI</h3>
-                  <p className="text-[11px] text-white/25 mt-0.5">Recomendacoes inteligentes baseadas nos seus dados</p>
+                  <h3 className="heading">Insights AI</h3>
+                  <p className="body text-[13px] mt-1">Recomendacoes inteligentes baseadas nos seus dados</p>
                 </div>
               </div>
               <Badge variant="purple" dot>{aiInsights.length} insight(s)</Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {aiInsights.map((insight, i) => (
                 <AIInsightCard
                   key={i}
@@ -608,8 +624,8 @@ export default function Dashboard() {
               ))}
             </div>
 
-            <div className="mt-5 pt-4 border-t border-white/[0.04] flex items-center justify-between">
-              <span className="text-[11px] text-white/20">Powered by Insight Logistics AI Engine</span>
+            <div className="mt-4 pt-4 border-t border-white/[0.04] flex items-center justify-between">
+              <span className="body text-[13px]">Powered by Insight Logistics AI Engine</span>
               <button
                 onClick={() => navigate('/inteligencia-rotas')}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-purple/10 border border-accent-purple/15 text-accent-purple text-xs font-semibold hover:bg-accent-purple/15 transition-colors"
@@ -625,21 +641,21 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════
           ZONE 5 — ACTIVITY STREAM + COMMAND ACTIONS
           ═══════════════════════════════════════════ */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Recent simulations */}
-        <div className="lg:col-span-8 relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-b from-dark-850/60 to-dark-900/40 backdrop-blur-xl">
+        <div className="lg:col-span-8 premium-panel">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          <div className="p-7">
-            <div className="flex items-center justify-between mb-5">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-white/[0.05] flex items-center justify-center">
                   <Radio className="w-[14px] h-[14px] text-white/40" />
                 </div>
-                <h4 className="text-sm font-semibold text-white">Atividade Recente</h4>
+                <h4 className="heading">Atividade Recente</h4>
               </div>
               {recentSims.length > 0 && (
                 <button
-                  className="text-[11px] text-white/25 hover:text-mint flex items-center gap-1 transition-colors font-medium uppercase tracking-wider"
+                  className="label-micro text-white/25 hover:text-mint flex items-center gap-1 transition-colors"
                   onClick={() => navigate('/historico')}
                 >
                   Ver historico <ChevronRight className="w-3 h-3" />
@@ -652,20 +668,20 @@ export default function Dashboard() {
                 {recentSims.map((sim, i) => (
                   <div
                     key={sim.id || i}
-                    className="flex items-center gap-4 px-4 py-3.5 -mx-1 rounded-xl hover:bg-white/[0.02] transition-colors group"
+                    className="flex items-center gap-4 px-4 py-3 -mx-1 rounded-xl hover:bg-white/[0.02] transition-colors group"
                   >
                     <div className="w-8 h-8 rounded-xl bg-white/[0.04] flex items-center justify-center flex-shrink-0">
                       <span className="text-[11px] font-bold text-white/20">{String(i + 1).padStart(2, '0')}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-white/80 block truncate">{sim.nome || 'Simulacao'}</span>
-                      <span className="text-[11px] text-white/25">{sim.origem || '—'} → {sim.destino || '—'}</span>
+                      <span className="body text-[13px] font-medium text-white/80 block truncate">{sim.nome || 'Simulacao'}</span>
+                      <span className="label-micro mt-1 block">{sim.origem || '—'} → {sim.destino || '—'}</span>
                     </div>
                     <Badge variant={sim.modal === 'Aereo' ? 'blue' : sim.modal === 'Onibus' ? 'amber' : 'purple'}>
                       {sim.modal || '—'}
                     </Badge>
-                    <span className="text-[11px] text-white/25 w-20 text-right">{sim.qtdColaboradores || '—'} pessoa(s)</span>
-                    <span className="text-sm font-bold text-mint w-28 text-right">{formatCurrency(sim.resumo?.custoTotalEquipe || 0)}</span>
+                    <span className="label-micro text-white/25 w-20 text-right tabular-data">{sim.qtdColaboradores || '—'} pessoa(s)</span>
+                    <span className="tabular-data text-sm font-bold text-mint w-28 text-right">{formatCurrency(sim.resumo?.custoTotalEquipe || 0)}</span>
                   </div>
                 ))}
               </div>
@@ -730,21 +746,27 @@ function MetricCell({ label, value, detail, icon: Icon, color, border, highlight
   const c = colors[color] || colors.mint;
 
   return (
-    <div className={`relative px-6 py-5 ${border ? 'border-l border-white/[0.04]' : ''}`}>
+    <div className={`relative px-6 py-6 ${border ? 'border-l border-white/[0.06]' : ''}`}>
       {highlight && (
-        <div className="absolute inset-0 bg-gradient-to-r from-accent-orange/[0.03] to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-accent-orange/[0.05] to-transparent pointer-events-none" />
       )}
       <div className="relative">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.1em]">{label}</span>
+        <div className="flex items-center justify-between mb-4">
+          <span className="label-micro">{label}</span>
           {Icon && (
             <div className={`w-8 h-8 rounded-xl ${c.bg} flex items-center justify-center`}>
               <Icon className={`w-[15px] h-[15px] ${c.icon}`} />
             </div>
           )}
         </div>
-        <div className={`text-2xl font-bold tracking-tight ${c.value}`}>{value}</div>
-        {detail && <p className="text-[11px] text-white/20 mt-1">{detail}</p>}
+        <div className={`metric-value ${c.value}`}>
+          {value}
+        </div>
+        {detail && (
+          <p className="body text-[13px] mt-2">
+            {detail}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -753,8 +775,8 @@ function MetricCell({ label, value, detail, icon: Icon, color, border, highlight
 function InsightRow({ label, value, highlight }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-white/[0.03] last:border-0">
-      <span className="text-[11px] text-white/30">{label}</span>
-      <span className={`text-[13px] font-semibold ${highlight ? 'text-mint' : 'text-white/70'}`}>{value}</span>
+      <span className="body text-[13px]">{label}</span>
+      <span className={`tabular-data text-[13px] font-semibold ${highlight ? 'text-mint' : 'text-white/70'}`}>{value}</span>
     </div>
   );
 }
@@ -797,14 +819,14 @@ function AIInsightCard({ type, icon: Icon, title, text }) {
   const s = styles[type] || styles.info;
 
   return (
-    <div className={`px-4 py-4 rounded-2xl ${s.bg} border ${s.border}`}>
+    <div className={`px-4 py-4 rounded-xl ${s.bg} border ${s.border}`}>
       <div className="flex items-start gap-3">
         <div className={`w-7 h-7 rounded-lg ${s.iconBg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
           {Icon && <Icon className={`w-3.5 h-3.5 ${s.iconColor}`} />}
         </div>
         <div className="flex-1 min-w-0">
-          <h5 className={`text-[12px] font-semibold ${s.titleColor} mb-1`}>{title}</h5>
-          <p className={`text-[11px] leading-relaxed ${s.textColor}`}>{text}</p>
+          <h5 className={`heading text-[15px] ${s.titleColor} mb-1`}>{title}</h5>
+          <p className={`body text-[13px] ${s.textColor}`}>{text}</p>
         </div>
       </div>
     </div>
@@ -812,19 +834,31 @@ function AIInsightCard({ type, icon: Icon, title, text }) {
 }
 
 function CommandAction({ icon: Icon, label, description, accentFrom, accentTo, borderColor, iconColor, onClick }) {
+  const { ref, onMouseMove } = useSpotlight();
   return (
     <button
+      ref={ref}
+      onMouseMove={onMouseMove}
       onClick={onClick}
-      className={`flex-1 relative overflow-hidden rounded-2xl border ${borderColor} bg-gradient-to-r ${accentFrom} ${accentTo} backdrop-blur-xl p-5 flex items-center gap-4 text-left group hover:scale-[1.01] transition-all duration-200`}
+      className={`spotlight group relative overflow-hidden rounded-2xl border ${borderColor} bg-gradient-to-r ${accentFrom} ${accentTo} backdrop-blur-xl p-6 flex items-center gap-4 text-left transition-all duration-300 hover:scale-[1.015] hover:-translate-y-0.5`}
+      style={{
+        boxShadow: '0 10px 30px -12px rgb(var(--shadow-ink) / 0.35), inset 0 1px 0 rgb(var(--highlight-ink) / 0.06)',
+      }}
     >
-      <div className="w-11 h-11 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0 border border-white/[0.06]">
+      {/* hover sheen */}
+      <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          background: 'linear-gradient(120deg, transparent 30%, rgb(var(--highlight-ink) / 0.04) 50%, transparent 70%)',
+        }}
+      />
+      <div className="relative w-11 h-11 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0 border border-white/[0.08]">
         <Icon className={`w-5 h-5 ${iconColor}`} />
       </div>
-      <div className="flex-1 min-w-0">
-        <span className="text-sm font-semibold text-white/90 block">{label}</span>
-        <span className="text-[11px] text-white/30 block mt-0.5">{description}</span>
+      <div className="relative flex-1 min-w-0">
+        <span className="heading text-white/90 block">{label}</span>
+        <span className="body text-[13px] block mt-1">{description}</span>
       </div>
-      <ArrowRight className="w-4 h-4 text-white/15 group-hover:text-white/40 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+      <ArrowRight className="relative w-4 h-4 text-white/20 group-hover:text-white/60 group-hover:translate-x-1 transition-all flex-shrink-0" />
     </button>
   );
 }

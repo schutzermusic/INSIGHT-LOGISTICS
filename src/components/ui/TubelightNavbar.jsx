@@ -4,6 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from '../../hooks/useTheme';
+import { prefetchRoute } from '../../App';
 
 export function NavBar({ items, className }) {
   const [, setIsMobile] = useState(false);
@@ -32,19 +33,24 @@ export function NavBar({ items, className }) {
           className={cn(
             'h-12 w-auto transition-[filter] duration-300',
             isDark
-              ? 'drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]'
+              ? 'drop-shadow-[0_4px_16px_rgba(73,220,122,0.12)]'
               : 'drop-shadow-[0_4px_12px_rgba(15,50,40,0.15)]',
           )}
         />
       </div>
 
-      {/* Centered nav pill */}
+      {/* Centered nav pill — cinematic glass */}
       <div
         className={cn(
-          'absolute left-1/2 -translate-x-1/2 flex items-center gap-1',
-          'py-1.5 px-2 rounded-full backdrop-blur-2xl',
-          'bg-dark-900/70 border border-white/[0.06]',
-          'shadow-[0_4px_24px_rgb(var(--shadow-ink)/0.12)]',
+          'absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5',
+          'py-1.5 px-1.5 rounded-full',
+          'backdrop-blur-2xl saturate-150',
+          isDark
+            ? 'bg-[rgba(14,18,26,0.62)] border border-white/[0.07]'
+            : 'bg-white/70 border border-black/[0.05]',
+          isDark
+            ? 'shadow-[0_12px_44px_-10px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.06)]'
+            : 'shadow-[0_10px_30px_-10px_rgba(15,50,40,0.15),inset_0_1px_0_rgba(255,255,255,0.9)]',
         )}
       >
         {items.map((item) => {
@@ -57,33 +63,42 @@ export function NavBar({ items, className }) {
             <NavLink
               key={item.name}
               to={item.url}
+              onMouseEnter={() => prefetchRoute(item.url)}
+              onFocus={() => prefetchRoute(item.url)}
               className={cn(
-                'relative cursor-pointer text-sm font-medium px-5 py-2 rounded-full transition-colors whitespace-nowrap',
-                'text-white/40 hover:text-white/70',
-                isActive && 'text-white',
+                'relative cursor-pointer text-[13px] font-medium px-5 py-2 rounded-full transition-colors whitespace-nowrap',
+                isDark
+                  ? 'text-white/45 hover:text-white/80'
+                  : 'text-[rgb(15,30,24)]/55 hover:text-[rgb(15,30,24)]',
+                isActive && (isDark ? 'text-[#0A1E18]' : 'text-[rgb(15,30,24)]'),
               )}
             >
-              <span className="hidden md:inline">{item.name}</span>
-              <span className="md:hidden">
+              <span className="hidden md:inline relative z-10">{item.name}</span>
+              <span className="md:hidden relative z-10">
                 <Icon size={18} strokeWidth={2.5} />
               </span>
               {isActive && (
                 <motion.div
                   layoutId="tubelight"
-                  className="absolute inset-0 w-full bg-white/[0.06] rounded-full -z-10"
-                  initial={false}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 350,
-                    damping: 30,
+                  className="absolute inset-0 rounded-full -z-0"
+                  style={{
+                    background: isDark
+                      ? 'linear-gradient(180deg, #ffffff 0%, #e8ede9 100%)'
+                      : 'linear-gradient(180deg, rgba(73,220,122,0.18) 0%, rgba(73,220,122,0.10) 100%)',
+                    boxShadow: isDark
+                      ? '0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 14px -4px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.05)'
+                      : '0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 10px -2px rgba(12,122,60,0.18), 0 0 0 1px rgba(12,122,60,0.15)',
                   }}
+                  initial={false}
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 >
-                  {/* Tubelight glow effect */}
-                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-mint rounded-t-full">
-                    <div className="absolute w-16 h-8 bg-mint/20 rounded-full blur-lg -top-3 -left-3" />
-                    <div className="absolute w-10 h-6 bg-mint/25 rounded-full blur-md -top-1.5 -left-0" />
-                    <div className="absolute w-6 h-4 bg-mint/30 rounded-full blur-sm top-0 left-2" />
-                  </div>
+                  {/* subtle top sheen beam — preserves the "tubelight" signature */}
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-full"
+                       style={{
+                         background: isDark ? '#49DC7A' : '#49DC7A',
+                         boxShadow: '0 0 12px rgba(73,220,122,0.9), 0 0 24px rgba(73,220,122,0.5)',
+                       }}
+                  />
                 </motion.div>
               )}
             </NavLink>
@@ -91,8 +106,15 @@ export function NavBar({ items, className }) {
         })}
       </div>
 
-      {/* Right cluster — theme toggle */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Right cluster — theme toggle in a glass capsule */}
+      <div
+        className={cn(
+          'flex items-center gap-1 shrink-0 px-1.5 py-1.5 rounded-full backdrop-blur-2xl saturate-150',
+          isDark
+            ? 'bg-[rgba(14,18,26,0.62)] border border-white/[0.07] shadow-[0_12px_44px_-10px_rgba(0,0,0,0.65)]'
+            : 'bg-white/70 border border-black/[0.05] shadow-[0_10px_30px_-10px_rgba(15,50,40,0.15)]',
+        )}
+      >
         <ThemeToggle />
       </div>
     </div>
