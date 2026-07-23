@@ -110,6 +110,13 @@
     --input: rgb(15 30 24 / 0.10);
     --ring: rgb(12 122 60 / 0.4);
     --radius: 0.625rem;
+    --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --motion-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --motion-duration-micro: 120ms;
+    --motion-duration-small: 200ms;
+    --motion-duration-medium: 320ms;
+    --motion-duration-large: 600ms;
     --sidebar: rgb(255 255 255);
     --sidebar-foreground: rgb(15 30 24);
     --sidebar-primary: rgb(12 122 60);
@@ -332,7 +339,9 @@
     background: rgb(var(--page-base));
     color: rgb(var(--ink));
     font-variant-numeric: lining-nums;
-    transition: background-color 200ms ease, color 200ms ease;
+    transition:
+      background-color var(--motion-duration-small) var(--motion-ease-in-out),
+      color var(--motion-duration-small) var(--motion-ease-in-out);
   }
 
   button,
@@ -361,7 +370,7 @@
     -webkit-text-fill-color: rgb(var(--ink)) !important;
     -webkit-box-shadow: 0 0 0px 1000px rgb(var(--surface-1)) inset !important;
     caret-color: rgb(var(--ink));
-    transition: background-color 9999s ease-out;
+    transition: background-color 9999s var(--motion-ease-out);
   }
 }
 
@@ -493,7 +502,10 @@
   }
 
   .glass-card-interactive {
-    @apply glass-card cursor-pointer transition-all duration-300;
+    @apply glass-card cursor-pointer;
+    transition:
+      transform var(--motion-duration-small) var(--motion-ease-out),
+      box-shadow var(--motion-duration-small) var(--motion-ease-out);
   }
   .glass-card-interactive:hover {
     transform: translateY(-2px);
@@ -514,7 +526,12 @@
 
   /* ────────── Glass Inputs ────────── */
   .glass-input {
-    @apply surface-recessed w-full rounded-xl border-0 px-4 py-3 text-sm outline-none transition-all duration-200;
+    @apply surface-recessed w-full rounded-xl border-0 px-4 py-3 text-sm outline-none;
+    transition:
+      box-shadow var(--motion-duration-small) var(--motion-ease-out),
+      background-color var(--motion-duration-small) var(--motion-ease-out),
+      border-color var(--motion-duration-small) var(--motion-ease-out),
+      color var(--motion-duration-small) var(--motion-ease-out);
     color: rgb(var(--ink));
   }
   .glass-input::placeholder {
@@ -550,7 +567,13 @@
   /* ────────── Premium Buttons ────────── */
   .btn-premium {
     @apply relative inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3
-      text-sm font-semibold tracking-wide transition-all duration-300 overflow-hidden;
+      text-sm font-semibold tracking-wide overflow-hidden;
+    transition:
+      transform var(--motion-duration-small) var(--motion-ease-out),
+      box-shadow var(--motion-duration-small) var(--motion-ease-out),
+      background-color var(--motion-duration-small) var(--motion-ease-out),
+      color var(--motion-duration-small) var(--motion-ease-out),
+      border-color var(--motion-duration-small) var(--motion-ease-out);
     font-family: 'Outfit', system-ui, sans-serif;
   }
 
@@ -720,9 +743,15 @@
     0%   { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
+  /* Motion preference (Phase 4C) — scoped to resolved `data-motion` so the
+     user's explicit "full" choice overrides an OS `prefers-reduced-motion`
+     signal. The pre-hydration script in index.html sets the attribute
+     before first paint. */
   @media (prefers-reduced-motion: reduce) {
-    .skeleton::after { animation: none; }
+    html:not([data-motion="full"]) .skeleton::after { animation: none; }
   }
+  html[data-motion="reduced"] .skeleton::after,
+  html[data-motion="off"] .skeleton::after { animation: none; }
 
   /* ────────── Magnetic Hover ──────────
      Apply `.magnetic` and use the useMagnetic() hook which sets
@@ -730,15 +759,17 @@
      up to 8px toward the cursor with a smooth spring. */
   .magnetic {
     transform: translate3d(var(--mag-x, 0px), var(--mag-y, 0px), 0);
-    transition: transform 200ms cubic-bezier(0.2, 0.9, 0.2, 1);
+    transition: transform var(--motion-duration-small) var(--motion-ease-spring);
     will-change: transform;
   }
   .magnetic:active {
-    transition: transform 80ms ease-out;
+    transition: transform var(--motion-duration-micro) var(--motion-ease-out);
   }
   @media (prefers-reduced-motion: reduce) {
-    .magnetic { transform: none !important; transition: none; }
+    html:not([data-motion="full"]) .magnetic { transform: none !important; transition: none; }
   }
+  html[data-motion="reduced"] .magnetic,
+  html[data-motion="off"] .magnetic { transform: none !important; transition: none; }
 
   /* ────────── Global Focus Ring ──────────
      Premium accessibility ring: mint outer ring + softly-glowing halo.
@@ -752,7 +783,7 @@
       0 0 0 4px rgb(var(--mint-ink) / 0.55),
       0 0 24px -2px rgb(var(--mint-ink) / 0.35);
     border-radius: 8px;
-    transition: box-shadow 140ms ease;
+    transition: box-shadow var(--motion-duration-micro) var(--motion-ease-out);
   }
   /* Buttons and links with existing border-radius should preserve it */
   button:focus-visible,
@@ -786,7 +817,7 @@
     border-radius: inherit;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 220ms ease;
+    transition: opacity var(--motion-duration-small) var(--motion-ease-out);
     background: radial-gradient(
       360px circle at var(--mx, 50%) var(--my, 0%),
       rgb(var(--highlight-ink) / 0.08) 0%,
@@ -803,7 +834,7 @@
      direct child fades+slides up with an incremental delay. Keeps
      perceived performance high while adding cinematic entrance. */
   .stagger-children > * {
-    animation: staggerIn 0.5s ease-out both;
+    animation: staggerIn var(--motion-duration-large) var(--motion-ease-out) both;
   }
   .stagger-children > *:nth-child(1)  { animation-delay: 40ms; }
   .stagger-children > *:nth-child(2)  { animation-delay: 90ms; }
@@ -825,10 +856,10 @@
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .stagger-children > * {
-      animation: none;
-    }
+    html:not([data-motion="full"]) .stagger-children > * { animation: none; }
   }
+  html[data-motion="reduced"] .stagger-children > *,
+  html[data-motion="off"] .stagger-children > * { animation: none; }
 
   /* ────────── Glow Borders ────────── */
   .glow-border-mint {
@@ -947,7 +978,7 @@
     filter: blur(60px);
     mix-blend-mode: screen;
     opacity: 0;
-    transition: opacity 500ms ease;
+    transition: opacity var(--motion-duration-large) var(--motion-ease-out);
     will-change: transform;
     animation: ambientDrift 30s ease-in-out infinite reverse;
   }
@@ -970,11 +1001,24 @@
   :root .stage-grain { opacity: 0.008; }
 
   @media (prefers-reduced-motion: reduce) {
-    .ambient-glow,
-    .stage-beam {
+    html:not([data-motion="full"]) .ambient-glow,
+    html:not([data-motion="full"]) .stage-beam {
       animation: none;
       transform: none;
     }
+  }
+  html[data-motion="reduced"] .ambient-glow,
+  html[data-motion="reduced"] .stage-beam {
+    animation: none;
+    transform: none;
+  }
+  /* In "off" mode, strip the ambient glow + beam entirely so there's zero
+     looping/visual drift — keeps a calm, static stage. */
+  html[data-motion="off"] .ambient-glow,
+  html[data-motion="off"] .stage-beam {
+    animation: none;
+    transform: none;
+    opacity: 0;
   }
 
   /* ────────── Premium Panel ──────────
@@ -1102,7 +1146,12 @@
      a bright solid pill that cuts through the dark stage. */
   .cta-white {
     @apply relative inline-flex items-center justify-center gap-2 rounded-full px-6 py-3
-      text-sm font-semibold tracking-wide transition-all duration-300;
+      text-sm font-semibold tracking-wide;
+    transition:
+      transform var(--motion-duration-small) var(--motion-ease-out),
+      box-shadow var(--motion-duration-small) var(--motion-ease-out),
+      background-color var(--motion-duration-small) var(--motion-ease-out),
+      color var(--motion-duration-small) var(--motion-ease-out);
     color: #0A1E18;
     background: linear-gradient(180deg, #ffffff 0%, #f0f4f1 100%);
     box-shadow:
@@ -1138,14 +1187,16 @@
   }
 
   /* ────────── Premium Chart Tooltip ──────────
-     Solid base for instant readability, left accent bar colored by
-     the primary series, and a soft color-tinted outer glow. Keeps a
-     sharp entrance animation but respects reduced-motion. */
+     Phase 5C — Premium tooltip with dedicated BEM classes for the
+     HTML emitted by echartsBase.js. Uses CSS custom properties
+     for theme awareness. Left accent bar, subtle glow, refined
+     typography. Respects the motion preference system. */
   .premium-tooltip {
     position: relative;
     min-width: 168px;
     border-radius: 14px;
     overflow: hidden;
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
     background:
       linear-gradient(
         160deg,
@@ -1159,8 +1210,8 @@
       0 0 0 1px rgb(255 255 255 / 0.06),
       0 18px 48px -12px rgb(0 0 0 / 0.55),
       0 6px 16px -4px rgb(0 0 0 / 0.35),
-      0 0 24px -6px var(--accent, transparent);
-    animation: tooltipIn 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      0 0 20px -6px var(--accent, transparent);
+    animation: tooltipIn var(--motion-duration-medium) var(--motion-ease-out) both;
     will-change: transform, opacity;
   }
   :root .premium-tooltip {
@@ -1175,7 +1226,7 @@
       0 0 0 1px rgb(var(--glass-ink) / 0.08),
       0 14px 36px -12px rgb(var(--shadow-ink) / 0.16),
       0 4px 10px -2px rgb(var(--shadow-ink) / 0.08),
-      0 0 20px -6px var(--accent, transparent);
+      0 0 16px -6px var(--accent, transparent);
   }
   .premium-tooltip__bar {
     position: absolute;
@@ -1185,14 +1236,165 @@
     width: 3px;
     border-radius: 0 3px 3px 0;
     background: var(--accent, #49DC7A);
-    box-shadow: 0 0 12px var(--accent, rgba(73, 220, 122, 0.6));
+    box-shadow: 0 0 10px var(--accent, rgba(73, 220, 122, 0.5));
   }
+  .premium-tooltip__body {
+    padding: 12px 16px;
+  }
+  .premium-tooltip__label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgb(var(--ink) / 0.45);
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+  .premium-tooltip__rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .premium-tooltip__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    white-space: nowrap;
+  }
+  .premium-tooltip__row-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .premium-tooltip__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .premium-tooltip__name {
+    font-size: 12px;
+    line-height: 1.3;
+    color: rgb(var(--ink) / 0.55);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .premium-tooltip__value {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--ink));
+  }
+
   @keyframes tooltipIn {
     from { opacity: 0; transform: translateY(4px) scale(0.98); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .premium-tooltip { animation: none; }
+    html:not([data-motion="full"]) .premium-tooltip { animation: none; }
+  }
+  html[data-motion="reduced"] .premium-tooltip,
+  html[data-motion="off"] .premium-tooltip { animation: none; }
+
+  .motion-enter-fade {
+    animation: motionFadeIn var(--motion-duration-medium) var(--motion-ease-out) both;
+  }
+
+  .motion-enter-rise {
+    animation: motionRiseIn var(--motion-duration-medium) var(--motion-ease-out) both;
+  }
+
+  .motion-enter-overlay {
+    animation: motionOverlayIn var(--motion-duration-medium) var(--motion-ease-out) both;
+  }
+
+  @keyframes motionFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes motionRiseIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes motionOverlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="full"]) .motion-enter-fade,
+    html:not([data-motion="full"]) .motion-enter-rise,
+    html:not([data-motion="full"]) .motion-enter-overlay,
+    html:not([data-motion="full"]) .animate-fade-in,
+    html:not([data-motion="full"]) .animate-slide-up,
+    html:not([data-motion="full"]) .animate-slide-in-right,
+    html:not([data-motion="full"]) .magnetic,
+    html:not([data-motion="full"]) .spotlight::before,
+    html:not([data-motion="full"]) .glass-card-interactive,
+    html:not([data-motion="full"]) .btn-premium,
+    html:not([data-motion="full"]) .cta-white,
+    html:not([data-motion="full"]) .premium-tooltip {
+      animation: none !important;
+      transition-duration: 1ms !important;
+      transition-delay: 0ms !important;
+      transform: none;
+    }
+  }
+  html[data-motion="reduced"] .motion-enter-fade,
+  html[data-motion="reduced"] .motion-enter-rise,
+  html[data-motion="reduced"] .motion-enter-overlay,
+  html[data-motion="reduced"] .animate-fade-in,
+  html[data-motion="reduced"] .animate-slide-up,
+  html[data-motion="reduced"] .animate-slide-in-right,
+  html[data-motion="reduced"] .magnetic,
+  html[data-motion="reduced"] .spotlight::before,
+  html[data-motion="reduced"] .glass-card-interactive,
+  html[data-motion="reduced"] .btn-premium,
+  html[data-motion="reduced"] .cta-white,
+  html[data-motion="reduced"] .premium-tooltip {
+    animation: none !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    transform: none;
+  }
+  /* "off" mode — disable non-essential transitions globally so UI state
+     changes are instant. Still allows 1ms color fades so accent-color
+     utilities don't flash. */
+  html[data-motion="off"] *,
+  html[data-motion="off"] *::before,
+  html[data-motion="off"] *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  html[data-motion="off"] .motion-enter-fade,
+  html[data-motion="off"] .motion-enter-rise,
+  html[data-motion="off"] .motion-enter-overlay,
+  html[data-motion="off"] .animate-fade-in,
+  html[data-motion="off"] .animate-slide-up,
+  html[data-motion="off"] .animate-slide-in-right,
+  html[data-motion="off"] .magnetic,
+  html[data-motion="off"] .spotlight::before,
+  html[data-motion="off"] .glass-card-interactive,
+  html[data-motion="off"] .btn-premium,
+  html[data-motion="off"] .cta-white,
+  html[data-motion="off"] .premium-tooltip {
+    animation: none !important;
+    transform: none !important;
   }
 
   /* Recharts wrapper: remove default outline, ensure no clipping
@@ -1269,4 +1471,24 @@
       0 6px 24px rgb(var(--shadow-ink) / 0.06),
       0 1px 3px rgb(var(--shadow-ink) / 0.04);
   }
+
+  /* ────────── Chart Skeleton Shimmer — Phase 5D ──────────
+     Sweeping highlight over ghost chart shapes. */
+  .chart-skeleton {
+    background: rgb(var(--surface-1) / 0.3);
+  }
+  .chart-skeleton__shimmer {
+    animation: chartShimmer 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes chartShimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="full"]) .chart-skeleton__shimmer { animation: none; }
+  }
+  html[data-motion="reduced"] .chart-skeleton__shimmer,
+  html[data-motion="off"] .chart-skeleton__shimmer { animation: none; opacity: 0; }
 }
+

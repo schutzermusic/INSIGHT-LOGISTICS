@@ -31,6 +31,8 @@ const CACHE_TTL = {
   companies: 24 * 60 * 60 * 1000, // 24h
   search: 50 * 60 * 1000,         // 50min (API says valid 1h)
 };
+const API_TIMEOUT_MS = 7000;
+let stopsListPromise = null;
 
 function getCached(key, ttl) {
   const entry = cache.get(key);
@@ -55,6 +57,12 @@ function setCache(key, data, ttl) {
 
 // ── HTTP helpers ────────────────────────────────────────
 
+function withTimeout() {
+  return typeof AbortSignal !== 'undefined' && AbortSignal.timeout
+    ? AbortSignal.timeout(API_TIMEOUT_MS)
+    : undefined;
+}
+
 async function apiGet(path) {
   const auth = getAuthHeader();
   if (!auth) return { success: false, reason: 'credentials_not_configured' };
@@ -64,6 +72,7 @@ async function apiGet(path) {
     const res = await fetch(url, {
       method: 'GET',
       headers: { Authorization: auth, Accept: 'application/json' },
+      signal: withTimeout(),
     });
 
     if (!res.ok) {
@@ -93,6 +102,7 @@ async function apiPost(path, body) {
         Accept: 'application/json',
       },
       body: JSON.stringify(body),
+      signal: withTimeout(),
     });
 
     if (!res.ok) {
@@ -117,6 +127,7 @@ async function apiDelete(path) {
     const res = await fetch(url, {
       method: 'DELETE',
       headers: { Authorization: auth, Accept: 'application/json' },
+      signal: withTimeout(),
     });
 
     if (!res.ok) {
@@ -173,9 +184,18 @@ export async function listStops() {
   const cached = getCached('stops:all', CACHE_TTL.stops);
   if (cached) return { success: true, data: cached, source: 'cache' };
 
-  const result = await apiGet('/stops');
-  if (result.success) setCache('stops:all', result.data, CACHE_TTL.stops);
-  return result;
+  if (!stopsListPromise) {
+    stopsListPromise = apiGet('/stops')
+      .then((result) => {
+        if (result.success) setCache('stops:all', result.data, CACHE_TTL.stops);
+        return result;
+      })
+      .finally(() => {
+        stopsListPromise = null;
+      });
+  }
+
+  return stopsListPromise;
 }
 
 /**
@@ -222,7 +242,7 @@ export async function searchStops(query) {
  */
 export async function searchTrips(from, to, travelDate, options = {}) {
   const cacheKey = `search:${from}:${to}:${travelDate}:${options.includeConnections || false}`;
-  const cached = getCached(cacheKey, CACHE_TTL.search);
+  const cached = options.allowCache ? getCached(cacheKey, CACHE_TTL.search) : null;
   if (cached) return { success: true, data: cached, source: 'cache' };
 
   const body = {
@@ -237,7 +257,7 @@ export async function searchTrips(from, to, travelDate, options = {}) {
   }
 
   const result = await apiPost('/new/search', body);
-  if (result.success) setCache(cacheKey, result.data, CACHE_TTL.search);
+  if (options.allowCache && result.success) setCache(cacheKey, result.data, CACHE_TTL.search);
   return result;
 }
 

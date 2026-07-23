@@ -9,6 +9,8 @@ import { formatCurrency } from '../engine/calculator.js';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
+import { AnimatedNumber } from '../components/ui/AnimatedNumber';
+import { MotionStagger, MotionStaggerItem } from '../components/ui/MotionStagger';
 
 const TYPE_CONFIG = {
   'ai-analysis': { label: 'AI', badge: 'accent', icon: Bot },
@@ -68,7 +70,7 @@ export default function History() {
   };
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="space-y-6">
       {/* Hero Header */}
       <section className="surface-card relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-blue/20 to-transparent" />
@@ -86,7 +88,7 @@ export default function History() {
             <div className="flex items-center gap-3">
               <Badge variant="info" dot>{simulations.length} registro(s)</Badge>
               {simulations.length > 0 && (
-                <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold text-danger-text/70 hover:text-danger-text hover:bg-danger-bg/70 transition-all" onClick={handleClear}>
+                <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold text-danger-text/70 hover:text-danger-text hover:bg-danger-bg/70 transition-[color,background-color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]" onClick={handleClear}>
                   <Trash2 className="w-3.5 h-3.5" /> Limpar
                 </button>
               )}
@@ -160,17 +162,22 @@ export default function History() {
                     <span className="label-micro text-white/25">{date}</span>
                   </div>
                   <div className="flex-1 h-px bg-white/[0.04]" />
-                  <span className="label-micro text-white/15 tabular-data">{items.length} registro(s)</span>
+                  <AnimatedNumber
+                    as="span"
+                    className="label-micro text-white/15 tabular-data"
+                    value={items.length}
+                    format={(v) => `${Math.round(v)} registro(s)`}
+                  />
                 </div>
 
-                <div className="space-y-2">
+                <MotionStagger as="div" className="space-y-2" fast inView>
                   {items.map(sim => {
                     const typeConfig = TYPE_CONFIG[sim.type] || TYPE_CONFIG.default;
                     const TypeIcon = typeConfig.icon;
                     const isExpanded = expanded === sim.id;
 
                     return (
-                      <div key={sim.id} className="surface-card relative overflow-hidden rounded-2xl border border-white/[0.05]">
+                      <MotionStaggerItem key={sim.id} className="surface-card relative overflow-hidden rounded-2xl border border-white/[0.05]">
                         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
                         <button
                           className="w-full px-4 py-4 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"
@@ -208,22 +215,30 @@ export default function History() {
                           )}
 
                           <div className="text-right min-w-[100px]">
-                            <span className="tabular-data text-sm font-bold text-success-text">
-                              {formatCurrency(sim.resumo?.custoTotalEquipe || 0)}
-                            </span>
+                            <AnimatedNumber
+                              as="span"
+                              className="tabular-data text-sm font-bold text-success-text"
+                              value={sim.resumo?.custoTotalEquipe || 0}
+                              format={(v) => formatCurrency(v)}
+                            />
                             {sim.resumo?.horasTransito > 0 && (
-                              <div className="label-micro text-white/20 tabular-data mt-1">{sim.resumo.horasTransito}h transito</div>
+                              <AnimatedNumber
+                                as="div"
+                                className="label-micro text-white/20 tabular-data mt-1"
+                                value={sim.resumo.horasTransito}
+                                format={(v) => `${v.toFixed(1)}h transito`}
+                              />
                             )}
                           </div>
 
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(sim.id); }}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white/10 hover:text-danger-text hover:bg-danger-bg/70 transition-all duration-200"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white/10 hover:text-danger-text hover:bg-danger-bg/70 transition-[color,background-color] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)]"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
 
-                          <ChevronDown className={`w-4 h-4 text-white/10 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                          <ChevronDown className={`w-4 h-4 text-white/10 transition-transform duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
 
                         {isExpanded && (
@@ -238,10 +253,10 @@ export default function History() {
                             </div>
                           </div>
                         )}
-                      </div>
+                      </MotionStaggerItem>
                     );
                   })}
-                </div>
+                </MotionStagger>
               </div>
             ))}
           </div>
@@ -255,7 +270,16 @@ function SummaryCell({ label, value, border }) {
   return (
     <div className={`px-6 py-4 ${border ? 'border-l border-white/[0.04]' : ''}`}>
       <span className="label-micro text-white/25 block">{label}</span>
-      <span className="metric-value text-white/70 mt-2 block">{value}</span>
+      {typeof value === 'number' ? (
+        <AnimatedNumber
+          as="span"
+          className="metric-value text-white/70 mt-2 block"
+          value={value}
+          format={(v) => (label === 'Custo Medio' ? formatCurrency(v) : Math.round(v).toLocaleString('pt-BR'))}
+        />
+      ) : (
+        <span className="metric-value text-white/70 mt-2 block">{value}</span>
+      )}
     </div>
   );
 }

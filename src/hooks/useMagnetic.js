@@ -1,22 +1,21 @@
 import { useCallback, useRef } from 'react';
+import { useMotionPreference } from './useMotionPreference';
 
 /**
  * Magnetic hover hook for CTAs.
  * Subtly translates the element toward the cursor while hovering and
- * snaps back on mouse leave. rAF-throttled. Respects reduced-motion.
+ * snaps back on mouse leave. rAF-throttled. Respects reduced-motion
+ * and user motion preference override.
  *
  * strength: max pixel offset at the far edge of the element (default 8)
  */
 export function useMagnetic({ strength = 8 } = {}) {
   const elRef = useRef(null);
   const frameRef = useRef(0);
-  const reducedMotion = useRef(
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
-  );
+  const { reduced } = useMotionPreference();
 
   const handleMove = useCallback((e) => {
-    if (reducedMotion.current) return;
+    if (reduced) return;
     const el = elRef.current;
     if (!el) return;
     if (frameRef.current) return;
@@ -30,7 +29,7 @@ export function useMagnetic({ strength = 8 } = {}) {
       el.style.setProperty('--mag-x', `${nx * strength}px`);
       el.style.setProperty('--mag-y', `${ny * strength}px`);
     });
-  }, [strength]);
+  }, [strength, reduced]);
 
   const handleLeave = useCallback(() => {
     const el = elRef.current;

@@ -1,8 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from 'recharts';
 import { BarChart3, Settings, Bus, Plane, Car, AlertTriangle, CheckCircle, TrendingDown, Clock, Zap, Users, Trophy, Shield, DollarSign, Brain } from 'lucide-react';
 import { useCollaborators, useSimulations } from '../hooks/useStore';
 import { calcScenario, compareScenarios, formatCurrency, formatHours } from '../engine/calculator.js';
@@ -11,10 +8,20 @@ import { calcScenario, compareScenarios, formatCurrency, formatHours } from '../
 // import { KpiCard } from '../components/ui/KpiCard';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
-import { ChartTooltip } from '../components/charts/ChartTooltip';
+import { PremiumBarChart } from '../components/charts';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 import { MagneticWrap } from '../components/ui/MagneticWrap';
+import { AnimatedNumber } from '../components/ui/AnimatedNumber';
+import { MotionStagger, MotionStaggerItem } from '../components/ui/MotionStagger';
 import { CHART_PALETTE, COST_BREAKDOWN_COLORS, getComparatorScenarioAccent } from '../lib/chartTheme';
+
+const COMPARATOR_BAR_SERIES = [
+  { key: 'Horas Trabalhadas', color: COST_BREAKDOWN_COLORS['Horas Trabalhadas'] },
+  { key: 'Deslocamento', color: COST_BREAKDOWN_COLORS.Deslocamento },
+  { key: 'Passagens', color: COST_BREAKDOWN_COLORS.Passagens },
+  { key: 'Hosp + Alim', color: COST_BREAKDOWN_COLORS['Hosp + Alim'] },
+  { key: 'Logistico', color: COST_BREAKDOWN_COLORS.Logistico },
+];
 
 const SCENARIOS = [
   { key: 'onibus', label: 'Onibus', icon: Bus, color: CHART_PALETTE.amber, defaultTime: 24, defaultFare: 250 },
@@ -36,7 +43,7 @@ export default function Comparator() {
 
   if (collaborators.length === 0) {
     return (
-      <div className="animate-fade-in">
+      <div>
         {/* Hero header for empty state */}
         <section className="surface-card relative overflow-hidden mb-8">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
@@ -71,6 +78,7 @@ export default function Comparator() {
       horasNormaisDia: parseFloat(form.horasNormais.value) || 0,
       horasExtra50Dia: parseFloat(form.he50.value) || 0,
       horasExtra100Dia: parseFloat(form.he100.value) || 0,
+      horasExtra150Dia: parseFloat(form.he150.value) || 0,
       horasNoturnasDia: parseFloat(form.noturnas.value) || 0,
       custoHospedagemDia: parseFloat(form.hospedagem.value) || 0,
       custoAlimentacaoDia: parseFloat(form.alimentacao.value) || 0,
@@ -112,7 +120,7 @@ export default function Comparator() {
   const fastestName = analysis?.maisRapido?.nome;
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="space-y-6">
 
       {/* ═══════════════════════════════════════════
           HERO HEADER — Command Center Style
@@ -222,7 +230,7 @@ export default function Comparator() {
                 <input className="glass-input" type="number" name="horasNormais" defaultValue="8" step="0.5" min="0" />
               </div>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
               <div>
                 <label className="block label-micro text-white/35 mb-2">HE 50%/dia</label>
                 <input className="glass-input" type="number" name="he50" defaultValue="2" step="0.5" min="0" />
@@ -230,6 +238,10 @@ export default function Comparator() {
               <div>
                 <label className="block label-micro text-white/35 mb-2">HE 100%/dia</label>
                 <input className="glass-input" type="number" name="he100" defaultValue="0" step="0.5" min="0" />
+              </div>
+              <div>
+                <label className="block label-micro text-white/35 mb-2">HE 150%/dia</label>
+                <input className="glass-input" type="number" name="he150" defaultValue="0" step="0.5" min="0" />
               </div>
               <div>
                 <label className="block label-micro text-white/35 mb-2">Hospedagem/dia (R$)</label>
@@ -250,9 +262,9 @@ export default function Comparator() {
         </section>
 
         {/* Scenario Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <MotionStagger className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6" fast>
           {SCENARIOS.map(s => (
-            <section
+            <MotionStaggerItem
               key={s.key}
               className="surface-card relative overflow-hidden"
             >
@@ -292,9 +304,9 @@ export default function Comparator() {
                   )}
                 </div>
               </div>
-            </section>
+            </MotionStaggerItem>
           ))}
-        </div>
+        </MotionStagger>
 
         <div className="flex justify-center w-full mb-6">
           <LiquidMetalButton label="Comparar Cenarios" width={220} type="submit" />
@@ -305,7 +317,7 @@ export default function Comparator() {
           RESULTS
           ═══════════════════════════════════════════ */}
       {analysis && (
-        <div className="space-y-6 animate-slide-up">
+        <div className="space-y-6">
 
           {/* AI VERDICT — Best Option Highlight */}
           <section className="surface-card relative overflow-hidden border border-mint/[0.15]">
@@ -353,17 +365,32 @@ export default function Comparator() {
                     <div className="flex items-center gap-6">
                       <div>
                         <span className="label-micro text-white/25">Custo Total</span>
-                        <div className="metric-value text-mint mt-2">{formatCurrency(analysis.melhor.resumo.custoTotalEquipe)}</div>
+                        <AnimatedNumber
+                          as="div"
+                          className="metric-value text-mint mt-2"
+                          value={analysis.melhor.resumo.custoTotalEquipe}
+                          format={(v) => formatCurrency(v)}
+                        />
                       </div>
                       <div className="w-px h-10 bg-white/[0.06]" />
                       <div>
                         <span className="label-micro text-white/25">Economia vs. Pior</span>
-                        <div className="metric-value text-accent-cyan mt-2">{formatCurrency(analysis.economia)}</div>
+                        <AnimatedNumber
+                          as="div"
+                          className="metric-value text-accent-cyan mt-2"
+                          value={analysis.economia}
+                          format={(v) => formatCurrency(v)}
+                        />
                       </div>
                       <div className="w-px h-10 bg-white/[0.06]" />
                       <div>
                         <span className="label-micro text-white/25">Tempo Transito</span>
-                        <div className="metric-value text-white/70 mt-2">{formatHours(analysis.melhor.resumo.horasTransito)}</div>
+                        <AnimatedNumber
+                          as="div"
+                          className="metric-value text-white/70 mt-2"
+                          value={analysis.melhor.resumo.horasTransito}
+                          format={(v) => formatHours(v)}
+                        />
                       </div>
                       <div className="w-px h-10 bg-white/[0.06]" />
                       <div>
@@ -379,14 +406,14 @@ export default function Comparator() {
               <div className="surface-recessed grid grid-cols-4 gap-0 rounded-2xl overflow-hidden">
                 <MetricCell
                   label="Melhor Custo"
-                  value={formatCurrency(analysis.melhor.resumo.custoTotalEquipe)}
+                  value={analysis.melhor.resumo.custoTotalEquipe}
                   detail={analysis.melhor.nome}
                   icon={TrendingDown}
                   color="mint"
                 />
                 <MetricCell
                   label="Maior Custo"
-                  value={formatCurrency(analysis.pior.resumo.custoTotalEquipe)}
+                  value={analysis.pior.resumo.custoTotalEquipe}
                   detail={analysis.pior.nome}
                   icon={DollarSign}
                   color="accent"
@@ -394,7 +421,7 @@ export default function Comparator() {
                 />
                 <MetricCell
                   label="Economia Potencial"
-                  value={formatCurrency(analysis.economia)}
+                  value={analysis.economia}
                   detail="Diferenca entre melhor e pior"
                   icon={Zap}
                   color="info"
@@ -403,7 +430,7 @@ export default function Comparator() {
                 />
                 <MetricCell
                   label="Mais Rapido"
-                  value={formatHours(analysis.maisRapido.resumo.horasTransito)}
+                  value={analysis.maisRapido.resumo.horasTransito}
                   detail={analysis.maisRapido.nome}
                   icon={Clock}
                   color="neutral"
@@ -416,7 +443,7 @@ export default function Comparator() {
           {/* ═══════════════════════════════════════════
               COMPARISON CARDS — Side by side modals
               ═══════════════════════════════════════════ */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <MotionStagger className="grid grid-cols-1 lg:grid-cols-3 gap-6" fast inView>
             {analysis.cenarios.map((c, i) => {
               const isBest = c.nome === bestName;
               const isFastest = c.nome === fastestName;
@@ -424,9 +451,9 @@ export default function Comparator() {
               const ScenarioIcon = SCENARIO_ICON_MAP[c.nome] || BarChart3;
 
               return (
-                <section
+                <MotionStaggerItem
                   key={i}
-                  className={`surface-card relative overflow-hidden rounded-2xl border transition-all ${
+                  className={`surface-card relative overflow-hidden rounded-2xl border transition-[border-color,box-shadow,transform] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                     isBest
                       ? 'border-mint/[0.15]'
                       : 'border-white/[0.06]'
@@ -462,9 +489,12 @@ export default function Comparator() {
                     </div>
 
                     {/* Total cost prominent */}
-                    <div className={`display-lg mb-2 ${isBest ? 'text-mint' : ''}`}>
-                      {formatCurrency(c.resumo.custoTotalEquipe)}
-                    </div>
+                    <AnimatedNumber
+                      as="div"
+                      className={`display-lg mb-2 ${isBest ? 'text-mint' : ''}`}
+                      value={c.resumo.custoTotalEquipe}
+                      format={(v) => formatCurrency(v)}
+                    />
                     <p className="label-micro mb-4">Custo total · {c.qtdColaboradores} colab.</p>
 
                     {/* Cost breakdown */}
@@ -488,10 +518,10 @@ export default function Comparator() {
                       </div>
                     </div>
                   </div>
-                </section>
+                </MotionStaggerItem>
               );
             })}
-          </div>
+          </MotionStagger>
 
           {/* ═══════════════════════════════════════════
               COST-BENEFIT ANALYSIS
@@ -514,7 +544,12 @@ export default function Comparator() {
                   {/* Savings */}
                   <div className="surface-recessed rounded-xl border border-mint/[0.08] bg-mint/[0.02] p-4">
                     <span className="label-micro text-mint/50">Economia Total</span>
-                    <div className="metric-value text-mint mt-2">{formatCurrency(analysis.economia)}</div>
+                    <AnimatedNumber
+                      as="div"
+                      className="metric-value text-mint mt-2"
+                      value={analysis.economia}
+                      format={(v) => formatCurrency(v)}
+                    />
                     <p className="body text-[13px] mt-2">
                       Escolhendo {analysis.melhor.nome} ao inves de {analysis.pior.nome}
                     </p>
@@ -523,9 +558,12 @@ export default function Comparator() {
                   {/* Time savings */}
                   <div className="surface-recessed rounded-xl border border-accent-blue/[0.08] bg-accent-blue/[0.02] p-4">
                     <span className="label-micro text-info-text/70">Diferenca de Tempo</span>
-                    <div className="metric-value text-info-text mt-2">
-                      {formatHours(Math.abs(analysis.melhor.resumo.horasTransito - analysis.maisRapido.resumo.horasTransito))}
-                    </div>
+                    <AnimatedNumber
+                      as="div"
+                      className="metric-value text-info-text mt-2"
+                      value={Math.abs(analysis.melhor.resumo.horasTransito - analysis.maisRapido.resumo.horasTransito)}
+                      format={(v) => formatHours(v)}
+                    />
                     <p className="body text-[13px] mt-2">
                       {analysis.melhor.nome === analysis.maisRapido.nome
                         ? 'Melhor custo E mais rapido'
@@ -537,12 +575,19 @@ export default function Comparator() {
                   {/* Cost per hour of transit saved */}
                   <div className="surface-recessed rounded-xl border border-accent-purple/[0.08] bg-accent-purple/[0.02] p-4">
                     <span className="label-micro text-accent-purple/50">Custo por Hora Economizada</span>
-                    <div className="metric-value text-accent-purple mt-2">
-                      {(() => {
-                        const timeDiff = Math.abs(analysis.pior.resumo.horasTransito - analysis.melhor.resumo.horasTransito);
-                        return timeDiff > 0 ? formatCurrency(analysis.economia / timeDiff) : '--';
-                      })()}
-                    </div>
+                    {(() => {
+                      const timeDiff = Math.abs(analysis.pior.resumo.horasTransito - analysis.melhor.resumo.horasTransito);
+                      return timeDiff > 0 ? (
+                        <AnimatedNumber
+                          as="div"
+                          className="metric-value text-accent-purple mt-2"
+                          value={analysis.economia / timeDiff}
+                          format={(v) => formatCurrency(v)}
+                        />
+                      ) : (
+                        <div className="metric-value text-accent-purple mt-2">--</div>
+                      );
+                    })()}
                     <p className="body text-[13px] mt-2">
                       Valor economizado por hora de transito reduzida
                     </p>
@@ -564,22 +609,16 @@ export default function Comparator() {
                 </div>
                 <h3 className="heading text-white/80">Comparativo Visual</h3>
               </div>
-              <div className="h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
-                    <Tooltip content={<ChartTooltip formatter={(v) => formatCurrency(v)} />} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
-                    <Bar dataKey="Horas Trabalhadas" stackId="a" fill={COST_BREAKDOWN_COLORS['Horas Trabalhadas']} fillOpacity={0.76} />
-                    <Bar dataKey="Deslocamento" stackId="a" fill={COST_BREAKDOWN_COLORS.Deslocamento} fillOpacity={0.76} />
-                    <Bar dataKey="Passagens" stackId="a" fill={COST_BREAKDOWN_COLORS.Passagens} fillOpacity={0.76} />
-                    <Bar dataKey="Hosp + Alim" stackId="a" fill={COST_BREAKDOWN_COLORS['Hosp + Alim']} fillOpacity={0.76} />
-                    <Bar dataKey="Logistico" stackId="a" fill={COST_BREAKDOWN_COLORS.Logistico} fillOpacity={0.76} radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <PremiumBarChart
+                data={chartData}
+                xKey="name"
+                series={COMPARATOR_BAR_SERIES}
+                stacked
+                yFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+                tooltipValueFormatter={(v) => formatCurrency(v)}
+                showLegend
+                height={320}
+              />
             </div>
           </section>
 
@@ -704,7 +743,19 @@ function MetricCell({ label, value, detail, icon: Icon, color, border, highlight
             </div>
           )}
         </div>
-        <div className={`metric-value ${c.value}`}>{value}</div>
+        {typeof value === 'number' ? (
+          <AnimatedNumber
+            as="div"
+            className={`metric-value ${c.value}`}
+            value={value}
+            format={(v) => {
+              if (label === 'Mais Rapido') return formatHours(v);
+              return formatCurrency(v);
+            }}
+          />
+        ) : (
+          <div className={`metric-value ${c.value}`}>{value}</div>
+        )}
         {detail && <p className="body text-[13px] mt-2">{detail}</p>}
       </div>
     </div>
@@ -722,7 +773,7 @@ function CostRow({ label, value, total, color }) {
         </div>
         <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-700"
+            className="h-full rounded-full transition-[width,background-color] duration-[var(--motion-duration-large)] ease-[var(--motion-ease-out)]"
             style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: color, opacity: 0.6 }}
           />
         </div>

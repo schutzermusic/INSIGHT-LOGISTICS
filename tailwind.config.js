@@ -120,6 +120,17 @@ export default {
         '4xl': '1.5rem',
         '5xl': '2rem',
       },
+      transitionDuration: {
+        micro: 'var(--motion-duration-micro)',
+        small: 'var(--motion-duration-small)',
+        medium: 'var(--motion-duration-medium)',
+        large: 'var(--motion-duration-large)',
+      },
+      transitionTimingFunction: {
+        out: 'var(--motion-ease-out)',
+        'in-out': 'var(--motion-ease-in-out)',
+        spring: 'var(--motion-ease-spring)',
+      },
       boxShadow: {
         'glow-mint': '0 0 20px rgba(73, 220, 122, 0.15), 0 0 60px rgba(73, 220, 122, 0.05)',
         'glow-mint-strong': '0 0 30px rgba(73, 220, 122, 0.2), 0 0 80px rgba(73, 220, 122, 0.08)',
@@ -156,9 +167,9 @@ export default {
           'linear-gradient(135deg, rgb(var(--highlight-ink) / 0.12) 0%, transparent 30%, transparent 70%, rgb(var(--highlight-ink) / 0.04) 100%)',
       },
       animation: {
-        'fade-in': 'fadeIn 0.4s ease-out',
-        'slide-up': 'slideUp 0.4s ease-out',
-        'slide-in-right': 'slideInRight 0.3s ease-out',
+        'fade-in': 'fadeIn var(--motion-duration-large) var(--motion-ease-out)',
+        'slide-up': 'slideUp var(--motion-duration-large) var(--motion-ease-out)',
+        'slide-in-right': 'slideInRight var(--motion-duration-medium) var(--motion-ease-out)',
         'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
         'shimmer': 'shimmer 2s linear infinite',
         'float': 'float 6s ease-in-out infinite',

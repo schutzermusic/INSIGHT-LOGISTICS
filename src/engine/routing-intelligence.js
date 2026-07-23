@@ -12,27 +12,8 @@ import { getRouteIntelligence, getCityInfo, getCityInfoFuzzy } from './routes-in
 import { calcHourlyRates, calcLaborCost, calcTravelCost, formatCurrency, formatHours } from './calculator.js';
 import { searchFlights, convertToAlternatives, isFlightsApiEnabled, getFlightPriceInsights, getFlightBookingOptions } from './flights-api.js';
 import { searchBusTrips, convertToAlternatives as convertBusToAlternatives, isBusApiEnabled, getBusPurchaseOptions } from './bus-api.js';
-import { fetchTollCost } from '../services/BackendApiClient.js';
+import { fetchRouteV2, fetchTollCost } from '../services/BackendApiClient.js';
 import { buildLocationContext, generateMultimodalScenarios, convertScenariosToRouteFormat } from './multimodal-scenario-builder.js';
-
-// ============================================================
-// TOLL ESTIMATION (Fallback when Routes API is unavailable)
-// ============================================================
-const TOLL_RATE_PER_KM_BY_UF = {
-    SP: 0.28, PR: 0.22, RJ: 0.24, MG: 0.18, RS: 0.16,
-    SC: 0.15, GO: 0.12, MS: 0.14, MT: 0.10, BA: 0.08,
-    ES: 0.14, DF: 0.12, PE: 0.06, CE: 0.05, PA: 0.04,
-    AM: 0.02, MA: 0.04, RN: 0.05, PB: 0.05, PI: 0.04,
-    AL: 0.05, SE: 0.05, TO: 0.04, RO: 0.03, AC: 0.02,
-    RR: 0.02, AP: 0.02,
-};
-
-function estimateTollByDistance(distanciaKm, ufOrigem, ufDestino) {
-    const rateOrigem = TOLL_RATE_PER_KM_BY_UF[ufOrigem] || 0.10;
-    const rateDestino = TOLL_RATE_PER_KM_BY_UF[ufDestino] || 0.10;
-    const avgRate = (rateOrigem + rateDestino) / 2;
-    return round(distanciaKm * avgRate);
-}
 
 // ============================================================
 // RANKING WEIGHTS
@@ -74,9 +55,37 @@ const OPERATIONAL_DEFAULTS = {
     horasNormaisDia: 8,
     horasExtra50Dia: 2,
     horasExtra100Dia: 0,
+    horasExtra150Dia: 0,
     horasNoturnasDia: 0,
     diasCampo: 5,
 };
+
+const PROVIDER_TIMEOUT_MS = {
+    bus: 9000,
+    flights: 10000,
+    vehicle: 6000,
+    tolls: 3500,
+};
+
+async function withProviderTimeout(promise, timeoutMs, label) {
+    let timeoutId;
+    const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${label} excedeu ${timeoutMs}ms`)), timeoutMs);
+    });
+
+    try {
+        return await Promise.race([promise, timeout]);
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
+function parseGoogleDurationHours(duration = '') {
+    const seconds = Number(String(duration).replace('s', ''));
+    return Number.isFinite(seconds) && seconds > 0
+        ? Math.round((seconds / 3600) * 10) / 10
+        : 0;
+}
 
 // ============================================================
 // MAIN ANALYSIS FUNCTION
@@ -105,7 +114,7 @@ export async function analyzeRoutingIntelligence(params) {
     // -------------------------------------------------------
     // PHASE 1: Try direct route lookup (existing DB)
     // -------------------------------------------------------
-    onProgress('Buscando rota direta na base de dados...');
+    onProgress('Preparando contexto da rota...');
     let route = getRouteIntelligence(origem, destino);
     let multimodalExploration = null;
     let usedMultimodal = false;
@@ -186,10 +195,11 @@ export async function analyzeRoutingIntelligence(params) {
     const alternatives = [];
     let realtimeFlights = null;
     let realtimeBus = null;
-    let busSource = 'static';
+    let busSource = 'unavailable';
+    let vehicleSource = 'unavailable';
 
     // -------------------------------------------------------
-    // PHASE 3: Build bus alternatives — real-time API + static
+    // PHASE 3: Build bus alternatives — real-time API only
     // Provider-level resilience: never stop the search if bus fails
     // -------------------------------------------------------
 
@@ -201,7 +211,11 @@ export async function analyzeRoutingIntelligence(params) {
             if (collaborators.length > 0) busOptions.passengers = collaborators.length;
 
             onProgress('Consultando Quero Passagem em tempo real...');
-            const busResults = await searchBusTrips(origem, destino, busOptions);
+            const busResults = await withProviderTimeout(
+                searchBusTrips(origem, destino, busOptions),
+                PROVIDER_TIMEOUT_MS.bus,
+                'Consulta de onibus',
+            );
 
             if (busResults.success && busResults.trips.length > 0) {
                 realtimeBus = busResults;
@@ -255,49 +269,21 @@ export async function analyzeRoutingIntelligence(params) {
                     : '';
                 onProgress(`${liveAlts.length} opcao(oes) de onibus em tempo real encontrada(s)${connInfo}!`);
             } else {
-                onProgress(`Quero Passagem: ${busResults.message || 'sem resultados diretos'}. Continuando busca com dados locais...`);
+                onProgress(`Quero Passagem: ${busResults.message || 'sem resultados concretos para a rota'}.`);
             }
         } catch (err) {
-            onProgress(`Erro na API de onibus (${err.message}). Continuando com dados locais...`);
+            onProgress(`Erro na API de onibus (${err.message}). Modal onibus ignorado por falta de dado concreto.`);
         }
-    }
-
-    // 3b. Fallback to static bus alternatives if no real-time data
-    if (busSource === 'static' && route.bus && route.bus.alternativas) {
-        route.bus.alternativas.forEach((alt, idx) => {
-            const tempoTotal = alt.tempoTotalH + (alt.tempoEspera || 0);
-            alternatives.push(buildAlternative({
-                id: `bus-${idx}`,
-                tipo: 'Ônibus',
-                icon: '🚌',
-                descricao: alt.descricao,
-                custoTransporte: alt.custoTotal,
-                tempoViagemH: tempoTotal,
-                detalhes: {
-                    trechos: alt.trechos,
-                    baldeacoes: alt.baldeacoes,
-                    tempoEspera: alt.tempoEspera || 0,
-                    tempoViagem: alt.tempoTotalH,
-                    operadores: [...new Set(alt.trechos.flatMap(t => t.operadores || []))],
-                    tipoServico: alt.trechos.map(t => t.tipo).join(' + '),
-                    fonte: 'static',
-                    fonteLabel: 'Base de dados local',
-                },
-                strengths: ['Dados pre-calculados disponiveis'],
-                limitations: ['Precos estimados (nao em tempo real)', 'Horarios nao confirmados'],
-                collaborators,
-                ops,
-                distanciaKm: route.distanciaKm,
-            }));
-        });
+    } else {
+        onProgress('API Quero Passagem indisponivel. Modal onibus ignorado por falta de dado concreto.');
     }
 
     // -------------------------------------------------------
-    // PHASE 4: Air alternatives — real-time API + static + multimodal hub flights
+    // PHASE 4: Air alternatives — real-time API only
     // Provider-level resilience: never stop the search if flights fail
     // -------------------------------------------------------
     onProgress('Consultando alternativas aereas...');
-    let airSource = 'static';
+    let airSource = 'unavailable';
     let flightPriceInsights = null;
 
     // 4a. Try real-time flights API (direct route)
@@ -310,7 +296,11 @@ export async function analyzeRoutingIntelligence(params) {
             if (dateFilters.dataVolta) flightOptions.dataVolta = dateFilters.dataVolta;
 
             onProgress('Consultando Google Flights em tempo real...');
-            const flightResults = await searchFlights(origem, destino, flightOptions);
+            const flightResults = await withProviderTimeout(
+                searchFlights(origem, destino, flightOptions),
+                PROVIDER_TIMEOUT_MS.flights,
+                'Consulta de voos',
+            );
 
             // Extract price insights regardless of flight results
             flightPriceInsights = getFlightPriceInsights(flightResults);
@@ -370,70 +360,55 @@ export async function analyzeRoutingIntelligence(params) {
 
                 onProgress(`${liveAlts.length} voo(s) em tempo real encontrado(s)!`);
             } else {
-                onProgress(`Voo direto nao encontrado. Explorando aeroportos alternativos...`);
-
-                // 4b. Try searching flights to nearby hub airports (for multimodal routes)
-                // Do this ALWAYS when direct flight fails, not just for multimodal routes
-                if (usedMultimodal && multimodalExploration) {
-                    await searchHubFlights(origem, destino, multimodalExploration, flightOptions, alternatives, collaborators, ops, route.distanciaKm, onProgress);
-                }
+                onProgress('Google Flights nao retornou voo direto concreto para esta rota.');
             }
         } catch (err) {
-            onProgress(`Erro na API de voos (${err.message}). Continuando com dados locais...`);
+            onProgress(`Erro na API de voos (${err.message}). Modal aereo ignorado por falta de dado concreto.`);
         }
-    }
-
-    // 4c. Fallback to static air alternatives if no real-time data
-    if (airSource === 'static' && route.air && route.air.alternativas) {
-        route.air.alternativas.forEach((alt, idx) => {
-            const isMultimodal = !!alt.trechoTerrestreFinal;
-            alternatives.push(buildAlternative({
-                id: `air-${idx}`,
-                tipo: isMultimodal ? 'Aéreo + Terrestre' : 'Aéreo',
-                icon: isMultimodal ? '✈️🚗' : '✈️',
-                descricao: alt.descricao,
-                custoTransporte: alt.custoTotal,
-                tempoViagemH: alt.tempoTotalPortaPortaH,
-                detalhes: {
-                    trechos: alt.trechos,
-                    conexoes: alt.conexoes,
-                    tempoConexao: alt.tempoConexaoH,
-                    deslocamentoOrigem: alt.deslocamentoAeroportoOrigemH,
-                    deslocamentoDestino: alt.deslocamentoAeroportoDestinoH,
-                    trechoTerrestre: alt.trechoTerrestreFinal || null,
-                    cias: [...new Set(alt.trechos.map(t => t.cia))],
-                    fonte: 'static',
-                    fonteLabel: 'Base de dados local',
-                },
-                strengths: isMultimodal
-                    ? ['Combina velocidade aerea com acesso terrestre', 'Ideal para destinos sem aeroporto']
-                    : ['Mais rapido para longas distancias', 'Menor fadiga'],
-                limitations: isMultimodal
-                    ? ['Precos estimados', 'Requer transfer terrestre apos o voo']
-                    : ['Precos estimados', 'Horarios nao confirmados'],
-                collaborators,
-                ops,
-                distanciaKm: route.distanciaKm,
-            }));
-        });
+    } else {
+        onProgress('API Google Flights/SerpAPI indisponivel. Modal aereo ignorado por falta de dado concreto.');
     }
 
     // -------------------------------------------------------
-    // PHASE 5: Vehicle alternative
+    // PHASE 5: Vehicle alternative — Google Routes API only
     // -------------------------------------------------------
-    if (route.vehicle) {
-        const veh = route.vehicle;
-
-        // Auto-calculate tolls via Google Routes API v2, with smart fallback
-        let autoPedagios = 0;
-        let pedagioSource = 'estimated';
-
-        if (cityOrigem?.lat && cityDestino?.lat) {
-            onProgress('Calculando pedagios via Google Routes API...');
-            try {
-                const tollResult = await fetchTollCost(
+    if (cityOrigem?.lat && cityDestino?.lat) {
+        onProgress('Calculando rota de veiculo via Google Routes API...');
+        try {
+            const routeResult = await withProviderTimeout(
+                fetchRouteV2(
                     { lat: cityOrigem.lat, lng: cityOrigem.lng },
                     { lat: cityDestino.lat, lng: cityDestino.lng },
+                    { includeTolls: true, alternatives: false },
+                ),
+                PROVIDER_TIMEOUT_MS.vehicle,
+                'Consulta de rota de veiculo',
+            );
+            const googleRoute = routeResult.success && routeResult.routes?.[0];
+            if (!googleRoute || !googleRoute.distanceKm) {
+                throw new Error(routeResult.reason || 'Google Routes nao retornou rota');
+            }
+
+            vehicleSource = 'google_routes_api';
+            route.distanciaKm = googleRoute.distanceKm;
+
+            const tempoEstimadoH = parseGoogleDurationHours(googleRoute.duration);
+            const diasEstimadosGoogle = Math.max(1, Math.ceil(tempoEstimadoH / 10));
+
+            // Toll values also come from Google Routes. If Google does not expose
+            // a BRL price for this route, keep tolls as unavailable instead of estimating locally.
+            let autoPedagios = 0;
+            let pedagioSource = 'google_routes_api_unavailable';
+
+            onProgress('Calculando pedagios via Google Routes API...');
+            try {
+                const tollResult = await withProviderTimeout(
+                    fetchTollCost(
+                        { lat: cityOrigem.lat, lng: cityOrigem.lng },
+                        { lat: cityDestino.lat, lng: cityDestino.lng },
+                    ),
+                    PROVIDER_TIMEOUT_MS.tolls,
+                    'Consulta de pedagios',
                 );
                 if (tollResult.success && tollResult.tollCostBRL > 0) {
                     autoPedagios = tollResult.tollCostBRL;
@@ -441,86 +416,74 @@ export async function analyzeRoutingIntelligence(params) {
                     onProgress(`Pedagios calculados: R$ ${autoPedagios.toFixed(2)} (Google Routes API)`);
                 }
             } catch {
-                // API unavailable — will use estimation below
+                onProgress('Google Routes nao retornou pedagio em tempo habil. Veiculo segue sem estimativa local de pedagio.');
             }
-        }
 
-        // Fallback: estimate tolls based on distance and region
-        if (autoPedagios === 0 && veh.distanciaKm > 0) {
-            const ufOrigem = cityOrigem?.uf || '';
-            const ufDestino = cityDestino?.uf || '';
-            autoPedagios = estimateTollByDistance(veh.distanciaKm, ufOrigem, ufDestino);
-            pedagioSource = 'estimated';
-            onProgress(`Pedagios estimados: R$ ${autoPedagios.toFixed(2)} (baseado em ${veh.distanciaKm} km)`);
-        }
+            // Apply custom vehicle config if provided
+            let consumoMedioKmL = 10;
+            let precoLitro = 5.5;
+            let aluguelDia = 180;
+            let categoriaCustom = null;
+            if (vehicleConfig) {
+                consumoMedioKmL = vehicleConfig.consumoKmL || consumoMedioKmL;
+                precoLitro = vehicleConfig.precoLitro || precoLitro;
+                aluguelDia = vehicleConfig.aluguelDia || aluguelDia;
+                categoriaCustom = vehicleConfig.categoria || null;
+            }
 
-        // Apply custom vehicle config if provided
-        let vehicleCost = veh.custoTotalVeiculo;
-        let vehicleDetails = {
-            distanciaKm: veh.distanciaKm,
-            tempoEstimadoH: veh.tempoEstimadoH,
-            combustivel: veh.combustivelEstimado,
-            pedagios: autoPedagios,
-            pedagioSource,
-            aluguel: veh.custoAluguel,
-            consumoMedioKmL: veh.consumoMedioKmL,
-            precoLitro: veh.precoLitro,
-            diasEstimados: veh.diasEstimados,
-            trechos: veh.trecho,
-            categoriaCustom: null,
-        };
-
-        // Recalculate base cost with auto tolls
-        vehicleCost = round((veh.combustivelEstimado || 0) + (veh.custoAluguel || 0) + autoPedagios);
-
-        if (vehicleConfig) {
-            const distKm = veh.distanciaKm;
-            const consumoKmL = vehicleConfig.consumoKmL;
-            const precoLitro = vehicleConfig.precoLitro;
-            const combustivel = round((distKm / consumoKmL) * precoLitro);
-            const diasEstimados = veh.diasEstimados || Math.ceil(veh.tempoEstimadoH / 10);
-            const aluguel = round(vehicleConfig.aluguelDia * diasEstimados);
-            const pedagios = autoPedagios;
-            vehicleCost = round(combustivel + aluguel + pedagios);
-
-            vehicleDetails = {
-                ...vehicleDetails,
-                combustivel,
-                pedagios,
+            const combustivel = round((googleRoute.distanceKm / consumoMedioKmL) * precoLitro);
+            const aluguel = round(aluguelDia * diasEstimadosGoogle);
+            const vehicleCost = round(combustivel + aluguel + autoPedagios);
+            const vehicleDetails = {
+                distanciaKm: googleRoute.distanceKm,
+                tempoEstimadoH,
+                pedagios: autoPedagios,
                 pedagioSource,
+                pedagiosDisponiveis: pedagioSource === 'google_routes_api',
+                combustivel,
                 aluguel,
-                consumoMedioKmL: consumoKmL,
+                consumoMedioKmL,
                 precoLitro,
-                categoriaCustom: vehicleConfig.categoria,
+                diasEstimados: diasEstimadosGoogle,
+                trechos: [],
+                categoriaCustom,
+                fonte: 'google_routes_api',
+                fonteLabel: 'Google Routes API',
             };
-        }
 
-        alternatives.push(buildAlternative({
-            id: 'vehicle-0',
-            tipo: 'Veículo/Frota',
-            icon: '🚗',
-            descricao: veh.rotaDescricao,
-            custoTransporte: vehicleCost,
-            tempoViagemH: veh.tempoEstimadoH,
-            isVehicle: true,
-            detalhes: vehicleDetails,
-            strengths: [
-                'Flexibilidade total de horario e paradas',
-                'Porta a porta sem transferencias',
-                'Custo compartilhado entre a equipe',
-                collaborators.length > 2 ? 'Custo-eficiente para equipes grandes' : null,
-            ].filter(Boolean),
-            limitations: [
-                veh.tempoEstimadoH > 8 ? 'Fadiga do motorista em viagens longas' : null,
-                veh.tempoEstimadoH > 12 ? 'Risco rodoviario elevado' : null,
-                'Custo de combustivel e pedagios',
-                'Dependencia de condicoes da estrada',
-            ].filter(Boolean),
-            collaborators,
-            ops,
-            distanciaKm: route.distanciaKm,
-            custoVeiculoCompartilhado: true,
-        }));
+            alternatives.push(buildAlternative({
+                id: 'vehicle-0',
+                tipo: 'Veículo/Frota',
+                icon: '🚗',
+                descricao: `${origem} → ${destino} (Google Routes API)`,
+                custoTransporte: vehicleCost,
+                tempoViagemH: tempoEstimadoH,
+                isVehicle: true,
+                detalhes: vehicleDetails,
+                strengths: [
+                    'Rota calculada via Google Routes API',
+                    'Flexibilidade total de horario e paradas',
+                    'Porta a porta sem transferencias',
+                    'Custo compartilhado entre a equipe',
+                    collaborators.length > 2 ? 'Custo-eficiente para equipes grandes' : null,
+                ].filter(Boolean),
+                limitations: [
+                    tempoEstimadoH > 8 ? 'Fadiga do motorista em viagens longas' : null,
+                    tempoEstimadoH > 12 ? 'Risco rodoviario elevado' : null,
+                    pedagioSource !== 'google_routes_api' ? 'Google Routes nao retornou valor de pedagio para esta consulta' : null,
+                    'Custo de combustivel e pedagios',
+                    'Dependencia de condicoes da estrada',
+                ].filter(Boolean),
+                collaborators,
+                ops,
+                distanciaKm: googleRoute.distanceKm,
+                custoVeiculoCompartilhado: true,
+            }));
+        } catch (err) {
+            onProgress(`Erro na Google Routes API (${err.message}). Modal veiculo ignorado por falta de dado concreto.`);
+        }
+    } else {
+        onProgress('Coordenadas indisponiveis. Modal veiculo ignorado por falta de dado concreto.');
     }
 
     // -------------------------------------------------------
@@ -540,8 +503,8 @@ export async function analyzeRoutingIntelligence(params) {
             executive: {
                 paragraphs: [
                     `**Rota analisada:** ${origem} → ${destino} (${route.distanciaKm || '?'} km).`,
-                    `**Exploração multimodal concluída:** Nenhuma rota direta simples encontrada. O motor de inteligência explorou rotas rodoviárias, aeroportos próximos (${multimodalExploration?.originContext?.nearbyAirportsCount || 0} na origem, ${multimodalExploration?.destinationContext?.nearbyAirportsCount || 0} no destino), hubs regionais e composições multimodais.`,
-                    `**Este destino requer composição regional de acesso.** Nenhuma alternativa viável foi identificada dentro dos parâmetros de tempo e custo aceitáveis. Considere verificar as cidades informadas ou explorar opções de fretamento para destinos muito remotos.`,
+                    `**Consulta com dados concretos:** Quero Passagem, Google Flights/SerpAPI e Google Routes nao retornaram alternativas utilizaveis dentro do limite de resposta.`,
+                    `**Sem fallback local:** nenhuma alternativa estimada ou defasada foi usada no ranking. Verifique as credenciais/provedores ou tente outra data/rota.`,
                 ],
                 melhor: null,
                 scoreTotal: 0,
@@ -588,100 +551,22 @@ export async function analyzeRoutingIntelligence(params) {
         providers: {
             flights: {
                 source: airSource,
-                label: airSource === 'realtime' ? 'Google Flights via SerpAPI' : 'Base de dados local',
+                label: airSource === 'realtime' ? 'Google Flights via SerpAPI' : 'Indisponivel',
                 priceInsights: flightPriceInsights,
             },
             bus: {
                 source: busSource,
-                label: busSource === 'realtime' ? 'Quero Passagem' : 'Base de dados local',
+                label: busSource === 'realtime' ? 'Quero Passagem' : 'Indisponivel',
+            },
+            vehicle: {
+                source: vehicleSource,
+                label: vehicleSource === 'google_routes_api' ? 'Google Routes API' : 'Indisponivel',
             },
             tolls: {
                 label: 'Google Routes API v2',
             },
         },
     };
-}
-
-// ============================================================
-// HUB FLIGHT SEARCH — Search flights to nearby airports
-// ============================================================
-
-async function searchHubFlights(origem, destino, exploration, flightOptions, alternatives, collaborators, ops, distanciaKm, onProgress) {
-    // If destination has nearby airports we can fly into, try those
-    const destCtx = exploration.destinationContext;
-    const originCtx = exploration.originContext;
-
-    if (destCtx.nearbyAirportsCount === 0 && originCtx.nearbyAirportsCount === 0) return;
-
-    // Rebuild contexts to get actual airport data
-    const originContext = buildLocationContext(origem);
-    const destContext = buildLocationContext(destino);
-
-    // Try flying to nearby airports of the destination
-    const nearbyDestAirports = destContext.nearbyAirports?.filter(a => a.distanceKm > 0 && a.distanceKm < 400) || [];
-
-    for (const destAP of nearbyDestAirports.slice(0, 2)) {
-        try {
-            onProgress(`Buscando voos para ${destAP.city.nome} (aeroporto proximo ao destino)...`);
-            const hubFlightResults = await searchFlights(origem, destAP.city.nome, flightOptions);
-
-            if (hubFlightResults.success) {
-                const hubAlts = convertToAlternatives(hubFlightResults);
-
-                hubAlts.forEach((alt, idx) => {
-                    const groundTransferH = destAP.estimatedTransferH;
-                    const groundTransferKm = destAP.distanceKm;
-                    const totalDoorToDoor = alt.tempoTotalPortaPortaH + groundTransferH + 1; // +1h for transfer
-
-                    alternatives.push(buildAlternative({
-                        id: `air-hub-${destAP.airports[0]}-${idx}`,
-                        tipo: 'Aéreo + Terrestre',
-                        icon: '✈️🚗',
-                        descricao: `${alt.descricao} + transfer ${destAP.city.nome.split(' - ')[0]} → ${destino.split(' - ')[0]} (${groundTransferKm} km)`,
-                        custoTransporte: alt.custoTotal + Math.round(groundTransferKm * 0.59), // Flight + fuel
-                        tempoViagemH: totalDoorToDoor,
-                        detalhes: {
-                            trechos: alt.trechos,
-                            conexoes: alt.conexoes,
-                            tempoConexao: alt.tempoConexaoH,
-                            deslocamentoOrigem: alt.deslocamentoAeroportoOrigemH,
-                            deslocamentoDestino: groundTransferH,
-                            trechoTerrestre: {
-                                tipo: 'carro_alugado',
-                                de: destAP.city.nome,
-                                para: destino,
-                                distanciaKm: groundTransferKm,
-                                tempoH: groundTransferH,
-                            },
-                            cias: [...new Set(alt.trechos.map(t => t.cia))],
-                            fonte: 'realtime',
-                            fonteLabel: 'Google Flights via SerpAPI',
-                            dataConsulta: alt.dataConsulta,
-                            bookingOptions: alt.bookingOptions || [],
-                            aeroportoOrigem: alt.aeroportoOrigem,
-                            aeroportoDestino: alt.aeroportoDestino || destAP.airports[0],
-                        },
-                        strengths: [
-                            'Combina velocidade aerea com acesso terrestre ao destino',
-                            `Economiza tempo vs rota 100% terrestre`,
-                            alt.bookingOptions?.length > 0 ? 'Reserva online disponivel' : null,
-                        ].filter(Boolean),
-                        limitations: [
-                            `Requer ${groundTransferKm} km de transfer terrestre apos o voo`,
-                            'Custo do aluguel de veiculo no destino',
-                        ],
-                        collaborators,
-                        ops,
-                        distanciaKm,
-                    }));
-                });
-
-                onProgress(`${hubAlts.length} voo(s) via ${destAP.city.nome} encontrado(s)!`);
-            }
-        } catch {
-            // Continue with other airports
-        }
-    }
 }
 
 // ============================================================
@@ -715,11 +600,13 @@ function buildAlternative({ id, tipo, icon, descricao, custoTransporte, tempoVia
             horasNormais: 0,
             horasExtra50: 0,
             horasExtra100: 0,
+            horasExtra150: 0,
             horasNoturnas: 0,
         } : {
             horasNormais: ops.horasNormaisDia * ops.diasCampo,
             horasExtra50: (ops.horasExtra50Dia || 0) * ops.diasCampo,
             horasExtra100: (ops.horasExtra100Dia || 0) * ops.diasCampo,
+            horasExtra150: (ops.horasExtra150Dia || 0) * ops.diasCampo,
             horasNoturnas: (ops.horasNoturnasDia || 0) * ops.diasCampo,
         };
         const labor = calcLaborCost(rates, hours);

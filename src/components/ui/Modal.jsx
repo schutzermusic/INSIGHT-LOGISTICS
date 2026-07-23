@@ -34,13 +34,13 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
     >
       {/* Backdrop — always a dim overlay, regardless of theme */}
       <div
-        className="absolute inset-0 backdrop-blur-md animate-fade-in"
+        className="motion-enter-overlay absolute inset-0 backdrop-blur-md"
         style={{ background: 'rgb(var(--shadow-ink) / 0.55)' }}
       />
 
       {/* Modal */}
       <div className={clsx(
-        'relative surface-elevated p-0 animate-slide-up w-full',
+        'motion-enter-rise relative surface-elevated p-0 w-full',
         size === 'sm' && 'max-w-md',
         size === 'md' && 'max-w-lg',
         size === 'lg' && 'max-w-2xl',
@@ -51,7 +51,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
           <h3 className="heading">{title}</h3>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-[color,background-color] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)]"
           >
             <X className="w-4 h-4" />
           </button>

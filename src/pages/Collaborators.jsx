@@ -9,6 +9,8 @@ import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
+import { AnimatedNumber } from '../components/ui/AnimatedNumber';
+import { MotionStagger, MotionStaggerItem } from '../components/ui/MotionStagger';
 
 export default function Collaborators() {
   const { collaborators, addCollaborator, updateCollaborator, deleteCollaborator } = useCollaborators();
@@ -27,6 +29,7 @@ export default function Collaborators() {
       valorHoraTecnica: form.valorHoraTecnica.value ? parseFloat(form.valorHoraTecnica.value) : null,
       multHE50: parseFloat(form.multHE50.value),
       multHE100: parseFloat(form.multHE100.value),
+      multHE150: parseFloat(form.multHE150.value),
       percNoturno: parseFloat(form.percNoturno.value),
     };
 
@@ -56,12 +59,12 @@ export default function Collaborators() {
   };
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="space-y-6">
       <PageHeader
         title="Colaboradores"
         subtitle="Cadastre e gerencie os tecnicos e profissionais de campo"
         icon={Users}
-        badge={`${collaborators.length} cadastrado(s)`}
+        badge={<AnimatedNumber value={collaborators.length} format={(v) => `${Math.round(v)} cadastrado(s)`} />}
         badgeVariant="info"
       >
         <LiquidMetalButton label="Novo Colaborador" width={180} onClick={openNew} />
@@ -81,16 +84,16 @@ export default function Collaborators() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/[0.04]">
-                  {['Nome', 'Cargo', 'Salario Base', 'CH', 'Hora Normal', 'HE 50%', 'HE 100%', 'Noturno', 'H. Tecnica', ''].map((h, i) => (
+                  {['Nome', 'Cargo', 'Salario Base', 'CH', 'Hora Normal', 'HE 50%', 'HE 100%', 'HE 150%', 'Noturno', 'H. Tecnica', ''].map((h, i) => (
                     <th key={i} className="px-6 py-4 label-micro text-white/20 text-left">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <MotionStagger as="tbody" fast>
                 {collaborators.map((c) => {
                   const rates = calcHourlyRates(c);
                   return (
-                    <tr key={c.id} className="border-b border-white/[0.04]/50 last:border-0 hover:bg-white/[0.02] transition-colors">
+                    <MotionStaggerItem as="tr" key={c.id} className="border-b border-white/[0.04]/50 last:border-0 hover:bg-white/[0.02] transition-colors">
                       <td className="px-6 py-4 heading text-white">{c.nome}</td>
                       <td className="px-6 py-4"><Badge variant="info">{c.cargo}</Badge></td>
                       <td className="px-6 py-4 text-sm text-white/50 tabular-data">{formatCurrency(c.salarioBase)}</td>
@@ -98,28 +101,29 @@ export default function Collaborators() {
                       <td className="px-6 py-4 text-sm text-success-text font-medium tabular-data">{formatCurrency(rates.horaNormal)}</td>
                       <td className="px-6 py-4 text-sm text-warning-text font-medium tabular-data">{formatCurrency(rates.horaExtra50)}</td>
                       <td className="px-6 py-4 text-sm text-danger-text font-medium tabular-data">{formatCurrency(rates.horaExtra100)}</td>
+                      <td className="px-6 py-4 text-sm text-danger-text font-medium tabular-data">{formatCurrency(rates.horaExtra150)}</td>
                       <td className="px-6 py-4 text-sm text-accent-purple font-medium tabular-data">{formatCurrency(rates.horaNoturna)}</td>
                       <td className="px-6 py-4 text-sm text-info-text font-medium tabular-data">{formatCurrency(rates.horaTecnica)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => openEdit(c)}
-                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white/25 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white/25 hover:text-white hover:bg-white/[0.06] transition-[color,background-color] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)]"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDelete(c.id)}
-                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white/25 hover:text-danger-text hover:bg-danger-bg/70 transition-all duration-200"
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white/25 hover:text-danger-text hover:bg-danger-bg/70 transition-[color,background-color] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)]"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
-                    </tr>
+                    </MotionStaggerItem>
                   );
                 })}
-              </tbody>
+              </MotionStagger>
             </table>
           </div>
         </GlassCard>
@@ -168,10 +172,14 @@ export default function Collaborators() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block label-micro text-white/35 mb-2">Multiplicador HE 100%</label>
               <input className="glass-input" type="number" name="multHE100" defaultValue={editing?.multHE100 || 2.0} step="0.01" min="1" />
+            </div>
+            <div>
+              <label className="block label-micro text-white/35 mb-2">Multiplicador HE 150%</label>
+              <input className="glass-input" type="number" name="multHE150" defaultValue={editing?.multHE150 || 2.5} step="0.01" min="1" />
             </div>
             <div>
               <label className="block label-micro text-white/35 mb-2">Adicional Noturno (%)</label>

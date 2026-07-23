@@ -25,26 +25,38 @@
   <meta name="twitter:description"
     content="Plataforma premium de inteligência logística: comparação multimodal, análise de rotas e custos operacionais em tempo real." />
 
-  <!-- Pre-hydration theme init. Runs before React mounts, before any
-       paint, so the first frame is already in the right theme.
-       No FOUC / hydration flash. Kept as a blocking inline script
-       on purpose. -->
+  <!-- Pre-hydration theme + motion init. Runs before React mounts, before
+       any paint, so the first frame is already in the right theme and
+       motion attribute selectors resolve correctly (no FOUC, no motion
+       flash). Kept as a blocking inline script on purpose. -->
   <script>
     (function () {
+      var root = document.documentElement;
       try {
-        var stored = localStorage.getItem('insight.theme');
-        var mode = (stored === 'light' || stored === 'dark' || stored === 'system') ? stored : 'system';
+        var storedTheme = localStorage.getItem('insight.theme');
+        var mode = (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') ? storedTheme : 'system';
         var resolved = mode === 'system'
           ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
           : mode;
-        var root = document.documentElement;
         if (resolved === 'dark') root.classList.add('dark');
         root.style.colorScheme = resolved;
         root.setAttribute('data-theme', resolved);
       } catch (_) {
-        // Fallback to dark (matches current default).
-        document.documentElement.classList.add('dark');
-        document.documentElement.style.colorScheme = 'dark';
+        root.classList.add('dark');
+        root.style.colorScheme = 'dark';
+      }
+      try {
+        var storedMotion = localStorage.getItem('insight.motion');
+        var motionPref = (storedMotion === 'full' || storedMotion === 'reduced' || storedMotion === 'off' || storedMotion === 'system')
+          ? storedMotion
+          : 'system';
+        var motionResolved = motionPref;
+        if (motionPref === 'system') {
+          motionResolved = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'reduced' : 'full';
+        }
+        root.setAttribute('data-motion', motionResolved);
+      } catch (_) {
+        root.setAttribute('data-motion', 'full');
       }
     })();
   </script>

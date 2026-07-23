@@ -10,6 +10,13 @@
 const API_KEY = () => process.env.GOOGLE_SERVER_API_KEY;
 const DIRECTIONS_URL = 'https://maps.googleapis.com/maps/api/directions/json';
 const ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+const GOOGLE_ROUTES_TIMEOUT_MS = 5000;
+
+function withTimeout() {
+  return typeof AbortSignal !== 'undefined' && AbortSignal.timeout
+    ? AbortSignal.timeout(GOOGLE_ROUTES_TIMEOUT_MS)
+    : undefined;
+}
 
 /**
  * Calculate driving routes using Directions API
@@ -43,7 +50,7 @@ export async function getDrivingRoutes(origin, destination, options = {}) {
   }
 
   try {
-    const res = await fetch(`${DIRECTIONS_URL}?${params}`);
+    const res = await fetch(`${DIRECTIONS_URL}?${params}`, { signal: withTimeout() });
     const data = await res.json();
 
     if (data.status !== 'OK' || !data.routes?.length) {
@@ -155,6 +162,7 @@ export async function computeRouteV2(origin, destination, options = {}) {
         'X-Goog-FieldMask': fieldMask.join(','),
       },
       body: JSON.stringify(body),
+      signal: withTimeout(),
     });
 
     const data = await res.json();

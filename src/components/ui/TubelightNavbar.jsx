@@ -3,13 +3,21 @@ import { motion } from 'framer-motion';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { ThemeToggle } from './ThemeToggle';
+import { MotionToggle } from './MotionToggle';
 import { useTheme } from '../../hooks/useTheme';
+import { useMotionPreference } from '../../hooks/useMotionPreference';
 import { prefetchRoute } from '../../App';
+import { motionDurationSec, motionEase, resolveTransition } from '../../lib/motion';
 
 export function NavBar({ items, className }) {
   const [, setIsMobile] = useState(false);
   const location = useLocation();
   const { isDark } = useTheme();
+  const { mode: motionMode } = useMotionPreference();
+  const tubelightTransition = resolveTransition(motionMode, {
+    duration: motionDurationSec.medium,
+    ease: motionEase.out,
+  });
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -31,7 +39,7 @@ export function NavBar({ items, className }) {
           src="/INSIGHT-LOGISTICS-LOGO.png"
           alt="Insight Logistics"
           className={cn(
-            'h-12 w-auto transition-[filter] duration-300',
+            'h-12 w-auto transition-[filter] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]',
             isDark
               ? 'drop-shadow-[0_4px_16px_rgba(73,220,122,0.12)]'
               : 'drop-shadow-[0_4px_12px_rgba(15,50,40,0.15)]',
@@ -59,7 +67,7 @@ export function NavBar({ items, className }) {
               onMouseEnter={() => prefetchRoute(item.url)}
               onFocus={() => prefetchRoute(item.url)}
               className={cn(
-                'relative cursor-pointer text-[13px] font-medium px-5 py-2 rounded-full transition-colors whitespace-nowrap',
+                'relative cursor-pointer text-[13px] font-medium px-5 py-2 rounded-full transition-colors duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)] whitespace-nowrap',
                 isDark
                   ? 'text-white/45 hover:text-white/80'
                   : 'text-[rgb(15,30,24)]/55 hover:text-[rgb(15,30,24)]',
@@ -83,7 +91,7 @@ export function NavBar({ items, className }) {
                       : '0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 10px -2px rgba(12,122,60,0.18), 0 0 0 1px rgba(12,122,60,0.15)',
                   }}
                   initial={false}
-                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                  transition={tubelightTransition}
                 >
                   {/* subtle top sheen beam — preserves the "tubelight" signature */}
                   <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-full"
@@ -99,12 +107,13 @@ export function NavBar({ items, className }) {
         })}
       </div>
 
-      {/* Right cluster — theme toggle in a glass capsule */}
+      {/* Right cluster — preference toggles in a glass capsule */}
       <div
         className={cn(
           'surface-elevated flex items-center gap-1 shrink-0 px-1.5 py-1.5 rounded-full',
         )}
       >
+        <MotionToggle />
         <ThemeToggle />
       </div>
     </div>

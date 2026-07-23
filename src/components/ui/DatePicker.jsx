@@ -3,6 +3,7 @@ import { DayPicker } from 'react-day-picker';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motionTransitionCss } from '../../lib/motion';
 
 // ═══════════════════════════════════════════════════════════════
 // Glass Liquid Calendar Styles — theme-aware via CSS tokens.
@@ -61,7 +62,11 @@ const GLASS_CALENDAR_STYLES = `
   background: rgb(var(--glass-ink) / 0.04);
   color: rgb(var(--ink) / 0.45);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  transition:
+    background-color ${motionTransitionCss.smallOut},
+    border-color ${motionTransitionCss.smallOut},
+    color ${motionTransitionCss.smallOut},
+    box-shadow ${motionTransitionCss.smallOut};
   backdrop-filter: blur(8px);
 }
 .glass-cal .rdp-button_previous:hover,
@@ -106,7 +111,11 @@ const GLASS_CALENDAR_STYLES = `
   color: rgb(var(--ink) / 0.6);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  transition:
+    background-color ${motionTransitionCss.smallOut},
+    color ${motionTransitionCss.smallOut},
+    box-shadow ${motionTransitionCss.smallOut},
+    transform ${motionTransitionCss.smallOut};
   outline: none;
 }
 
@@ -255,17 +264,17 @@ export function DatePicker({ name, label, value, onChange, disabled, minDate }) 
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen(!open)}
-        className={`glass-input w-full flex items-center gap-3 text-left cursor-pointer transition-all duration-200 ${
+        className={`glass-input w-full flex items-center gap-3 text-left cursor-pointer transition-[box-shadow,border-color,background-color,color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
           disabled ? 'opacity-40 cursor-not-allowed' : 'hover:border-white/15'
         } ${open ? 'border-mint/30 shadow-[0_0_0_2px_rgba(73,220,122,0.08)]' : ''}`}
       >
-        <Calendar className={`w-4 h-4 flex-shrink-0 transition-colors duration-200 ${open ? 'text-mint' : 'text-white/25'}`} />
+        <Calendar className={`w-4 h-4 flex-shrink-0 transition-colors duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)] ${open ? 'text-mint' : 'text-white/25'}`} />
         <span className={`flex-1 text-sm tabular-data ${displayValue ? 'text-white/70' : 'text-white/20'}`}>
           {displayValue || 'Selecionar data'}
         </span>
         {displayValue && (
           <span
-            className="label-micro text-white/15 hover:text-white/40 transition-colors"
+            className="label-micro text-white/15 hover:text-white/40 transition-colors duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)]"
             onClick={(e) => {
               e.stopPropagation();
               setSelected(undefined);
@@ -280,7 +289,7 @@ export function DatePicker({ name, label, value, onChange, disabled, minDate }) 
       {/* Calendar Dropdown */}
       {open && (
         <div
-          className="absolute z-50 mt-2 rounded-xl overflow-hidden animate-fade-in"
+          className="motion-enter-fade absolute z-50 mt-2 rounded-xl overflow-hidden"
           style={{ minWidth: 296 }}
         >
           {/* Glass container */}

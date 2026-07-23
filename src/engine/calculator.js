@@ -7,11 +7,12 @@
  * Calcula os valores de hora para um colaborador
  */
 export function calcHourlyRates(collaborator) {
-    const { salarioBase, cargaHoraria, valorHoraTecnica, multHE50, multHE100, percNoturno } = collaborator;
+    const { salarioBase, cargaHoraria, valorHoraTecnica, multHE50, multHE100, multHE150, percNoturno } = collaborator;
 
     const horaNormal = salarioBase / cargaHoraria;
     const horaExtra50 = horaNormal * (multHE50 || 1.5);
     const horaExtra100 = horaNormal * (multHE100 || 2.0);
+    const horaExtra150 = horaNormal * (multHE150 || 2.5);
     const horaNoturna = horaNormal * (1 + (percNoturno || 20) / 100);
     const horaTecnica = valorHoraTecnica || horaNormal;
 
@@ -19,6 +20,7 @@ export function calcHourlyRates(collaborator) {
         horaNormal: round(horaNormal),
         horaExtra50: round(horaExtra50),
         horaExtra100: round(horaExtra100),
+        horaExtra150: round(horaExtra150),
         horaNoturna: round(horaNoturna),
         horaTecnica: round(horaTecnica),
     };
@@ -32,20 +34,23 @@ export function calcLaborCost(rates, hours) {
         horasNormais = 0,
         horasExtra50 = 0,
         horasExtra100 = 0,
+        horasExtra150 = 0,
         horasNoturnas = 0,
     } = hours;
 
     const custoNormal = horasNormais * rates.horaNormal;
     const custoHE50 = horasExtra50 * rates.horaExtra50;
     const custoHE100 = horasExtra100 * rates.horaExtra100;
+    const custoHE150 = horasExtra150 * rates.horaExtra150;
     const custoNoturno = horasNoturnas * rates.horaNoturna;
 
     return {
         custoNormal: round(custoNormal),
         custoHE50: round(custoHE50),
         custoHE100: round(custoHE100),
+        custoHE150: round(custoHE150),
         custoNoturno: round(custoNoturno),
-        custoTotalHoras: round(custoNormal + custoHE50 + custoHE100 + custoNoturno),
+        custoTotalHoras: round(custoNormal + custoHE50 + custoHE100 + custoHE150 + custoNoturno),
     };
 }
 
@@ -71,6 +76,7 @@ export function calcCollaboratorMobilization(collaborator, params) {
         horasNormaisDia = 8,
         horasExtra50Dia = 0,
         horasExtra100Dia = 0,
+        horasExtra150Dia = 0,
         horasNoturnasDia = 0,
         diasCampo = 1,
         horasTransito = 0,
@@ -85,6 +91,7 @@ export function calcCollaboratorMobilization(collaborator, params) {
         horasNormais: horasNormaisDia * diasCampo,
         horasExtra50: horasExtra50Dia * diasCampo,
         horasExtra100: horasExtra100Dia * diasCampo,
+        horasExtra150: horasExtra150Dia * diasCampo,
         horasNoturnas: horasNoturnasDia * diasCampo,
     };
 

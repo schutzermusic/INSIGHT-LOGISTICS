@@ -22,6 +22,7 @@ export function CityAutocomplete({
   icon,
   iconColor = 'mint',
   required = false,
+  onChange,
 }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -68,6 +69,7 @@ export function CityAutocomplete({
     setSelected(city);
     setQuery(city);
     setOpen(false);
+    onChange?.(city);
   };
 
   const handleKeyDown = (e) => {
@@ -106,6 +108,7 @@ export function CityAutocomplete({
     setSelected('');
     setOpen(true);
     setHighlightIndex(0);
+    onChange?.('');
   };
 
   // Highlight matched text
@@ -173,7 +176,7 @@ export function CityAutocomplete({
           placeholder={placeholder}
           required={required}
           autoComplete="off"
-          className="glass-input w-full pl-10 pr-10 text-sm text-white placeholder-white/25 transition-all duration-300"
+          className="glass-input w-full pl-10 pr-10 text-sm text-white placeholder-white/25 transition-[box-shadow,border-color,background-color,color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]"
           style={{
             boxShadow: open
               ? `0 0 24px ${c.glow}, var(--surface-recessed-shadow), inset 0 1px 0 rgb(var(--highlight-ink) / 0.08), 0 0 0 1px rgb(var(--glass-ink) / 0.14)`
@@ -182,12 +185,12 @@ export function CityAutocomplete({
         />
 
         {/* Left icon */}
-        <div className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full ${c.ring} flex items-center justify-center transition-all duration-200`}>
+        <div className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full ${c.ring} flex items-center justify-center transition-[background-color,transform,opacity] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]`}>
           <div className={`w-2 h-2 rounded-full ${c.dot}`} />
         </div>
 
         {/* Right icon */}
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 transition-transform duration-200"
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 transition-transform duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]"
           style={{ transform: open ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)' }}>
           <ChevronDown className="w-4 h-4" />
         </div>
@@ -196,7 +199,7 @@ export function CityAutocomplete({
       {/* Dropdown */}
       {open && results.length > 0 && (
         <div
-          className="surface-elevated absolute z-50 mt-2 w-full rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+          className="motion-enter-rise surface-elevated absolute z-50 mt-2 w-full rounded-xl overflow-hidden"
         >
           {/* Search hint */}
           <div className="px-4 py-2 border-b border-white/[0.04] flex items-center gap-2">
@@ -218,7 +221,7 @@ export function CityAutocomplete({
                   onMouseDown={(e) => { e.preventDefault(); handleSelect(city); }}
                   onMouseEnter={() => setHighlightIndex(i)}
                   className={`
-                    w-full text-left px-4 py-2.5 flex items-center gap-3 transition-all duration-100
+                    w-full text-left px-4 py-2.5 flex items-center gap-3 transition-[background-color,color] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)]
                     ${isHighlighted
                       ? 'bg-white/[0.06]'
                       : 'hover:bg-white/[0.03]'

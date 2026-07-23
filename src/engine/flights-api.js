@@ -21,6 +21,9 @@ const SERPAPI_BASE = '/serpapi'; // Proxied through Vite dev server
 // Cache to avoid repeated API calls for the same route
 const flightCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const FLIGHT_REQUEST_TIMEOUT_MS = 7000;
+const FLIGHT_SEARCH_BUDGET_MS = 10000;
+const MAX_AIRPORT_COMBINATIONS = 4;
 
 // ============================================================
 // IATA CODE MAPPING — Brazilian airports
@@ -115,31 +118,52 @@ export async function searchFlights(origemCity, destinoCity, options = {}) {
         return { success: false, reason: 'no_airports', message: 'Cidade sem aeroporto mapeado' };
     }
 
-    // Search all airport combinations and find the best options
+    // Search a bounded set of airport combinations in parallel. Some city pairs
+    // can expand to 6+ SerpAPI requests; waiting for them serially makes the
+    // route intelligence screen feel stuck when the provider is slow.
     const allFlights = [];
     const errors = [];
     let collectedPriceInsights = null;
+    const combinations = [];
 
     for (const depAirport of origemAirports) {
         for (const arrAirport of destinoAirports) {
-            try {
-                const result = await fetchFlights(depAirport, arrAirport, options);
-                if (result.success) {
-                    allFlights.push(...result.flights.map(f => ({
-                        ...f,
-                        aeroportoOrigem: depAirport,
-                        aeroportoDestino: arrAirport,
-                    })));
-                    // Collect price insights from the first route that has them
-                    if (!collectedPriceInsights && result.priceInsights) {
-                        collectedPriceInsights = result.priceInsights;
-                    }
-                }
-            } catch (err) {
-                errors.push(`${depAirport}-${arrAirport}: ${err.message}`);
-            }
+            combinations.push([depAirport, arrAirport]);
         }
     }
+
+    const maxCombinations = options.maxAirportCombinations || MAX_AIRPORT_COMBINATIONS;
+    const searchBudgetMs = options.searchBudgetMs || FLIGHT_SEARCH_BUDGET_MS;
+    const startedAt = Date.now();
+    const selectedCombinations = combinations.slice(0, maxCombinations);
+
+    const settled = await Promise.allSettled(selectedCombinations.map(async ([depAirport, arrAirport]) => {
+        const remainingMs = Math.max(1500, searchBudgetMs - (Date.now() - startedAt));
+        const requestTimeoutMs = Math.min(options.requestTimeoutMs || FLIGHT_REQUEST_TIMEOUT_MS, remainingMs);
+        const result = await fetchFlights(depAirport, arrAirport, { ...options, requestTimeoutMs });
+        return { depAirport, arrAirport, result };
+    }));
+
+    settled.forEach((item, idx) => {
+        const [depAirport, arrAirport] = selectedCombinations[idx];
+        if (item.status === 'rejected') {
+            errors.push(`${depAirport}-${arrAirport}: ${item.reason?.message || 'erro na consulta'}`);
+            return;
+        }
+
+        const { result } = item.value;
+        if (result.success) {
+            allFlights.push(...result.flights.map(f => ({
+                ...f,
+                aeroportoOrigem: depAirport,
+                aeroportoDestino: arrAirport,
+            })));
+            if (!collectedPriceInsights && result.priceInsights) {
+                collectedPriceInsights = result.priceInsights;
+            }
+        }
+    });
+
     // Attach price insights to the flights array for extraction
     allFlights._priceInsights = collectedPriceInsights;
 
@@ -223,10 +247,11 @@ export function convertToAlternatives(flightResults) {
 
 async function fetchFlights(departureId, arrivalId, options = {}) {
     const dataIda = options.dataIda || getNextBusinessDay();
+    const dataVolta = options.dataVolta || '';
     const adultos = options.adultos || 1;
 
-    const cacheKey = `${departureId}-${arrivalId}-${dataIda}-${adultos}`;
-    const cached = flightCache.get(cacheKey);
+    const cacheKey = `${departureId}-${arrivalId}-${dataIda}-${dataVolta}-${adultos}`;
+    const cached = options.allowCache ? flightCache.get(cacheKey) : null;
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         return cached.data;
     }
@@ -249,9 +274,10 @@ async function fetchFlights(departureId, arrivalId, options = {}) {
         params.set('type', '1'); // Round trip
     }
 
-    const response = await fetch(`${SERPAPI_BASE}?${params.toString()}`, {
-        signal: AbortSignal.timeout(15000),
-    });
+    const signal = typeof AbortSignal !== 'undefined' && AbortSignal.timeout
+        ? AbortSignal.timeout(options.requestTimeoutMs || FLIGHT_REQUEST_TIMEOUT_MS)
+        : undefined;
+    const response = await fetch(`${SERPAPI_BASE}?${params.toString()}`, { signal });
 
     if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
@@ -261,7 +287,9 @@ async function fetchFlights(departureId, arrivalId, options = {}) {
     const data = await response.json();
     const parsed = parseFlightResults(data, departureId, arrivalId);
 
-    flightCache.set(cacheKey, { data: parsed, timestamp: Date.now() });
+    if (options.allowCache) {
+        flightCache.set(cacheKey, { data: parsed, timestamp: Date.now() });
+    }
     return parsed;
 }
 

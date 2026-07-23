@@ -72,7 +72,7 @@ a:hover { color: var(--accent-mint-light); }
 }
 
 /* Page transitions */
-.page-enter { animation: pageIn 0.35s ease forwards; }
+.page-enter { animation: pageIn var(--motion-duration-large) var(--motion-ease-out) forwards; }
 
 @keyframes pageIn {
     from { opacity: 0; transform: translateY(12px); }

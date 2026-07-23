@@ -2,6 +2,8 @@ import { liquidMetalFragmentShader, ShaderMount } from "@paper-design/shaders";
 import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMagnetic } from "../../hooks/useMagnetic";
+import { useMotionPreference } from "../../hooks/useMotionPreference";
+import { motionTransitionCss } from "../../lib/motion";
 
 export function LiquidMetalButton({
   label = "Get Started",
@@ -21,6 +23,20 @@ export function LiquidMetalButton({
   const buttonRef = useRef(null);
   const rippleId = useRef(0);
   const magnetic = useMagnetic({ strength: 6 });
+  const { reduced: prefersReducedMotion } = useMotionPreference();
+
+  const transitionSurface = prefersReducedMotion
+    ? "none"
+    : `transform ${motionTransitionCss.mediumOut}, width ${motionTransitionCss.smallOut}, height ${motionTransitionCss.smallOut}`;
+  const transitionSurfaceWithGap = prefersReducedMotion
+    ? "none"
+    : `${transitionSurface}, gap ${motionTransitionCss.smallOut}`;
+  const transitionShadow = prefersReducedMotion
+    ? "none"
+    : `${transitionSurface}, box-shadow ${motionTransitionCss.microOut}`;
+  const transitionContent = prefersReducedMotion
+    ? "none"
+    : `transform ${motionTransitionCss.smallOut}, color ${motionTransitionCss.smallOut}, filter ${motionTransitionCss.smallOut}`;
 
   const dimensions = useMemo(() => {
     if (viewMode === "icon") {
@@ -139,7 +155,7 @@ export function LiquidMetalButton({
       }, 300);
     }
 
-    if (buttonRef.current) {
+    if (buttonRef.current && !prefersReducedMotion) {
       const rect = buttonRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -172,8 +188,7 @@ export function LiquidMetalButton({
             width: `${dimensions.width}px`,
             height: `${dimensions.height}px`,
             transformStyle: "preserve-3d",
-            transition:
-              "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
+            transition: transitionSurface,
             transform: "none",
           }}>
           <div
@@ -188,8 +203,7 @@ export function LiquidMetalButton({
               justifyContent: "center",
               gap: "6px",
               transformStyle: "preserve-3d",
-              transition:
-                "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease, gap 0.4s ease",
+              transition: transitionSurfaceWithGap,
               transform: "translateZ(20px)",
               zIndex: 30,
               pointerEvents: "none",
@@ -200,7 +214,7 @@ export function LiquidMetalButton({
                 style={{
                   color: "#666666",
                   filter: "drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.5))",
-                  transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  transition: transitionContent,
                   transform: "scale(1)",
                 }} />
             )}
@@ -211,7 +225,7 @@ export function LiquidMetalButton({
                   color: "#666666",
                   fontWeight: 600,
                   textShadow: "0px 1px 2px rgba(0, 0, 0, 0.5)",
-                  transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  transition: transitionContent,
                   transform: "scale(1)",
                   whiteSpace: "nowrap",
                 }}>
@@ -228,8 +242,7 @@ export function LiquidMetalButton({
               width: `${dimensions.width}px`,
               height: `${dimensions.height}px`,
               transformStyle: "preserve-3d",
-              transition:
-                "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
+              transition: transitionSurface,
               transform: `translateZ(10px) ${isPressed ? "translateY(1px) scale(0.98)" : "translateY(0) scale(1)"}`,
               zIndex: 20,
             }}>
@@ -243,8 +256,7 @@ export function LiquidMetalButton({
                 boxShadow: isPressed
                   ? "inset 0px 2px 4px rgba(0, 0, 0, 0.4), inset 0px 1px 2px rgba(0, 0, 0, 0.3)"
                   : "none",
-                transition:
-                  "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease, box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: transitionShadow,
               }} />
           </div>
 
@@ -256,8 +268,7 @@ export function LiquidMetalButton({
               width: `${dimensions.width}px`,
               height: `${dimensions.height}px`,
               transformStyle: "preserve-3d",
-              transition:
-                "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
+              transition: transitionSurface,
               transform: `translateZ(0px) ${isPressed ? "translateY(1px) scale(0.98)" : "translateY(0) scale(1)"}`,
               zIndex: 10,
             }}>
@@ -271,8 +282,7 @@ export function LiquidMetalButton({
                   : isHovered
                     ? "0px 0px 0px 1px rgba(0, 0, 0, 0.4), 0px 12px 6px 0px rgba(0, 0, 0, 0.05), 0px 8px 5px 0px rgba(0, 0, 0, 0.1), 0px 4px 4px 0px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.2)"
                     : "0px 0px 0px 1px rgba(0, 0, 0, 0.3), 0px 36px 14px 0px rgba(0, 0, 0, 0.02), 0px 20px 12px 0px rgba(0, 0, 0, 0.08), 0px 9px 9px 0px rgba(0, 0, 0, 0.12), 0px 2px 5px 0px rgba(0, 0, 0, 0.15)",
-                transition:
-                  "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease, box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: transitionShadow,
                 background: "rgb(0 0 0 / 0)",
               }}>
               <div
@@ -285,7 +295,9 @@ export function LiquidMetalButton({
                   width: `${dimensions.shaderWidth}px`,
                   maxWidth: `${dimensions.shaderWidth}px`,
                   height: `${dimensions.shaderHeight}px`,
-                  transition: "width 0.4s ease, height 0.4s ease",
+                  transition: prefersReducedMotion
+                    ? "none"
+                    : `width ${motionTransitionCss.smallOut}, height ${motionTransitionCss.smallOut}`,
                 }} />
             </div>
           </div>
@@ -313,8 +325,7 @@ export function LiquidMetalButton({
               zIndex: 40,
               transformStyle: "preserve-3d",
               transform: "translateZ(25px)",
-              transition:
-                "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
+              transition: transitionSurface,
               overflow: "hidden",
               borderRadius: "100px",
             }}
@@ -332,7 +343,9 @@ export function LiquidMetalButton({
                   background:
                     "radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 70%)",
                   pointerEvents: "none",
-                  animation: "ripple-animation 0.6s ease-out",
+                  animation: prefersReducedMotion
+                    ? "none"
+                    : `ripple-animation ${motionTransitionCss.mediumOut}`,
                 }} />
             ))}
           </button>

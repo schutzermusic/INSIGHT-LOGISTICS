@@ -1,10 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
-} from 'recharts';
-import {
   TrendingUp, Users, DollarSign, Clock, Sparkles, ArrowRight,
   Route, Target, BarChart3 as BarChartIcon,
   Globe, ChevronRight, Brain, TrendingDown,
@@ -16,14 +12,21 @@ import { formatCurrency } from '../engine/calculator.js';
 import { getExtendedCitiesData } from '../engine/routes-intelligence-db.js';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
-import { ChartTooltip } from '../components/charts/ChartTooltip';
+import { PremiumAreaChart, PremiumDonutChart, KpiSparkline } from '../components/charts';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 import { MagneticWrap } from '../components/ui/MagneticWrap';
+import { AnimatedNumber } from '../components/ui/AnimatedNumber';
+import { MotionStagger, MotionStaggerItem } from '../components/ui/MotionStagger';
 import BrazilMap, { buildMapRoutes, buildMapPoints } from '../components/map/BrazilMap';
 import { useSpotlight } from '../hooks/useSpotlight';
-import { CHART_SEQUENCE } from '../lib/chartTheme';
+import { CHART_PALETTE, CHART_SEQUENCE } from '../lib/chartTheme';
 
 const CHART_COLORS = CHART_SEQUENCE;
+
+const COST_EVOLUTION_SERIES = [
+  { key: 'custo', name: 'Custo Total', color: CHART_PALETTE.mint },
+  { key: 'transito', name: 'Horas Transito', color: CHART_PALETTE.cyan },
+];
 
 export default function Dashboard() {
   const { collaborators } = useCollaborators();
@@ -90,6 +93,15 @@ export default function Dashboard() {
       custo: s.resumo?.custoTotalEquipe || 0,
       transito: s.resumo?.horasTransito || 0,
     }));
+  }, [dashboardSims]);
+
+  // Phase 5D — sparkline data arrays for KPI cards
+  const sparkCost = useMemo(() => trendData.map((d) => d.custo), [trendData]);
+  const sparkTransit = useMemo(() => trendData.map((d) => d.transito), [trendData]);
+  const sparkSavings = useMemo(() => {
+    const aiSims = [...dashboardSims].filter(s => s.type === 'ai-analysis').reverse().slice(0, 7);
+    if (aiSims.length < 2) return null;
+    return aiSims.map(s => s.resumo?.custoTotalEquipe || 0);
   }, [dashboardSims]);
 
   const modalDistribution = useMemo(() => {
@@ -209,7 +221,7 @@ export default function Dashboard() {
 
   if (stats.totalSims === 0 && stats.totalCollabs === 0) {
     return (
-      <div className="animate-fade-in">
+      <div>
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-mint/20 to-accent-cyan/10 flex items-center justify-center">
@@ -234,7 +246,7 @@ export default function Dashboard() {
     : '—';
 
   return (
-    <div className="stagger-children space-y-6">
+    <div className="space-y-6">
 
       {/* ═══════════════════════════════════════════
           ZONE 1 — EXECUTIVE HERO / COMMAND HEADER
@@ -302,28 +314,34 @@ export default function Dashboard() {
             />
             <MetricCell
               label="Custo Medio"
-              value={stats.totalSims > 0 ? formatCurrency(stats.avgCost) : 'R$ 0'}
+              value={stats.avgCost}
               detail="por mobilizacao"
               icon={DollarSign}
               color="cyan"
               border
+              sparkData={sparkCost}
+              sparkColor={CHART_PALETTE.cyan}
             />
             <MetricCell
               label="Economia AI"
-              value={stats.totalSavings > 0 ? formatCurrency(stats.totalSavings) : 'R$ 0'}
+              value={stats.totalSavings}
               detail="entre cenarios"
               icon={TrendingDown}
               color="orange"
               border
               highlight={stats.totalSavings > 0}
+              sparkData={sparkSavings}
+              sparkColor={CHART_PALETTE.amber}
             />
             <MetricCell
               label="Transito Medio"
-              value={stats.avgTravelTime > 0 ? `${stats.avgTravelTime.toFixed(1)}h` : '0h'}
+              value={stats.avgTravelTime}
               detail={`${stats.totalCollabs} colaboradores`}
               icon={Clock}
               color="blue"
               border
+              sparkData={sparkTransit}
+              sparkColor={CHART_PALETTE.violet}
             />
           </div>
         </div>
@@ -352,28 +370,15 @@ export default function Dashboard() {
             </div>
 
             {trendData.length > 1 ? (
-              <div className="h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trendData}>
-                    <defs>
-                      <linearGradient id="gradMintMain" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#49DC7A" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="#49DC7A" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="gradCyanLine" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22F2EF" stopOpacity={0.12} />
-                        <stop offset="100%" stopColor="#22F2EF" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                    <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip content={<ChartTooltip formatter={(v) => formatCurrency(v)} />} />
-                    <Area type="monotone" dataKey="custo" name="Custo Total" stroke="#49DC7A" strokeWidth={2.5} fill="url(#gradMintMain)" dot={false} activeDot={{ r: 5, fill: '#49DC7A', stroke: '#0a0f0a', strokeWidth: 2 }} />
-                    <Area type="monotone" dataKey="transito" name="Horas Transito" stroke="#22F2EF" strokeWidth={1.5} fill="url(#gradCyanLine)" dot={false} activeDot={{ r: 4, fill: '#22F2EF', stroke: '#0a0f0a', strokeWidth: 2 }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              <PremiumAreaChart
+                data={trendData}
+                xKey="name"
+                series={COST_EVOLUTION_SERIES}
+                yFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+                tooltipValueFormatter={(v) => formatCurrency(v)}
+                showLegend={false}
+                height={320}
+              />
             ) : (
               <div className="h-[320px] flex items-center justify-center text-white/15 text-sm">
                 Dados insuficientes para grafico de tendencia
@@ -454,27 +459,16 @@ export default function Dashboard() {
             </div>
 
             {modalDistribution.length > 0 ? (
-              <div className="h-[160px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={modalDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={62}
-                      paddingAngle={4}
-                      dataKey="value"
-                      strokeWidth={0}
-                    >
-                      {modalDistribution.map((_, i) => (
-                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<ChartTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              <PremiumDonutChart
+                data={modalDistribution}
+                nameKey="name"
+                valueKey="value"
+                colors={CHART_COLORS}
+                innerRadius={40}
+                outerRadius={62}
+                paddingAngle={4}
+                height={160}
+              />
             ) : (
               <div className="h-[160px] flex items-center justify-center text-white/15 text-xs">
                 Sem dados
@@ -516,7 +510,7 @@ export default function Dashboard() {
                     </div>
                     <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className="h-full rounded-full transition-[width,background-color] duration-[var(--motion-duration-large)] ease-[var(--motion-ease-out)]"
                         style={{
                           width: `${item.pct}%`,
                           backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
@@ -613,17 +607,18 @@ export default function Dashboard() {
               <Badge variant="accent" dot>{aiInsights.length} insight(s)</Badge>
             </div>
 
-            <div className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <MotionStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" fast>
               {aiInsights.map((insight, i) => (
-                <AIInsightCard
-                  key={i}
-                  type={insight.type}
-                  icon={insight.icon}
-                  title={insight.title}
-                  text={insight.text}
-                />
+                <MotionStaggerItem key={i}>
+                  <AIInsightCard
+                    type={insight.type}
+                    icon={insight.icon}
+                    title={insight.title}
+                    text={insight.text}
+                  />
+                </MotionStaggerItem>
               ))}
-            </div>
+            </MotionStagger>
 
             <div className="mt-4 pt-4 border-t border-white/[0.04] flex items-center justify-between">
               <span className="body text-[13px]">Powered by Insight Logistics AI Engine</span>
@@ -665,9 +660,9 @@ export default function Dashboard() {
             </div>
 
             {recentSims.length > 0 ? (
-              <div className="space-y-0">
+              <MotionStagger as="div" className="space-y-0" fast inView>
                 {recentSims.map((sim, i) => (
-                  <div
+                  <MotionStaggerItem
                     key={sim.id || i}
                     className="flex items-center gap-4 px-4 py-3 -mx-1 rounded-xl hover:bg-white/[0.02] transition-colors group"
                   >
@@ -686,10 +681,15 @@ export default function Dashboard() {
                       {sim.modal || '—'}
                     </Badge>
                     <span className="label-micro text-white/25 w-20 text-right tabular-data">{sim.qtdColaboradores || '—'} pessoa(s)</span>
-                    <span className="tabular-data text-sm font-bold text-mint w-28 text-right">{formatCurrency(sim.resumo?.custoTotalEquipe || 0)}</span>
-                  </div>
+                    <AnimatedNumber
+                      as="span"
+                      className="tabular-data text-sm font-bold text-mint w-28 text-right"
+                      value={sim.resumo?.custoTotalEquipe || 0}
+                      format={(v) => formatCurrency(v)}
+                    />
+                  </MotionStaggerItem>
                 ))}
-              </div>
+              </MotionStagger>
             ) : (
               <div className="py-12 text-center text-white/15 text-sm">
                 Nenhuma simulacao registrada
@@ -741,7 +741,7 @@ export default function Dashboard() {
    SUB-COMPONENTS
    ═══════════════════════════════════════════ */
 
-function MetricCell({ label, value, detail, icon: Icon, color, border, highlight }) {
+function MetricCell({ label, value, detail, icon: Icon, color, border, highlight, sparkData, sparkColor }) {
   const colors = {
     mint: { icon: 'text-success-text', value: 'text-success-text', bg: 'bg-success-bg' },
     cyan: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
@@ -764,8 +764,35 @@ function MetricCell({ label, value, detail, icon: Icon, color, border, highlight
             </div>
           )}
         </div>
-        <div className={`metric-value ${c.value}`}>
-          {value}
+        <div className="flex items-end justify-between gap-2">
+          <div className="min-w-0">
+            {typeof value === 'number' ? (
+              <AnimatedNumber
+                as="div"
+                className={`metric-value ${c.value}`}
+                value={value}
+                format={(v) => {
+                  if (label === 'Custo Medio' || label === 'Economia AI') return formatCurrency(v);
+                  if (label === 'Transito Medio') return `${v.toFixed(1)}h`;
+                  return Math.round(v).toLocaleString('pt-BR');
+                }}
+              />
+            ) : (
+              <div className={`metric-value ${c.value}`}>
+                {value}
+              </div>
+            )}
+          </div>
+          {/* Phase 5D — KPI Sparkline */}
+          {sparkData && sparkData.length >= 2 && (
+            <KpiSparkline
+              data={sparkData}
+              color={sparkColor}
+              width={64}
+              height={24}
+              className="flex-shrink-0 opacity-60"
+            />
+          )}
         </div>
         {detail && (
           <p className="body text-[13px] mt-2">
@@ -781,7 +808,16 @@ function InsightRow({ label, value, highlight }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-white/[0.03] last:border-0">
       <span className="body text-[13px]">{label}</span>
-      <span className={`tabular-data text-[13px] font-semibold ${highlight ? 'text-success-text' : 'text-white/70'}`}>{value}</span>
+      {typeof value === 'number' ? (
+        <AnimatedNumber
+          as="span"
+          className={`tabular-data text-[13px] font-semibold ${highlight ? 'text-success-text' : 'text-white/70'}`}
+          value={value}
+          format={(v) => Math.round(v).toLocaleString('pt-BR')}
+        />
+      ) : (
+        <span className={`tabular-data text-[13px] font-semibold ${highlight ? 'text-success-text' : 'text-white/70'}`}>{value}</span>
+      )}
     </div>
   );
 }
@@ -845,13 +881,13 @@ function CommandAction({ icon: Icon, label, description, accentFrom, accentTo, b
       ref={ref}
       onMouseMove={onMouseMove}
       onClick={onClick}
-      className={`surface-card spotlight group relative overflow-hidden rounded-2xl border ${borderColor} bg-gradient-to-r ${accentFrom} ${accentTo} p-6 flex items-center gap-4 text-left transition-all duration-300 hover:scale-[1.015] hover:-translate-y-0.5`}
+      className={`surface-card spotlight group relative overflow-hidden rounded-2xl border ${borderColor} bg-gradient-to-r ${accentFrom} ${accentTo} p-6 flex items-center gap-4 text-left transition-[transform,border-color,box-shadow] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] hover:scale-[1.015] hover:-translate-y-0.5`}
       style={{
         boxShadow: '0 10px 30px -12px rgb(var(--shadow-ink) / 0.35), inset 0 1px 0 rgb(var(--highlight-ink) / 0.06)',
       }}
     >
       {/* hover sheen */}
-      <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+      <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-[var(--motion-duration-large)] ease-[var(--motion-ease-out)] pointer-events-none"
         style={{
           background: 'linear-gradient(120deg, transparent 30%, rgb(var(--highlight-ink) / 0.04) 50%, transparent 70%)',
         }}
@@ -863,7 +899,7 @@ function CommandAction({ icon: Icon, label, description, accentFrom, accentTo, b
         <span className="heading text-white/90 block">{label}</span>
         <span className="body text-[13px] block mt-1">{description}</span>
       </div>
-      <ArrowRight className="relative w-4 h-4 text-white/20 group-hover:text-white/60 group-hover:translate-x-1 transition-all flex-shrink-0" />
+      <ArrowRight className="relative w-4 h-4 text-white/20 group-hover:text-white/60 group-hover:translate-x-1 transition-[transform,color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] flex-shrink-0" />
     </button>
   );
 }

@@ -39,7 +39,7 @@ export function calculateTravelLaborCost(collaborators, travelDurationH, roundTr
 /**
  * Calculate field labor cost for team during field work
  * @param {Array} collaborators - Team members
- * @param {Object} fieldParams - { daysInField, regularHoursPerDay, overtime50PerDay, overtime100PerDay, nightShiftHoursPerDay }
+ * @param {Object} fieldParams - { daysInField, regularHoursPerDay, overtime50PerDay, overtime100PerDay, overtime150PerDay, nightShiftHoursPerDay }
  * @returns {Object} Field labor cost breakdown
  */
 export function calculateFieldLaborCost(collaborators, fieldParams) {
@@ -48,6 +48,7 @@ export function calculateFieldLaborCost(collaborators, fieldParams) {
     regularHoursPerDay = 8,
     overtime50PerDay = 0,
     overtime100PerDay = 0,
+    overtime150PerDay = 0,
     nightShiftHoursPerDay = 0,
   } = fieldParams;
 
@@ -58,6 +59,7 @@ export function calculateFieldLaborCost(collaborators, fieldParams) {
       horasNormais: regularHoursPerDay * daysInField,
       horasExtra50: overtime50PerDay * daysInField,
       horasExtra100: overtime100PerDay * daysInField,
+      horasExtra150: overtime150PerDay * daysInField,
       horasNoturnas: nightShiftHoursPerDay * daysInField,
     };
     const labor = calcLaborCost(rates, hours);
@@ -76,7 +78,7 @@ export function calculateFieldLaborCost(collaborators, fieldParams) {
     totalCost: round(totalCost),
     daysInField,
     totalRegularHours: regularHoursPerDay * daysInField,
-    totalOvertimeHours: (overtime50PerDay + overtime100PerDay) * daysInField,
+    totalOvertimeHours: (overtime50PerDay + overtime100PerDay + overtime150PerDay) * daysInField,
     totalNightHours: nightShiftHoursPerDay * daysInField,
     perPerson: breakdown,
     averageCostPerPerson: collaborators.length > 0 ? round(totalCost / collaborators.length) : 0,

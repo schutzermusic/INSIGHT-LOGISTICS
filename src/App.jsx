@@ -1,5 +1,6 @@
 import { Component, lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { NavBar } from './components/ui/TubelightNavbar';
 import {
   LayoutDashboard,
@@ -7,7 +8,11 @@ import {
   BarChart3,
   Globe,
   History as HistoryIcon,
+  Settings as SettingsIcon,
+  Rocket,
 } from 'lucide-react';
+import { resolvePageTransition } from './lib/motion';
+import { useMotionPreference } from './hooks/useMotionPreference';
 
 // Loaders cached and reused so hover-prefetch + lazy() hit the same chunk.
 const loaders = {
@@ -15,7 +20,9 @@ const loaders = {
   '/colaboradores': () => import('./pages/Collaborators'),
   '/comparador': () => import('./pages/Comparator'),
   '/inteligencia-rotas': () => import('./pages/RouteIntelligence'),
+  '/mobilizacao': () => import('./pages/MobilizationIntelligence'),
   '/historico': () => import('./pages/History'),
+  '/configuracoes': () => import('./pages/Settings'),
 };
 
 export function prefetchRoute(path) {
@@ -27,7 +34,9 @@ const Dashboard = lazy(loaders['/']);
 const Collaborators = lazy(loaders['/colaboradores']);
 const Comparator = lazy(loaders['/comparador']);
 const RouteIntelligence = lazy(loaders['/inteligencia-rotas']);
+const MobilizationIntelligence = lazy(loaders['/mobilizacao']);
 const History = lazy(loaders['/historico']);
+const Settings = lazy(loaders['/configuracoes']);
 
 function RouteFallback() {
   return (
@@ -108,10 +117,16 @@ const NAV_ITEMS = [
   { name: 'Colaboradores', url: '/colaboradores', icon: Users },
   { name: 'Comparador', url: '/comparador', icon: BarChart3 },
   { name: 'Inteligência de Rotas', url: '/inteligencia-rotas', icon: Globe },
+  { name: 'Mobilização', url: '/mobilizacao', icon: Rocket },
   { name: 'Histórico', url: '/historico', icon: HistoryIcon },
+  { name: 'Configurações', url: '/configuracoes', icon: SettingsIcon },
 ];
 
 export default function App() {
+  const location = useLocation();
+  const { mode } = useMotionPreference();
+  const routeMotionProps = resolvePageTransition(mode);
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-dark-900">
       {/* Cinematic stage — volumetric light, beam, and film grain */}
@@ -127,13 +142,22 @@ export default function App() {
         <div className="p-8 max-w-[1440px] mx-auto">
           <ErrorBoundary>
             <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/colaboradores" element={<Collaborators />} />
-                <Route path="/comparador" element={<Comparator />} />
-                <Route path="/inteligencia-rotas" element={<RouteIntelligence />} />
-                <Route path="/historico" element={<History />} />
-              </Routes>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={location.pathname}
+                  {...routeMotionProps}
+                >
+                  <Routes location={location}>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/colaboradores" element={<Collaborators />} />
+                    <Route path="/comparador" element={<Comparator />} />
+                    <Route path="/inteligencia-rotas" element={<RouteIntelligence />} />
+                    <Route path="/mobilizacao" element={<MobilizationIntelligence />} />
+                    <Route path="/historico" element={<History />} />
+                    <Route path="/configuracoes" element={<Settings />} />
+                  </Routes>
+                </motion.div>
+              </AnimatePresence>
             </Suspense>
           </ErrorBoundary>
         </div>

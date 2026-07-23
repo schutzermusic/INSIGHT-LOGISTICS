@@ -1,7 +1,9 @@
 import { Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../hooks/useTheme';
+import { useMotionPreference } from '../../hooks/useMotionPreference';
 import { clsx } from 'clsx';
+import { motionDurationSec, motionEase, resolveTransition } from '../../lib/motion';
 
 /**
  * Premium theme toggle.
@@ -11,6 +13,11 @@ import { clsx } from 'clsx';
  */
 export function ThemeToggle({ className }) {
   const { isDark, toggle } = useTheme();
+  const { mode: motionMode } = useMotionPreference();
+  const iconTransition = resolveTransition(motionMode, {
+    duration: motionDurationSec.small,
+    ease: motionEase.out,
+  });
 
   return (
     <button
@@ -21,7 +28,7 @@ export function ThemeToggle({ className }) {
       className={clsx(
         'relative flex items-center justify-center',
         'w-9 h-9 rounded-xl',
-        'transition-all duration-300',
+        'transition-[background-color,box-shadow,transform] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]',
         className,
       )}
       style={{
@@ -38,7 +45,7 @@ export function ThemeToggle({ className }) {
       {/* Radial glow behind icon */}
       <span
         aria-hidden
-        className="absolute inset-0 rounded-xl pointer-events-none transition-all duration-500"
+        className="absolute inset-0 rounded-xl pointer-events-none transition-opacity duration-[var(--motion-duration-medium)] ease-[var(--motion-ease-out)]"
         style={{
           background: isDark
             ? 'radial-gradient(circle at 50% 50%, rgb(var(--glow-cyan) / 0.12) 0%, transparent 70%)'
@@ -50,10 +57,10 @@ export function ThemeToggle({ className }) {
         {isDark ? (
           <motion.span
             key="moon"
-            initial={{ opacity: 0, rotate: -30, scale: 0.5 }}
+            initial={motionMode === 'off' ? false : { opacity: 0, rotate: -30, scale: 0.5 }}
             animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: 30, scale: 0.5 }}
-            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+            exit={motionMode === 'off' ? { opacity: 1 } : { opacity: 0, rotate: 30, scale: 0.5 }}
+            transition={iconTransition}
             className="relative flex"
           >
             <Moon
@@ -65,10 +72,10 @@ export function ThemeToggle({ className }) {
         ) : (
           <motion.span
             key="sun"
-            initial={{ opacity: 0, rotate: 30, scale: 0.5 }}
+            initial={motionMode === 'off' ? false : { opacity: 0, rotate: 30, scale: 0.5 }}
             animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: -30, scale: 0.5 }}
-            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+            exit={motionMode === 'off' ? { opacity: 1 } : { opacity: 0, rotate: -30, scale: 0.5 }}
+            transition={iconTransition}
             className="relative flex"
           >
             <Sun

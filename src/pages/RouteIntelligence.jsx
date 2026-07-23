@@ -25,6 +25,8 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { ChartTooltip } from '../components/charts/ChartTooltip';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 import { MagneticWrap } from '../components/ui/MagneticWrap';
+import { AnimatedNumber } from '../components/ui/AnimatedNumber';
+import { MotionStagger, MotionStaggerItem } from '../components/ui/MotionStagger';
 import BrazilMap, { latLngToSvg } from '../components/map/BrazilMap';
 const DeckGLMap = lazy(() => import('../components/map/DeckGLMap'));
 import { isGoogleMapsLoaded } from '../services/GoogleMapsLoader';
@@ -161,7 +163,7 @@ export default function RouteIntelligence() {
 
   if (collaborators.length === 0) {
     return (
-      <div className="animate-fade-in">
+      <div>
         <PageHeader title="Inteligencia de Rotas" subtitle="Motor de recomendacao logistica com analise multi-modal" icon={Globe} badge="AI-Powered" badgeVariant="accent" />
         <EmptyState icon={AlertTriangle} title="Cadastre colaboradores primeiro" description="O modulo de inteligencia requer colaboradores cadastrados.">
           <MagneticWrap><button className="btn-primary-mint" onClick={() => navigate('/colaboradores')}>Ir para Cadastro</button></MagneticWrap>
@@ -236,6 +238,9 @@ export default function RouteIntelligence() {
           custoAlimentacaoDia: 0,
           horasNormaisDia: 0,
           horasExtra50Dia: 0,
+          horasExtra100Dia: 0,
+          horasExtra150Dia: 0,
+          horasNoturnasDia: 0,
         };
       } else if (operationalMode === 'logistics-labor') {
         // Labor costs only, no per diem
@@ -244,6 +249,9 @@ export default function RouteIntelligence() {
           custoAlimentacaoDia: 0,
           horasNormaisDia: parseFloat(form.horasNormais?.value) || 8,
           horasExtra50Dia: parseFloat(form.he50?.value) || 2,
+          horasExtra100Dia: parseFloat(form.he100?.value) || 0,
+          horasExtra150Dia: parseFloat(form.he150?.value) || 0,
+          horasNoturnasDia: parseFloat(form.horasNoturnas?.value) || 0,
         };
       } else {
         // Full operational
@@ -252,6 +260,9 @@ export default function RouteIntelligence() {
           custoAlimentacaoDia: parseFloat(form.alimentacao?.value) || 80,
           horasNormaisDia: parseFloat(form.horasNormais?.value) || 8,
           horasExtra50Dia: parseFloat(form.he50?.value) || 2,
+          horasExtra100Dia: parseFloat(form.he100?.value) || 0,
+          horasExtra150Dia: parseFloat(form.he150?.value) || 0,
+          horasNoturnasDia: parseFloat(form.horasNoturnas?.value) || 0,
         };
       }
 
@@ -320,7 +331,7 @@ export default function RouteIntelligence() {
   };
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="space-y-6">
       {/* Command Center Hero Header */}
       <div className="surface-card relative overflow-hidden p-8">
         {/* Background decorations */}
@@ -391,7 +402,7 @@ export default function RouteIntelligence() {
                 <button
                   type="button"
                   onClick={() => setTripType('oneway')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-[color,background-color,border-color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                     tripType === 'oneway'
                       ? 'bg-accent-purple/15 text-accent-purple border border-accent-purple/20'
                       : 'text-white/30 hover:text-white/50'
@@ -403,7 +414,7 @@ export default function RouteIntelligence() {
                 <button
                   type="button"
                   onClick={() => setTripType('roundtrip')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-[color,background-color,border-color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                     tripType === 'roundtrip'
                       ? 'bg-mint/15 text-mint border border-mint/20'
                       : 'text-white/30 hover:text-white/50'
@@ -474,13 +485,13 @@ export default function RouteIntelligence() {
                           key={c.id}
                           type="button"
                           onClick={() => toggleCollab(c.id)}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all duration-150 ${
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-[color,background-color,border-color] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)] ${
                             isSelected
                               ? 'bg-accent-purple/[0.08] border border-accent-purple/15'
                               : 'border border-transparent hover:bg-white/[0.03]'
                           }`}
                         >
-                          <div className={`w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
+                          <div className={`w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-[background-color,border-color,transform] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)] ${
                             isSelected
                               ? 'bg-accent-purple'
                               : 'bg-white/[0.06] border border-white/[0.08]'
@@ -619,7 +630,7 @@ export default function RouteIntelligence() {
             OPERATIONAL PARAMETERS — Independent Collapsible Block
             Visually separated from core route search
         ═══════════════════════════════════════════════════════════════ */}
-        <div className={`surface-card relative rounded-2xl border overflow-hidden transition-all duration-300 mt-4 ${
+        <div className={`surface-card relative rounded-2xl border overflow-hidden transition-[border-color,box-shadow] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] mt-4 ${
             operationalEnabled
               ? 'border-accent-purple/15'
               : 'border-white/[0.04]'
@@ -633,21 +644,21 @@ export default function RouteIntelligence() {
             <button
               type="button"
               onClick={() => setOperationalEnabled(!operationalEnabled)}
-              className="relative w-full px-8 py-6 flex items-center gap-4 text-left hover:bg-white/[0.01] transition-colors"
+              className="relative w-full px-8 py-6 flex items-center gap-4 text-left hover:bg-white/[0.01] transition-colors duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]"
             >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 ${
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-[background-color,border-color,box-shadow] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                 operationalEnabled
                   ? 'bg-gradient-to-br from-accent-purple/20 to-accent-blue/15 border border-accent-purple/20'
                   : 'surface-recessed border border-white/[0.06]'
               }`}>
-                <Layers className={`w-5 h-5 transition-colors duration-300 ${
+                <Layers className={`w-5 h-5 transition-colors duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                   operationalEnabled ? 'text-accent-purple' : 'text-white/25'
                 }`} />
               </div>
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-0.5">
-                  <h3 className={`heading transition-colors duration-300 ${
+                  <h3 className={`heading transition-colors duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                     operationalEnabled ? 'text-white' : 'text-white/40'
                   }`}>
                     Parametros Operacionais
@@ -656,7 +667,7 @@ export default function RouteIntelligence() {
                     <Badge variant="accent" dot compact>Ativo</Badge>
                   )}
                 </div>
-                <p className={`body text-[13px] transition-colors duration-300 ${
+                <p className={`body text-[13px] transition-colors duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                   operationalEnabled ? 'text-white/30' : 'text-white/15'
                 }`}>
                   {operationalEnabled
@@ -667,15 +678,15 @@ export default function RouteIntelligence() {
               </div>
 
               {/* Toggle Switch */}
-              <div className={`w-12 h-6 rounded-full transition-all duration-300 flex items-center ${
+              <div className={`w-12 h-6 rounded-full transition-colors duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] flex items-center ${
                 operationalEnabled
                   ? 'bg-accent-purple justify-end'
                   : 'bg-white/[0.08] justify-start'
               }`}>
-                <div className="w-5 h-5 rounded-full bg-white mx-0.5 shadow-sm transition-all duration-200" />
+                <div className="w-5 h-5 rounded-full bg-white mx-0.5 shadow-sm transition-transform duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]" />
               </div>
 
-              <ChevronRight className={`w-4 h-4 text-white/15 transition-transform duration-300 ${
+              <ChevronRight className={`w-4 h-4 text-white/15 transition-transform duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                 operationalEnabled ? 'rotate-90' : ''
               }`} />
             </button>
@@ -696,7 +707,7 @@ export default function RouteIntelligence() {
                     <button
                       type="button"
                       onClick={() => setOperationalMode('logistics-labor')}
-                        className={`surface-recessed relative p-4 rounded-xl border text-left transition-all duration-200 ${
+                        className={`surface-recessed relative p-4 rounded-xl border text-left transition-[color,background-color,border-color,box-shadow] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                         operationalMode === 'logistics-labor'
                           ? 'border-accent-purple/20 bg-accent-purple/[0.06]'
                           : 'border-white/[0.04] hover:bg-white/[0.03]'
@@ -724,7 +735,7 @@ export default function RouteIntelligence() {
                       <div className={`body text-[13px] leading-relaxed ${
                         operationalMode === 'logistics-labor' ? 'text-white/25' : 'text-white/12'
                       }`}>
-                        Inclui custo hora tecnica, hora normal, HE 50%, HE 100%, adicional noturno
+                        Inclui custo hora tecnica, hora normal, HE 50%, HE 100%, HE 150%, adicional noturno
                       </div>
                       {operationalMode === 'logistics-labor' && (
                         <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-accent-purple animate-pulse" />
@@ -734,7 +745,7 @@ export default function RouteIntelligence() {
                     <button
                       type="button"
                       onClick={() => setOperationalMode('full-operational')}
-                        className={`surface-recessed relative p-4 rounded-xl border text-left transition-all duration-200 ${
+                        className={`surface-recessed relative p-4 rounded-xl border text-left transition-[color,background-color,border-color,box-shadow] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                         operationalMode === 'full-operational'
                           ? 'border-mint/20 bg-mint/[0.06]'
                           : 'border-white/[0.04] hover:bg-white/[0.03]'
@@ -777,7 +788,7 @@ export default function RouteIntelligence() {
                     <Briefcase className="w-3.5 h-3.5 text-accent-purple/40" />
                     <span className="label-micro text-white/30">Jornada de Trabalho</span>
                   </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                     <div>
                       <label className="block label-micro text-white/35 mb-2">Horas Normais/dia</label>
                       <input className="glass-input" type="number" name="horasNormais" defaultValue="8" step="0.5" min="0" />
@@ -789,6 +800,10 @@ export default function RouteIntelligence() {
                     <div>
                       <label className="block label-micro text-white/35 mb-2">HE 100%/dia</label>
                       <input className="glass-input" type="number" name="he100" defaultValue="0" step="0.5" min="0" />
+                    </div>
+                    <div>
+                      <label className="block label-micro text-white/35 mb-2">HE 150%/dia</label>
+                      <input className="glass-input" type="number" name="he150" defaultValue="0" step="0.5" min="0" />
                     </div>
                     <div>
                       <label className="block label-micro text-white/35 mb-2">Horas Noturnas/dia</label>
@@ -970,12 +985,22 @@ export default function RouteIntelligence() {
                   <div className="flex items-center gap-4">
                     <div>
                       <div className="label-micro text-white/20">Distancia</div>
-                      <div className="tabular-data text-sm font-bold text-white">{(analysis.distanciaKm || 0).toLocaleString('pt-BR')} km</div>
+                      <AnimatedNumber
+                        as="div"
+                        className="tabular-data text-sm font-bold text-white"
+                        value={analysis.distanciaKm || 0}
+                        format={(v) => `${Math.round(v).toLocaleString('pt-BR')} km`}
+                      />
                     </div>
                     <div className="w-px h-6 bg-white/[0.06]" />
                     <div>
                       <div className="label-micro text-white/20">Alternativas</div>
-                      <div className="tabular-data text-sm font-bold text-accent-purple">{analysis.totalAlternativas || analysis.alternatives?.length}</div>
+                      <AnimatedNumber
+                        as="div"
+                        className="tabular-data text-sm font-bold text-accent-purple"
+                        value={analysis.totalAlternativas || analysis.alternatives?.length || 0}
+                        format={(v) => Math.round(v).toLocaleString('pt-BR')}
+                      />
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -1025,15 +1050,15 @@ export default function RouteIntelligence() {
                   {/* Quick stats row inside executive */}
                   <div className="grid grid-cols-3 gap-4 mt-6 pt-5 border-t border-white/[0.04]">
                     <div className="text-center">
-                      <div className="metric-value text-mint">{formatCurrency(analysis.executive.maisBaratoOperacional?.custos.operacionalTotal || 0)}</div>
+                      <AnimatedNumber as="div" className="metric-value text-mint" value={analysis.executive.maisBaratoOperacional?.custos.operacionalTotal || 0} format={(v) => formatCurrency(v)} />
                       <div className="label-micro text-white/20 mt-1">Melhor opcao</div>
                     </div>
                     <div className="text-center">
-                      <div className="metric-value text-accent-text">{formatCurrency(analysis.executive.economiaOperacional || 0)}</div>
+                      <AnimatedNumber as="div" className="metric-value text-accent-text" value={analysis.executive.economiaOperacional || 0} format={(v) => formatCurrency(v)} />
                       <div className="label-micro text-white/20 mt-1">Economia</div>
                     </div>
                     <div className="text-center">
-                      <div className="metric-value text-accent-cyan">{(analysis.executive.tempoSalvo || 0).toFixed(1)}h</div>
+                      <AnimatedNumber as="div" className="metric-value text-accent-cyan" value={analysis.executive.tempoSalvo || 0} format={(v) => `${v.toFixed(1)}h`} />
                       <div className="label-micro text-white/20 mt-1">Tempo salvo</div>
                     </div>
                   </div>
@@ -1057,7 +1082,7 @@ export default function RouteIntelligence() {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <div className="label-micro text-white/20">Melhor Preco</div>
-                      <div className="metric-value text-accent-cyan">{formatCurrency(analysis.flightPriceInsights.precoAtual || 0)}</div>
+                      <AnimatedNumber as="div" className="metric-value text-accent-cyan" value={analysis.flightPriceInsights.precoAtual || 0} format={(v) => formatCurrency(v)} />
                     </div>
                     {analysis.flightPriceInsights.faixaPreco?.length >= 2 && (
                       <div>
@@ -1097,10 +1122,10 @@ export default function RouteIntelligence() {
           <div className="surface-recessed relative rounded-2xl border border-white/[0.06] overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/15 to-transparent" />
             <div className="grid grid-cols-4 gap-0">
-              <MetricCell label="Melhor Opcao" value={formatCurrency(analysis.executive.maisBaratoOperacional?.custos.operacionalTotal || 0)} detail={`${analysis.executive.melhor?.tipo} - Score ${analysis.executive.melhor?.scores.total}/100`} icon={Star} color="mint" />
-              <MetricCell label="Economia Operacional" value={formatCurrency(analysis.executive.economiaOperacional || 0)} detail="vs alternativa mais cara" icon={TrendingDown} color="orange" border />
-              <MetricCell label="Tempo Economizado" value={`${(analysis.executive.tempoSalvo || 0).toFixed(1)}h`} detail="Diferenca mais rapido vs lento" icon={Clock} color="cyan" border />
-              <MetricCell label="Distancia" value={`${(analysis.distanciaKm || 0).toLocaleString('pt-BR')} km`} detail={analysis.estimado ? 'Estimativa' : 'Dados reais'} icon={MapPin} color="blue" border />
+              <MetricCell label="Melhor Opcao" value={analysis.executive.maisBaratoOperacional?.custos.operacionalTotal || 0} detail={`${analysis.executive.melhor?.tipo} - Score ${analysis.executive.melhor?.scores.total}/100`} icon={Star} color="mint" />
+              <MetricCell label="Economia Operacional" value={analysis.executive.economiaOperacional || 0} detail="vs alternativa mais cara" icon={TrendingDown} color="orange" border />
+              <MetricCell label="Tempo Economizado" value={analysis.executive.tempoSalvo || 0} detail="Diferenca mais rapido vs lento" icon={Clock} color="cyan" border />
+              <MetricCell label="Distancia" value={analysis.distanciaKm || 0} detail={analysis.estimado ? 'Estimativa' : 'Dados reais'} icon={MapPin} color="blue" border />
             </div>
           </div>
 
@@ -1112,7 +1137,7 @@ export default function RouteIntelligence() {
                 <div className="flex-1 h-px bg-white/[0.04]" />
                 <span className="label-micro text-white/20">Veiculo / Aereo / Onibus</span>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <MotionStagger className="grid grid-cols-1 lg:grid-cols-3 gap-6" fast inView>
                 {scenarioComparison.map((c) => {
                   const isBest = c.nome === routeBestScenarioName;
                   const isFastest = c.nome === routeFastestScenarioName;
@@ -1120,9 +1145,9 @@ export default function RouteIntelligence() {
                   const ScenarioIcon = scenarioMeta.icon;
 
                   return (
-                    <section
+                    <MotionStaggerItem
                       key={c.id}
-                      className={`surface-card relative overflow-hidden rounded-2xl border transition-all ${
+                      className={`surface-card relative overflow-hidden rounded-2xl border transition-[border-color,box-shadow,transform] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
                         isBest
                           ? 'border-mint/[0.15]'
                           : 'border-white/[0.06]'
@@ -1156,9 +1181,12 @@ export default function RouteIntelligence() {
                           </div>
                         </div>
 
-                        <div className={`display-lg mb-1.5 ${isBest ? 'text-mint' : ''}`}>
-                          {formatCurrency(c.resumo.custoTotalEquipe)}
-                        </div>
+                        <AnimatedNumber
+                          as="div"
+                          className={`display-lg mb-1.5 ${isBest ? 'text-mint' : ''}`}
+                          value={c.resumo.custoTotalEquipe}
+                          format={(v) => formatCurrency(v)}
+                        />
                         <p className="label-micro mb-4">Custo total · {selectedCollaborators.length} colab.</p>
 
                         <div className="space-y-3">
@@ -1173,16 +1201,19 @@ export default function RouteIntelligence() {
                         <div className="mt-4 pt-4 border-t border-white/[0.04]">
                           <div className="flex items-center justify-between">
                             <span className="label-micro text-white/30">Tempo de Transito</span>
-                            <span className={`tabular-data text-sm font-bold ${isFastest ? 'text-info-text' : 'text-white/60'}`}>
-                              {formatHours(c.resumo.horasTransito)}
-                            </span>
+                            <AnimatedNumber
+                              as="span"
+                              className={`tabular-data text-sm font-bold ${isFastest ? 'text-info-text' : 'text-white/60'}`}
+                              value={c.resumo.horasTransito}
+                              format={(v) => formatHours(v)}
+                            />
                           </div>
                         </div>
                       </div>
-                    </section>
+                    </MotionStaggerItem>
                   );
                 })}
-              </div>
+              </MotionStagger>
             </div>
           )}
 
@@ -1194,18 +1225,21 @@ export default function RouteIntelligence() {
               <div className="flex-1 h-px bg-white/[0.04]" />
               <span className="label-micro text-white/20">Ordenado por score</span>
             </div>
-            {analysis.alternatives?.sort((a, b) => b.scores.total - a.scores.total).map((alt, i) => (
-              <AlternativeCard
-                key={alt.id}
-                alt={alt}
-                rank={i + 1}
-                isBest={i === 0}
-                expanded={expandedAlt === alt.id}
-                onToggle={() => setExpandedAlt(expandedAlt === alt.id ? null : alt.id)}
-                confirmed={confirmedRoute === alt.id}
-                onConfirm={() => handleConfirmRoute(alt)}
-              />
-            ))}
+            <MotionStagger className="space-y-4" inView>
+              {analysis.alternatives?.sort((a, b) => b.scores.total - a.scores.total).map((alt, i) => (
+                <MotionStaggerItem key={alt.id}>
+                  <AlternativeCard
+                    alt={alt}
+                    rank={i + 1}
+                    isBest={i === 0}
+                    expanded={expandedAlt === alt.id}
+                    onToggle={() => setExpandedAlt(expandedAlt === alt.id ? null : alt.id)}
+                    confirmed={confirmedRoute === alt.id}
+                    onConfirm={() => handleConfirmRoute(alt)}
+                  />
+                </MotionStaggerItem>
+              ))}
+            </MotionStagger>
           </div>
 
           {/* Detalhamento Comparativo — Side by Side Table */}
@@ -1226,6 +1260,7 @@ export default function RouteIntelligence() {
                 </div>
               </div>
               <div className="p-6">
+                {/* TODO(phase-5A): radar not yet covered by Premium* wrappers; keep on Recharts until a PremiumRadarChart exists. */}
                 <div className="h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={[
@@ -1273,10 +1308,10 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
   const iconColor = isMultimodal ? 'text-accent-cyan' : isBus ? 'text-accent-amber' : isAir ? 'text-accent-blue' : 'text-accent-purple';
 
   return (
-    <div className={`surface-card relative overflow-hidden rounded-2xl border transition-all duration-300 ${isBest ? 'border-mint/15' : 'border-white/[0.06]'}`}>
+    <div className={`surface-card relative overflow-hidden rounded-2xl border transition-[border-color,box-shadow,transform] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${isBest ? 'border-mint/15' : 'border-white/[0.06]'}`}>
       <button
         onClick={onToggle}
-        className="w-full px-6 py-6 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full px-6 py-6 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]"
       >
         {/* Rank */}
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold ${isBest ? 'bg-mint/10 text-mint' : 'bg-white/[0.04] text-white/35'}`}>
@@ -1303,27 +1338,42 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
 
         {/* Score */}
         <div className="text-center px-4">
-          <div className={`metric-value ${isBest ? 'text-mint' : 'text-white/60'}`}>{alt.scores.total}</div>
+          <AnimatedNumber
+            as="div"
+            className={`metric-value ${isBest ? 'text-mint' : 'text-white/60'}`}
+            value={alt.scores.total}
+            format={(v) => Math.round(v).toLocaleString('pt-BR')}
+          />
           <div className="label-micro text-white/20">Score</div>
         </div>
 
         {/* Cost */}
         <div className="text-right px-4">
-          <div className="tabular-data text-sm font-bold text-white">{formatCurrency(alt.custos.operacionalTotal)}</div>
+          <AnimatedNumber
+            as="div"
+            className="tabular-data text-sm font-bold text-white"
+            value={alt.custos.operacionalTotal}
+            format={(v) => formatCurrency(v)}
+          />
           <div className="label-micro text-white/20">Custo operacional</div>
         </div>
 
         {/* Time */}
         <div className="text-right px-4">
-          <div className="tabular-data text-sm font-semibold text-white/60">{alt.tempoViagemH}h</div>
+          <AnimatedNumber
+            as="div"
+            className="tabular-data text-sm font-semibold text-white/60"
+            value={alt.tempoViagemH}
+            format={(v) => `${v.toFixed(1)}h`}
+          />
           <div className="label-micro text-white/20">so ida</div>
         </div>
 
-        <ChevronDown className={`w-4 h-4 text-white/15 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-white/15 transition-transform duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       {expanded && (
-        <div className="px-6 pb-6 pt-5 animate-fade-in space-y-4">
+        <div className="px-6 pb-6 pt-5 space-y-4 animate-fade-in">
           {/* Route Summary */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <MiniStat label="Tempo porta-a-porta (ida)" value={`${alt.tempoViagemH}h`} />
@@ -1552,7 +1602,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onConfirm(); }}
-                  className="flex items-center gap-3 px-6 py-3 rounded-xl bg-success-bg/70 border border-success-border/25 text-success-text text-sm font-semibold hover:bg-success-bg transition-all duration-200"
+                  className="flex items-center gap-3 px-6 py-3 rounded-xl bg-success-bg/70 border border-success-border/25 text-success-text text-sm font-semibold hover:bg-success-bg transition-[color,background-color,border-color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Confirmar Rota
@@ -1571,7 +1621,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-info-bg/70 border border-info-border/25 text-info-text text-[11px] font-semibold hover:bg-info-bg transition-all duration-200"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-info-bg/70 border border-info-border/25 text-info-text text-[11px] font-semibold hover:bg-info-bg transition-[color,background-color,border-color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]"
                     >
                       <ShoppingCart className="w-3 h-3" />
                       {opt.seller ? `Comprar — ${opt.seller}` : 'Ver reserva'}
@@ -1588,7 +1638,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-info-bg/40 border border-info-border/20 text-info-text/75 text-[11px] font-semibold hover:bg-info-bg/60 transition-all duration-200"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-info-bg/40 border border-info-border/20 text-info-text/75 text-[11px] font-semibold hover:bg-info-bg/60 transition-[color,background-color,border-color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]"
                 >
                   <Plane className="w-3 h-3" />
                   Ver no Google Flights
@@ -1603,7 +1653,7 @@ function AlternativeCard({ alt, rank, isBest, expanded, onToggle, confirmed, onC
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-warning-bg/70 border border-warning-border/25 text-warning-text text-[11px] font-semibold hover:bg-warning-bg transition-all duration-200"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-warning-bg/70 border border-warning-border/25 text-warning-text text-[11px] font-semibold hover:bg-warning-bg transition-[color,background-color,border-color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]"
                 >
                   <ShoppingCart className="w-3 h-3" />
                   Comprar Passagem
@@ -1650,7 +1700,16 @@ function MetricCell({ label, value, detail, icon: Icon, color, border }) {
           </div>
         )}
       </div>
-      <div className={`metric-value ${c.value}`}>{value}</div>
+      <AnimatedNumber
+        as="div"
+        className={`metric-value ${c.value}`}
+        value={value}
+        format={(v) => {
+          if (label === 'Tempo Economizado') return `${v.toFixed(1)}h`;
+          if (label === 'Distancia') return `${Math.round(v).toLocaleString('pt-BR')} km`;
+          return formatCurrency(v);
+        }}
+      />
       {detail && <p className="body text-[13px] mt-2">{detail}</p>}
     </div>
   );
@@ -1665,7 +1724,7 @@ function ScoreBar({ label, value }) {
       </div>
       <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-mint to-accent-cyan transition-all duration-500"
+          className="h-full rounded-full bg-gradient-to-r from-mint to-accent-cyan transition-[width,background-color] duration-[var(--motion-duration-large)] ease-[var(--motion-ease-out)]"
           style={{ width: `${value}%` }}
         />
       </div>
@@ -1684,7 +1743,7 @@ function RouteScenarioCostRow({ label, value, total, color }) {
         </div>
         <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-700"
+            className="h-full rounded-full transition-[width,background-color] duration-[var(--motion-duration-large)] ease-[var(--motion-ease-out)]"
             style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: color, opacity: 0.6 }}
           />
         </div>

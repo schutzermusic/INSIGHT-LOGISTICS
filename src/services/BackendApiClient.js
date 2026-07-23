@@ -8,13 +8,41 @@
  */
 
 const BASE_URL = '/api';
+const DEFAULT_TIMEOUT_MS = 8000;
+const ROUTE_TIMEOUTS_MS = [
+  [/^\/bus\/status$/, 2500],
+  [/^\/bus\/stops\/search\b/, 4000],
+  [/^\/bus\/search$/, 8000],
+  [/^\/bus\/connections\/suggestions$/, 5000],
+  [/^\/routes\/v2$/, 6000],
+  [/^\/routes\/tolls$/, 3500],
+];
 
-async function post(endpoint, body) {
+function getTimeoutMs(endpoint, timeoutMs) {
+  if (timeoutMs) return timeoutMs;
+  return ROUTE_TIMEOUTS_MS.find(([pattern]) => pattern.test(endpoint))?.[1] || DEFAULT_TIMEOUT_MS;
+}
+
+function timeoutSignal(endpoint, timeoutMs) {
+  if (typeof AbortSignal === 'undefined' || !AbortSignal.timeout) return undefined;
+  return AbortSignal.timeout(getTimeoutMs(endpoint, timeoutMs));
+}
+
+function normalizeAbortError(err, endpoint, timeoutMs) {
+  if (err?.name === 'AbortError' || err?.name === 'TimeoutError') {
+    throw new Error(`Timeout ao consultar ${endpoint} apos ${getTimeoutMs(endpoint, timeoutMs)}ms`);
+  }
+  throw err;
+}
+
+async function post(endpoint, body, options = {}) {
+  const { timeoutMs } = options;
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
+    signal: timeoutSignal(endpoint, timeoutMs),
+  }).catch((err) => normalizeAbortError(err, endpoint, timeoutMs));
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -24,8 +52,11 @@ async function post(endpoint, body) {
   return res.json();
 }
 
-async function get(endpoint) {
-  const res = await fetch(`${BASE_URL}${endpoint}`);
+async function get(endpoint, options = {}) {
+  const { timeoutMs } = options;
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    signal: timeoutSignal(endpoint, timeoutMs),
+  }).catch((err) => normalizeAbortError(err, endpoint, timeoutMs));
   if (!res.ok) {
     throw new Error(`API error: ${res.status}`);
   }
@@ -225,6 +256,26 @@ export async function fetchBusCancelPurchase(purchaseId, email) {
  */
 export async function fetchBusConnections(from, to, travelDate) {
   return post('/bus/connections/suggestions', { from, to, travelDate });
+}
+
+// ── Mobilization Intelligence ─────────────────────────
+
+/**
+ * Run the full multimodal mobilization search (§24).
+ * @param {object} payload - { origin, destination, earliestDepartureUtc, deadlineUtc, employees, daysInField?, config? }
+ */
+export async function mobilizationSearch(payload) {
+  return post('/mobilization/search', payload, { timeoutMs: 30000 });
+}
+
+/** Select an itinerary; pass override {isOverride, recommendedItineraryId, reason} when not the recommended one. */
+export async function mobilizationSelect(itineraryId, body) {
+  return post(`/mobilization/itineraries/${itineraryId}/select`, body);
+}
+
+/** Submit the selected route for approval. */
+export async function mobilizationSubmitForApproval(requestId, body) {
+  return post(`/mobilization/requests/${requestId}/submit-for-approval`, body);
 }
 
 // ── Health Check ──────────────────────────────────────

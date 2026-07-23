@@ -4,6 +4,8 @@ import cors from 'cors';
 import { googleRoutes } from './routes/google-routes.js';
 import { googleGeocoding } from './routes/google-geocoding.js';
 import { queroPassagem } from './routes/quero-passagem.js';
+import { serpApiFlights } from './routes/serpapi.js';
+import { mobilization } from './routes/mobilization.js';
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
@@ -19,6 +21,7 @@ app.get('/api/health', (_req, res) => {
       routes: !!process.env.GOOGLE_SERVER_API_KEY,
       geocoding: !!process.env.GOOGLE_SERVER_API_KEY,
       queroPassagem: !!(process.env.QUERO_PASSAGEM_USER && process.env.QUERO_PASSAGEM_PASS),
+      flights: !!(process.env.SERPAPI_KEY || process.env.VITE_SERPAPI_KEY),
     },
   });
 });
@@ -29,6 +32,12 @@ app.use('/api/geocoding', googleGeocoding);
 
 // Quero Passagem API (bus tickets — server-side credentials)
 app.use('/api/bus', queroPassagem);
+
+// Google Flights via SerpAPI (server-side key — §26)
+app.use('/api/flights', serpApiFlights);
+
+// Multimodal Mobilization Intelligence pipeline (§24)
+app.use('/api/mobilization', mobilization);
 
 app.listen(PORT, () => {
   const keyPreview = process.env.GOOGLE_SERVER_API_KEY

@@ -16,7 +16,7 @@ const WEIGHTS = {
 
 /**
  * Full AI analysis for a route
- * @param {Object} params - { origem, destino, collaborators, diasCampo, horasNormaisDia, horasExtra50Dia, horasExtra100Dia, horasNoturnasDia, custoHospedagemDia, custoAlimentacaoDia }
+ * @param {Object} params - { origem, destino, collaborators, diasCampo, horasNormaisDia, horasExtra50Dia, horasExtra100Dia, horasExtra150Dia, horasNoturnasDia, custoHospedagemDia, custoAlimentacaoDia }
  * @returns {Object} Complete analysis with scenarios, scores, and recommendation
  */
 export function analyzeRoute(params) {
@@ -28,6 +28,7 @@ export function analyzeRoute(params) {
         horasNormaisDia = 8,
         horasExtra50Dia = 2,
         horasExtra100Dia = 0,
+        horasExtra150Dia = 0,
         horasNoturnasDia = 0,
         custoHospedagemDia = 150,
         custoAlimentacaoDia = 80,
@@ -44,6 +45,7 @@ export function analyzeRoute(params) {
         horasNormaisDia,
         horasExtra50Dia,
         horasExtra100Dia,
+        horasExtra150Dia,
         horasNoturnasDia,
         custoHospedagemDia,
         custoAlimentacaoDia,
