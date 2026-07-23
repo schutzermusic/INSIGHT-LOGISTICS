@@ -14,7 +14,7 @@ import {
 const PAGE_META = {
   '/': { title: 'Dashboard', icon: LayoutDashboard },
   '/colaboradores': { title: 'Colaboradores', icon: Users },
-  '/comparador': { title: 'Comparador', icon: BarChart3 },
+  '/comparador': { title: 'Simulação Mobilização', icon: BarChart3 },
   '/inteligencia-rotas': { title: 'Inteligencia de Rotas', icon: Globe },
   '/historico': { title: 'Historico', icon: History },
 };

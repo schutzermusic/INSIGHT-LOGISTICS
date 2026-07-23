@@ -44,7 +44,8 @@ export function evaluateRest(itinerary, minimumRestMinutes = 660) {
     if (seg.qualifiesAsRest === false) continue;
 
     const effectiveStart = seg.metadata?.releaseAtUtc || seg.departureAtUtc;
-    const restMin = Math.max(0, Math.round((Date.parse(seg.arrivalAtUtc) - Date.parse(effectiveStart)) / MS_PER_MINUTE));
+    const effectiveEnd = seg.metadata?.restEndAtUtc || seg.arrivalAtUtc;
+    const restMin = Math.max(0, Math.round((Date.parse(effectiveEnd) - Date.parse(effectiveStart)) / MS_PER_MINUTE));
     totalRestMinutes += restMin;
     const qualifies = restMin >= minimumRestMinutes;
     const deficit = qualifies ? 0 : minimumRestMinutes - restMin;
@@ -54,7 +55,7 @@ export function evaluateRest(itinerary, minimumRestMinutes = 660) {
     rests.push({
       segmentId: seg.id,
       effectiveStartAtUtc: effectiveStart,
-      endAtUtc: seg.arrivalAtUtc,
+      endAtUtc: effectiveEnd,
       restMinutes: restMin,
       qualifies,
       deficitMinutes: deficit,

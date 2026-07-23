@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useSimulations } from '../hooks/useStore';
 import { formatCurrency } from '../engine/calculator.js';
+import { mobilizationDraftHistorySummary } from '../domain/mobilizationDraftSummary';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
@@ -15,6 +16,7 @@ import { MotionStagger, MotionStaggerItem } from '../components/ui/MotionStagger
 const TYPE_CONFIG = {
   'ai-analysis': { label: 'AI', badge: 'accent', icon: Bot },
   'comparison': { label: 'Comparacao', badge: 'warning', icon: BarChart3 },
+  'mobilization-draft': { label: 'Rascunho', badge: 'warning', icon: Clock },
   'default': { label: 'Simulacao', badge: 'info', icon: Clock },
 };
 
@@ -112,10 +114,10 @@ export default function History() {
         <EmptyState
           icon={HistoryIcon}
           title="Nenhuma simulacao registrada"
-          description="Suas simulacoes do Comparador e Inteligencia de Rotas aparecerao aqui automaticamente."
+          description="Suas simulacoes de Simulação Mobilização e Inteligencia de Rotas aparecerao aqui automaticamente."
         >
           <div className="flex items-center gap-4">
-            <LiquidMetalButton label="Comparar Cenarios" width={220} onClick={() => navigate('/comparador')} />
+            <LiquidMetalButton label="Abrir Simulação Mobilização" width={220} onClick={() => navigate('/comparador')} />
             <button className="btn-ghost" onClick={() => navigate('/inteligencia-rotas')}>Inteligencia de Rotas</button>
           </div>
         </EmptyState>
@@ -141,6 +143,7 @@ export default function History() {
                 <option value="simulation">Simulacoes</option>
                 <option value="comparison">Comparacoes</option>
                 <option value="ai-analysis">Analises AI</option>
+                <option value="mobilization-draft">Rascunhos de mobilização</option>
               </select>
               <select className="glass-select max-w-[180px]" value={filterModal} onChange={(e) => setFilterModal(e.target.value)}>
                 <option value="">Todos os modais</option>
@@ -175,6 +178,9 @@ export default function History() {
                     const typeConfig = TYPE_CONFIG[sim.type] || TYPE_CONFIG.default;
                     const TypeIcon = typeConfig.icon;
                     const isExpanded = expanded === sim.id;
+                    const detailSummary = sim.type === 'mobilization-draft' && sim.calculationResult?.recommended
+                      ? mobilizationDraftHistorySummary(sim.calculationResult.recommended)
+                      : sim.resumo;
 
                     return (
                       <MotionStaggerItem key={sim.id} className="surface-card relative overflow-hidden rounded-2xl border border-white/[0.05]">
@@ -218,14 +224,14 @@ export default function History() {
                             <AnimatedNumber
                               as="span"
                               className="tabular-data text-sm font-bold text-success-text"
-                              value={sim.resumo?.custoTotalEquipe || 0}
+                              value={detailSummary?.custoTotalEquipe || 0}
                               format={(v) => formatCurrency(v)}
                             />
-                            {sim.resumo?.horasTransito > 0 && (
+                            {detailSummary?.horasTransito > 0 && (
                               <AnimatedNumber
                                 as="div"
                                 className="label-micro text-white/20 tabular-data mt-1"
-                                value={sim.resumo.horasTransito}
+                                value={detailSummary.horasTransito}
                                 format={(v) => `${v.toFixed(1)}h transito`}
                               />
                             )}
@@ -233,6 +239,7 @@ export default function History() {
 
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(sim.id); }}
+                            aria-label={`Excluir ${sim.type === 'mobilization-draft' ? 'rascunho' : 'simulação'} ${sim.nome || ''}`.trim()}
                             className="w-7 h-7 rounded-lg flex items-center justify-center text-white/10 hover:text-danger-text hover:bg-danger-bg/70 transition-[color,background-color] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)]"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -244,13 +251,27 @@ export default function History() {
                         {isExpanded && (
                           <div className="px-4 pb-4 pt-3 animate-fade-in border-t border-white/[0.03]">
                             <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-                              <DetailCell label="Mao de Obra" value={formatCurrency(sim.resumo?.custoEquipeHoras || 0)} />
-                              <DetailCell label="Transito" value={formatCurrency(sim.resumo?.custoEquipeTransito || 0)} />
-                              <DetailCell label="Passagens" value={formatCurrency(sim.resumo?.custoEquipePassagens || 0)} />
-                              <DetailCell label="Hospedagem" value={formatCurrency(sim.resumo?.custoEquipeHospedagem || 0)} />
-                              <DetailCell label="Alimentacao" value={formatCurrency(sim.resumo?.custoEquipeAlimentacao || 0)} />
-                              <DetailCell label="Logistico" value={formatCurrency(sim.resumo?.custoLogistico || 0)} />
+                              <DetailCell label="Mao de Obra" value={formatCurrency(detailSummary?.custoEquipeHoras || 0)} />
+                              <DetailCell label="Transito" value={formatCurrency(detailSummary?.custoEquipeTransito || 0)} />
+                              <DetailCell label="Passagens" value={formatCurrency(detailSummary?.custoEquipePassagens || 0)} />
+                              <DetailCell label="Hospedagem" value={formatCurrency(detailSummary?.custoEquipeHospedagem || 0)} />
+                              <DetailCell label="Alimentacao" value={formatCurrency(detailSummary?.custoEquipeAlimentacao || 0)} />
+                              <DetailCell label="Logistico" value={formatCurrency(detailSummary?.custoLogistico || 0)} />
                             </div>
+                            {sim.type === 'mobilization-draft' && (
+                              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-warning-border/15 bg-warning-bg/30 px-4 py-3">
+                                <div>
+                                  <span className="label-micro text-warning-text/75 block">Mobilização ainda não confirmada</span>
+                                  <span className="body text-[12px] text-white/35">Revise o cenário e conclua os campos obrigatórios quando decidir seguir.</span>
+                                </div>
+                                <button
+                                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-warning-bg text-warning-text border border-warning-border/25 text-[12px] font-semibold hover:bg-warning-bg/80 transition-colors"
+                                  onClick={() => navigate('/comparador', { state: { mobilizationDraft: sim } })}
+                                >
+                                  Continuar e confirmar <ArrowRight className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </MotionStaggerItem>

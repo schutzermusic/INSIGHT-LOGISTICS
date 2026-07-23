@@ -14,7 +14,7 @@ import {
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/colaboradores', label: 'Colaboradores', icon: Users },
-  { path: '/comparador', label: 'Comparador', icon: BarChart3 },
+  { path: '/comparador', label: 'Simulação Mobilização', icon: BarChart3 },
   { path: '/inteligencia-rotas', label: 'Inteligencia de Rotas', icon: Globe, special: true },
   { path: '/historico', label: 'Historico', icon: History },
 ];

@@ -14,7 +14,10 @@
  */
 
 import { useMemo, useState } from 'react';
-import { CheckCircle, Loader2, ShieldCheck, MapPin, CalendarClock, Users, Briefcase, AlertTriangle } from 'lucide-react';
+import {
+  AlertTriangle, Briefcase, CalendarClock, CheckCircle, FileEdit, Loader2,
+  MapPin, ShieldCheck, Users,
+} from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
 import { formatBRL } from '../../domain/money.js';
@@ -30,16 +33,21 @@ const fmtTime = (iso) => {
 
 export function ConfirmMobilizationModal({
   open, onClose, source, scenario, alternatives = [], employees = [],
-  origin, destination, context = {}, refs = {}, onConfirmed,
+  origin, destination, context = {}, refs = {}, onConfirmed, onSaveDraft,
 }) {
   const [projectName, setProjectName] = useState(context.projectName || '');
   const [scheduleName, setScheduleName] = useState(context.scheduleName || '');
   const [activityName, setActivityName] = useState(context.activityName || '');
   const [costCenter, setCostCenter] = useState(context.costCenter || '');
   const [contract, setContract] = useState(context.contract || '');
-  const [assigned, setAssigned] = useState(() => new Set(employees.map((e) => e.id)));
+  const [assigned, setAssigned] = useState(() => new Set(
+    context.assignedEmployeeIds?.length
+      ? context.assignedEmployeeIds
+      : employees.map((employee) => employee.id),
+  ));
   const [ack, setAck] = useState(false);
   const [state, setState] = useState('idle'); // idle | saving | done | error
+  const [draftState, setDraftState] = useState('idle'); // idle | saving | done
   const [error, setError] = useState(null);
 
   const assignedEmployees = useMemo(() => employees.filter((e) => assigned.has(e.id)), [employees, assigned]);
@@ -86,6 +94,26 @@ export function ConfirmMobilizationModal({
     } catch (err) {
       setState('error');
       setError(err.message || 'Falha ao confirmar a mobilização.');
+    }
+  };
+
+  const saveDraft = async () => {
+    if (draftState === 'saving' || state === 'saving') return;
+    setDraftState('saving');
+    setError(null);
+    try {
+      await onSaveDraft?.({
+        projectName: projectName.trim(),
+        scheduleName: scheduleName.trim(),
+        activityName: activityName.trim(),
+        costCenter: costCenter.trim(),
+        contract: contract.trim(),
+        assignedEmployeeIds: assignedEmployees.map((employee) => employee.id),
+      });
+      setDraftState('done');
+    } catch (err) {
+      setDraftState('idle');
+      setError(err.message || 'Falha ao salvar o rascunho.');
     }
   };
 
@@ -177,8 +205,22 @@ export function ConfirmMobilizationModal({
             </div>
           )}
 
+          {draftState === 'done' && (
+            <div className="flex items-start gap-2 p-3 rounded-xl border border-info-border/20 bg-info-bg/40">
+              <CheckCircle className="w-4 h-4 text-info-text flex-shrink-0 mt-0.5" />
+              <p className="body text-[13px] text-info-text/80">
+                Rascunho salvo no Histórico. Ele não alimenta o Dashboard até a confirmação final.
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center justify-end gap-3 pt-1">
             <button onClick={onClose} className="px-4 py-2 rounded-xl text-[13px] text-white/50 hover:text-white/80 transition-colors">Cancelar</button>
+            <button onClick={saveDraft} disabled={draftState === 'saving' || state === 'saving'}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-white/[0.04] text-white/65 border border-white/[0.09] hover:bg-white/[0.07] hover:text-white/85 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+              {draftState === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileEdit className="w-4 h-4" />}
+              {draftState === 'done' ? 'Rascunho salvo' : 'Salvar como rascunho'}
+            </button>
             <button onClick={submit} disabled={!valid || state === 'saving'}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold bg-mint/15 text-mint border border-mint/25 hover:bg-mint/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
               {state === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}

@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { DayPicker } from 'react-day-picker';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -208,23 +209,65 @@ function CustomChevron({ orientation, ...props }) {
   return <Icon size={15} strokeWidth={2.5} {...props} />;
 }
 
+// Approx rendered calendar height (single month + padding), used to decide
+// whether the popover should open below or flip above the trigger.
+const POPOVER_HEIGHT = 360;
+const POPOVER_WIDTH = 296;
+
 export function DatePicker({ name, label, value, onChange, disabled, minDate }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(value ? parseISO(value) : undefined);
-  const ref = useRef(null);
+  const [coords, setCoords] = useState(null);
+  const ref = useRef(null);      // trigger wrapper (for outside-click)
+  const popRef = useRef(null);   // portalled popover (for outside-click)
+  const triggerRef = useRef(null);
 
   injectStyles();
+
+  // Position the portalled popover from the trigger's viewport rect, flipping
+  // above when there isn't room below and clamping to the viewport so it is
+  // never clipped by an ancestor's overflow (§UI). Uses position: fixed.
+  const computePosition = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - r.bottom;
+    const openUp = spaceBelow < POPOVER_HEIGHT + 12 && r.top > POPOVER_HEIGHT;
+    const width = Math.max(r.width, POPOVER_WIDTH);
+    const left = Math.min(Math.max(8, r.left), window.innerWidth - width - 8);
+    setCoords({
+      left,
+      top: openUp ? r.top - 8 : r.bottom + 8,
+      width,
+      openUp,
+    });
+  }, []);
 
   // Sync external value changes
   useEffect(() => {
     setSelected(value ? parseISO(value) : undefined);
   }, [value]);
 
-  // Close on outside click
+  // Compute position on open, and keep it aligned on scroll/resize.
+  useEffect(() => {
+    if (!open) return;
+    computePosition();
+    const onScroll = () => computePosition();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [open, computePosition]);
+
+  // Close on outside click (trigger + portalled popover both count as "inside").
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (ref.current?.contains(e.target)) return;
+      if (popRef.current?.contains(e.target)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -262,6 +305,7 @@ export function DatePicker({ name, label, value, onChange, disabled, minDate }) 
       {/* Trigger Button */}
       <button
         type="button"
+        ref={triggerRef}
         disabled={disabled}
         onClick={() => !disabled && setOpen(!open)}
         className={`glass-input w-full flex items-center gap-3 text-left cursor-pointer transition-[box-shadow,border-color,background-color,color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${
@@ -286,11 +330,21 @@ export function DatePicker({ name, label, value, onChange, disabled, minDate }) 
         )}
       </button>
 
-      {/* Calendar Dropdown */}
-      {open && (
+      {/* Calendar Dropdown — portalled to <body> with fixed positioning so it
+          escapes any ancestor `overflow: hidden` (e.g. .surface-card) and is
+          never clipped. */}
+      {open && coords && createPortal(
         <div
-          className="motion-enter-fade absolute z-50 mt-2 rounded-xl overflow-hidden"
-          style={{ minWidth: 296 }}
+          ref={popRef}
+          className="motion-enter-fade rounded-xl overflow-hidden"
+          style={{
+            position: 'fixed',
+            left: coords.left,
+            top: coords.top,
+            width: coords.width,
+            transform: coords.openUp ? 'translateY(-100%)' : undefined,
+            zIndex: 1000,
+          }}
         >
           {/* Glass container */}
           <div className="surface-elevated relative rounded-xl">
@@ -320,7 +374,8 @@ export function DatePicker({ name, label, value, onChange, disabled, minDate }) 
             {/* Bottom subtle border glow */}
             <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -115,7 +115,7 @@ class ErrorBoundary extends Component {
 const NAV_ITEMS = [
   { name: 'Dashboard', url: '/', icon: LayoutDashboard, match: (p) => p === '/' },
   { name: 'Colaboradores', url: '/colaboradores', icon: Users },
-  { name: 'Comparador', url: '/comparador', icon: BarChart3 },
+  { name: 'Simulação Mobilização', url: '/comparador', icon: BarChart3 },
   { name: 'Inteligência de Rotas', url: '/inteligencia-rotas', icon: Globe },
   { name: 'Mobilização', url: '/mobilizacao', icon: Rocket },
   { name: 'Histórico', url: '/historico', icon: HistoryIcon },

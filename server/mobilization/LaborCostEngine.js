@@ -187,9 +187,15 @@ export function classifyLabor(input) {
 
     if (!counts) {
       const releaseMs = Date.parse(seg.metadata?.releaseAtUtc || seg.departureAtUtc);
+      const restEndMs = Date.parse(seg.metadata?.restEndAtUtc || seg.arrivalAtUtc);
       const explicitRest = seg.qualifiesAsRest === true;
-      if (explicitRest && Number.isFinite(releaseMs) && endMs - releaseMs >= restThresholdMs) {
-        pendingQualifiedRestEndMs = endMs;
+      if (
+        explicitRest &&
+        Number.isFinite(releaseMs) &&
+        Number.isFinite(restEndMs) &&
+        restEndMs - releaseMs >= restThresholdMs
+      ) {
+        pendingQualifiedRestEndMs = restEndMs;
       }
       continue; // non-paid time neither costs nor advances the counter (§8)
     }

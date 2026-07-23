@@ -23,6 +23,7 @@ export function CityAutocomplete({
   icon,
   iconColor = 'mint',
   required = false,
+  autoFocus = false,
   onChange,
 }) {
   const [query, setQuery] = useState('');
@@ -186,6 +187,7 @@ export function CityAutocomplete({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           required={required}
+          autoFocus={autoFocus}
           autoComplete="off"
           className="glass-input w-full pl-10 pr-10 text-sm text-white placeholder-white/25 transition-[box-shadow,border-color,background-color,color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]"
           style={{

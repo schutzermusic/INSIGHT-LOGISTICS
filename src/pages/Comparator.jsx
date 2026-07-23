@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, ArrowDown, ArrowLeftRight, ArrowUp, Bus, Car, Check,
   CheckCircle, ChevronDown, ChevronUp, Clock, Copy, Gauge, Hotel, Info,
@@ -14,8 +14,10 @@ import { DatePicker } from '../components/ui/DatePicker';
 import { ConfirmMobilizationModal } from '../components/mobilization/ConfirmMobilizationModal';
 import { getExtendedCities } from '../engine/routes-intelligence-db';
 import { formatBRL, toCentavos } from '../domain/money';
+import { mobilizationDraftHistorySummary } from '../domain/mobilizationDraftSummary';
 import { formatDuration, formatInTz, zonedLocalToUtcIso } from '../lib/datetime';
 import { mobilizationManualCalculate } from '../services/BackendApiClient';
+import { deleteSimulation, saveSimulation } from '../data/store';
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
 const PAID_TYPES = new Set(['bus', 'flight', 'rental_car', 'company_car', 'transfer', 'hotel_rest', 'meal_break']);
@@ -46,6 +48,15 @@ const newId = (prefix) => `${prefix}-${Date.now()}-${sequence++}`;
 const datePart = (value) => value?.slice(0, 10) || '';
 const timePart = (value) => value?.slice(11, 16) || '';
 const localValue = (date, time) => (date && time ? `${date}T${time}` : '');
+const addMinutesToLocal = (local, minutes) => {
+  if (!local || !Number.isFinite(minutes)) return '';
+  const [date, time] = local.split('T');
+  const [year, month, day] = date.split('-').map(Number);
+  const [hour, minute] = time.split(':').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, hour, minute) + minutes * 60000)
+    .toISOString()
+    .slice(0, 16);
+};
 const employeeName = (employee) => employee.nome || employee.name || 'Colaborador';
 const employeeRole = (employee) => employee.cargo || employee.role || 'Cargo não informado';
 const hourlyRateC = (employee) => (
@@ -64,7 +75,7 @@ function blankSegment(type, direction, date, previous) {
     segmentType: type,
     direction,
     originLocationId: defaultOrigin,
-    destinationLocationId: '',
+    destinationLocationId: type === 'waiting' ? defaultOrigin : '',
     originLocationType: previous?.destinationLocationType || meta.originType,
     destinationLocationType: meta.destType,
     departureDate: datePart(previousArrival) || date || '',
@@ -73,11 +84,39 @@ function blankSegment(type, direction, date, previous) {
     arrivalTime: '',
     departureTz: DEFAULT_TZ,
     arrivalTz: DEFAULT_TZ,
-    releaseDate: '',
-    releaseTime: '',
+    connectionDate: type === 'waiting' ? (datePart(previousArrival) || date || '') : '',
+    connectionHours: '',
     priceAmount: type === 'waiting' ? '0' : '',
-    priceAllocation: type === 'waiting' ? 'selected_passengers_total' : meta.allocation,
+    priceAllocation: type === 'waiting' ? 'none' : meta.allocation,
     providerName: '',
+    serviceClass: '',
+    flightNumber: '',
+    quoteReference: '',
+    baggageDescription: '',
+    baggageFee: '',
+    taxesAmount: '',
+    boardingLeadMinutes: type === 'flight' ? '120' : type === 'bus' ? '30' : '',
+    disembarkMinutes: '',
+    baggageClaimMinutes: '',
+    driverName: '',
+    vehicleCategory: '',
+    vehicleReference: '',
+    rentalDays: '',
+    distanceKm: '',
+    fuelConsumptionKmL: '',
+    fuelPricePerLiter: '',
+    tollsAmount: '',
+    parkingAmount: '',
+    oneWayFee: '',
+    extraMileageAmount: '',
+    otherChargesAmount: '',
+    transferType: '',
+    safetyMarginMinutes: '',
+    hotelName: '',
+    roomCount: '',
+    roomOccupancy: '',
+    mealsIncluded: '',
+    mealDescription: '',
     notes: '',
     passengerIds: null,
     countsAsLabor: type === 'hotel_rest' || type === 'meal_break' ? false : undefined,
@@ -85,8 +124,36 @@ function blankSegment(type, direction, date, previous) {
   };
 }
 
+function segmentCommercialAmount(segment) {
+  const base = Number(segment.priceAmount || 0);
+  const directExtras = [
+    segment.baggageFee,
+    segment.taxesAmount,
+    segment.tollsAmount,
+    segment.parkingAmount,
+    segment.oneWayFee,
+    segment.extraMileageAmount,
+    segment.otherChargesAmount,
+  ].reduce((sum, value) => sum + Number(value || 0), 0);
+  const distance = Number(segment.distanceKm || 0);
+  const consumption = Number(segment.fuelConsumptionKmL || 0);
+  const literPrice = Number(segment.fuelPricePerLiter || 0);
+  const fuel = distance > 0 && consumption > 0 && literPrice > 0
+    ? (distance / consumption) * literPrice
+    : 0;
+  return Math.max(0, base + directExtras + fuel);
+}
+
 function validateSegment(segment, selectedIds) {
   const errors = [];
+  if (segment.segmentType === 'waiting') {
+    if (!segment.originLocationId.trim()) errors.push('Informe a cidade da conexão.');
+    if (!segment.connectionDate) errors.push('Informe a data da conexão.');
+    if (!(Number(segment.connectionHours) > 0)) errors.push('Informe a duração da conexão em horas.');
+    const passengers = segment.passengerIds || selectedIds;
+    if (!passengers.length) errors.push('Selecione ao menos um colaborador para a simulação.');
+    return errors;
+  }
   if (!segment.originLocationId.trim()) errors.push('Informe a origem.');
   if (!segment.destinationLocationId.trim()) errors.push('Informe o destino.');
   if (!segment.departureDate || !segment.departureTime) errors.push('Informe a data e hora de saída.');
@@ -101,13 +168,26 @@ function validateSegment(segment, selectedIds) {
   }
   const passengers = segment.passengerIds || selectedIds;
   if (!passengers.length) errors.push('Vincule ao menos um colaborador.');
-  if (segment.segmentType === 'hotel_rest' && segment.releaseDate && !segment.releaseTime) {
-    errors.push('Informe a hora de liberação para descanso.');
+  if (segment.segmentType === 'bus' && !segment.providerName.trim()) {
+    errors.push('Informe a empresa de ônibus.');
+  }
+  if (segment.segmentType === 'flight' && !segment.providerName.trim()) {
+    errors.push('Informe a companhia aérea.');
+  }
+  if (segment.segmentType === 'rental_car' && !segment.driverName.trim()) {
+    errors.push('Informe o condutor do veículo locado.');
+  }
+  if (segment.segmentType === 'hotel_rest') {
+    if (!segment.hotelName.trim()) errors.push('Informe o hotel ou local de descanso.');
   }
   return errors;
 }
 
 function segmentDuration(segment) {
+  if (segment.segmentType === 'waiting') {
+    const minutes = Math.round(Number(segment.connectionHours) * 60);
+    return minutes > 0 ? minutes : null;
+  }
   const start = localValue(segment.departureDate, segment.departureTime);
   const end = localValue(segment.arrivalDate, segment.arrivalTime);
   if (!start || !end) return null;
@@ -126,6 +206,7 @@ function scenarioIsComplete(scenario, selectedIds, tripType) {
 export default function Comparator() {
   const { collaborators } = useCollaborators();
   const navigate = useNavigate();
+  const location = useLocation();
   const cities = useMemo(() => getExtendedCities(), []);
   const [selectedIds, setSelectedIds] = useState([]);
   const [employeeQuery, setEmployeeQuery] = useState('');
@@ -144,7 +225,28 @@ export default function Comparator() {
   const [drawer, setDrawer] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [draftContext, setDraftContext] = useState({});
+  const [activeDraftId, setActiveDraftId] = useState(null);
   const requestVersion = useRef(0);
+  const restoredDraft = useRef(false);
+
+  useEffect(() => {
+    if (restoredDraft.current || !collaborators.length) return;
+    const draft = location.state?.mobilizationDraft;
+    const editor = draft?.editorState;
+    if (!draft || draft.type !== 'mobilization-draft' || !editor) return;
+    restoredDraft.current = true;
+    setCtx(editor.ctx || {});
+    setSelectedIds((editor.selectedIds || []).filter((id) => collaborators.some((employee) => employee.id === id)));
+    setScenarios(Array.isArray(editor.scenarios) && editor.scenarios.length
+      ? editor.scenarios
+      : [{ id: newId('scenario'), name: 'Cenário A', outbound: [], return: [] }]);
+    setResult(draft.calculationResult || null);
+    setCalculationState(draft.calculationResult ? 'calculated' : 'pending');
+    setDraftContext(draft.confirmationContext || {});
+    setActiveDraftId(draft.id || null);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [collaborators, location.pathname, location.state, navigate]);
 
   const selectedEmployees = useMemo(
     () => collaborators.filter((employee) => selectedIds.includes(employee.id)),
@@ -275,40 +377,73 @@ export default function Comparator() {
         departureTime: '',
         arrivalDate: ctx.returnDate,
         arrivalTime: '',
-        releaseDate: '',
-        releaseTime: '',
       }));
       if (copied[0]) setOpenSegmentId(copied[0].id);
       return { ...scenario, return: copied };
     });
   };
 
-  const toApiSegment = useCallback((segment, passengerIds, sequenceIndex) => {
-    const departureLocal = localValue(segment.departureDate, segment.departureTime);
-    const arrivalLocal = localValue(segment.arrivalDate, segment.arrivalTime);
-    const releaseLocal = localValue(segment.releaseDate, segment.releaseTime);
+  const toApiSegment = useCallback((segment, passengerIds, sequenceIndex, bounds = {}) => {
+    const departureLocal = bounds.departureLocal || localValue(segment.departureDate, segment.departureTime);
+    const arrivalLocal = bounds.arrivalLocal || localValue(segment.arrivalDate, segment.arrivalTime);
+    const departureAtUtc = zonedLocalToUtcIso(departureLocal, segment.departureTz);
+    const arrivalAtUtc = zonedLocalToUtcIso(arrivalLocal, segment.arrivalTz);
     return {
       id: segment.id,
       sequence: sequenceIndex,
       segmentType: segment.segmentType,
       direction: segment.direction,
       originLocationId: segment.originLocationId,
-      destinationLocationId: segment.destinationLocationId,
-      originLocationType: segment.originLocationType,
-      destinationLocationType: segment.destinationLocationType,
-      departureAtUtc: zonedLocalToUtcIso(departureLocal, segment.departureTz),
-      arrivalAtUtc: zonedLocalToUtcIso(arrivalLocal, segment.arrivalTz),
+      destinationLocationId: segment.segmentType === 'waiting'
+        ? segment.originLocationId
+        : segment.destinationLocationId,
+      originLocationType: segment.segmentType === 'waiting' ? 'city' : segment.originLocationType,
+      destinationLocationType: segment.segmentType === 'waiting' ? 'city' : segment.destinationLocationType,
+      departureAtUtc,
+      arrivalAtUtc,
       originTimezone: segment.departureTz,
       destinationTimezone: segment.arrivalTz,
-      releaseAtUtc: releaseLocal ? zonedLocalToUtcIso(releaseLocal, segment.arrivalTz) : null,
+      releaseAtUtc: segment.segmentType === 'hotel_rest' ? departureAtUtc : null,
       providerName: segment.providerName || null,
-      priceAmountMinor: toCentavos(Number(segment.priceAmount || 0)),
-      priceAllocation: segment.priceAllocation,
+      priceAmountMinor: toCentavos(
+        segment.segmentType === 'waiting' ? 0 : segmentCommercialAmount(segment),
+      ),
+      priceAllocation: segment.segmentType === 'waiting' ? 'none' : segment.priceAllocation,
       currency: 'BRL',
       passengerIds: segment.passengerIds || passengerIds,
       countsAsLabor: segment.countsAsLabor,
       qualifiesAsRest: segment.qualifiesAsRest,
-      metadata: { direction: segment.direction, notes: segment.notes || null },
+      metadata: {
+        direction: segment.direction,
+        notes: segment.notes || null,
+        serviceClass: segment.serviceClass || null,
+        flightNumber: segment.flightNumber || null,
+        quoteReference: segment.quoteReference || null,
+        baggageDescription: segment.baggageDescription || null,
+        boardingLeadMinutes: Number(segment.boardingLeadMinutes || 0),
+        disembarkMinutes: Number(segment.disembarkMinutes || 0),
+        baggageClaimMinutes: Number(segment.baggageClaimMinutes || 0),
+        driverName: segment.driverName || null,
+        vehicleCategory: segment.vehicleCategory || null,
+        vehicleReference: segment.vehicleReference || null,
+        rentalDays: Number(segment.rentalDays || 0),
+        distanceKm: Number(segment.distanceKm || 0),
+        fuelConsumptionKmL: Number(segment.fuelConsumptionKmL || 0),
+        fuelPricePerLiter: Number(segment.fuelPricePerLiter || 0),
+        tollsAmountMinor: toCentavos(Number(segment.tollsAmount || 0)),
+        parkingAmountMinor: toCentavos(Number(segment.parkingAmount || 0)),
+        oneWayFeeMinor: toCentavos(Number(segment.oneWayFee || 0)),
+        extraMileageAmountMinor: toCentavos(Number(segment.extraMileageAmount || 0)),
+        otherChargesAmountMinor: toCentavos(Number(segment.otherChargesAmount || 0)),
+        transferType: segment.transferType || null,
+        safetyMarginMinutes: Number(segment.safetyMarginMinutes || 0),
+        hotelName: segment.hotelName || null,
+        roomCount: Number(segment.roomCount || 0),
+        roomOccupancy: Number(segment.roomOccupancy || 0),
+        mealsIncluded: segment.mealsIncluded || null,
+        mealDescription: segment.mealDescription || null,
+        restEndAtUtc: segment.segmentType === 'hotel_rest' ? arrivalAtUtc : null,
+      },
     };
   }, []);
 
@@ -340,15 +475,61 @@ export default function Comparator() {
             ? scenario.return.map((segment) => ({ ...segment, direction: 'return' }))
             : []),
         ];
+        let previousArrivalLocal = '';
+        const normalizedSegments = raw.map((segment, index) => {
+          let departureLocal = localValue(segment.departureDate, segment.departureTime);
+          let arrivalLocal = localValue(segment.arrivalDate, segment.arrivalTime);
+          if (segment.segmentType === 'waiting') {
+            const previousTime = datePart(previousArrivalLocal) === segment.connectionDate
+              ? timePart(previousArrivalLocal)
+              : '00:00';
+            departureLocal = localValue(segment.connectionDate, previousTime);
+            arrivalLocal = addMinutesToLocal(
+              departureLocal,
+              Math.round(Number(segment.connectionHours) * 60),
+            );
+          }
+          const normalized = toApiSegment(
+            segment,
+            employeeIds,
+            index,
+            { departureLocal, arrivalLocal },
+          );
+          previousArrivalLocal = arrivalLocal;
+          return normalized;
+        });
         return {
           id: scenario.id,
           name: scenario.name,
           tripType: ctx.tripType,
-          segments: raw.map((segment, index) => toApiSegment(segment, employeeIds, index)),
+          segments: normalizedSegments,
         };
       }),
     };
   }, [ctx, scenarios, selectedEmployees, toApiSegment]);
+
+  const saveAsDraft = useCallback(async (confirmationContext) => {
+    const recommended = result?.recommended;
+    const saved = await saveSimulation({
+      type: 'mobilization-draft',
+      status: 'draft',
+      nome: ctx.name || recommended?.scenarioName || 'Mobilização em rascunho',
+      origem: ctx.origin,
+      destino: ctx.destination,
+      modal: recommended?.modeSequence?.join(' + ') || 'Multimodal',
+      qtdColaboradores: selectedIds.length,
+      resumo: mobilizationDraftHistorySummary(recommended),
+      editorState: { ctx, selectedIds, scenarios },
+      calculationResult: result,
+      confirmationContext,
+      savedAt: new Date().toISOString(),
+    });
+    if (!saved) throw new Error('Não foi possível persistir o rascunho.');
+    if (activeDraftId && activeDraftId !== saved.id) await deleteSimulation(activeDraftId);
+    setActiveDraftId(saved.id);
+    setDraftContext(confirmationContext);
+    return saved;
+  }, [activeDraftId, ctx, result, scenarios, selectedIds]);
 
   const calculate = useCallback(async ({ automatic = false } = {}) => {
     if (!allComplete) {
@@ -441,6 +622,7 @@ export default function Comparator() {
                 onDirection={(direction) => setActiveDirection((current) => ({ ...current, [scenario.id]: direction }))}
                 selectedIds={selectedIds}
                 employees={selectedEmployees}
+                cities={cities}
                 openSegmentId={openSegmentId}
                 onToggleOpen={(id) => setOpenSegmentId((current) => current === id ? null : id)}
                 onRename={(name) => updateScenario(scenario.id, (current) => ({ ...current, name }))}
@@ -489,9 +671,16 @@ export default function Comparator() {
           }))}
           origin={ctx.origin}
           destination={ctx.destination}
-          context={{}}
+          context={draftContext}
           refs={{ simulationId: result.audit?.simulationId || null, policySummary: result.policySummary || null }}
-          onConfirmed={() => setConfirmed(true)}
+          onSaveDraft={saveAsDraft}
+          onConfirmed={async () => {
+            setConfirmed(true);
+            if (activeDraftId) {
+              await deleteSimulation(activeDraftId);
+              setActiveDraftId(null);
+            }
+          }}
         />
       )}
     </div>
@@ -713,7 +902,7 @@ function PolicyPanel({ policy }) {
 
 function ScenarioEditor(props) {
   const {
-    scenario, tripType, direction, onDirection, selectedIds, employees,
+    scenario, tripType, direction, onDirection, selectedIds, employees, cities,
     openSegmentId, onToggleOpen, onRename, onDuplicate, onRemove, onAddSegment,
     onUpdateSegment, onDuplicateSegment, onRemoveSegment, onMoveSegment,
     onCopyOutbound, result,
@@ -768,6 +957,7 @@ function ScenarioEditor(props) {
             index={index}
             count={timeline.length}
             employees={employees}
+            cities={cities}
             selectedIds={selectedIds}
             open={openSegmentId === segment.id}
             onToggle={() => onToggleOpen(segment.id)}
@@ -791,7 +981,7 @@ function ScenarioEditor(props) {
 }
 
 function SegmentCard({
-  segment, index, count, employees, selectedIds, open, onToggle, onUpdate, onDuplicate, onRemove, onMove,
+  segment, index, count, employees, cities, selectedIds, open, onToggle, onUpdate, onDuplicate, onRemove, onMove,
 }) {
   const meta = TYPE_META[segment.segmentType];
   const Icon = meta.icon;
@@ -810,9 +1000,13 @@ function SegmentCard({
                 : <span className="segment-status valid"><CheckCircle className="w-3 h-3" /> Válido</span>}
             </span>
             <span className="block text-[12px] text-white/60 truncate mt-0.5">
-              {segment.originLocationId || 'Origem'} → {segment.destinationLocationId || 'Destino'}
+              {segment.segmentType === 'waiting'
+                ? (segment.originLocationId || 'Cidade da conexão')
+                : `${segment.originLocationId || 'Origem'} → ${segment.destinationLocationId || 'Destino'}`}
               {duration ? ` · ${formatDuration(duration)}` : ''}
-              {segment.priceAmount !== '' ? ` · ${formatBRL(toCentavos(Number(segment.priceAmount || 0)))}` : ''}
+              {segment.segmentType !== 'waiting' && segment.priceAmount !== ''
+                ? ` · ${formatBRL(toCentavos(segmentCommercialAmount(segment)))}`
+                : ''}
             </span>
           </span>
           {open ? <ChevronUp className="w-4 h-4 text-white/60" /> : <ChevronDown className="w-4 h-4 text-white/60" />}
@@ -828,6 +1022,7 @@ function SegmentCard({
         <SegmentForm
           segment={segment}
           employees={employees}
+          cities={cities}
           selectedIds={selectedIds}
           errors={errors}
           duration={duration}
@@ -838,7 +1033,63 @@ function SegmentCard({
   );
 }
 
-function SegmentForm({ segment, employees, selectedIds, errors, duration, onUpdate }) {
+function SegmentForm({ segment, employees, cities, selectedIds, errors, duration, onUpdate }) {
+  if (segment.segmentType === 'waiting') {
+    return (
+      <div className="segment-form">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Field label="Cidade da conexão *">
+            <CityAutocomplete
+              value={segment.originLocationId}
+              cities={cities}
+              required
+              autoFocus
+              placeholder="Buscar cidade da conexão..."
+              onChange={(originLocationId) => onUpdate({
+                originLocationId,
+                destinationLocationId: originLocationId,
+                originLocationType: 'city',
+                destinationLocationType: 'city',
+              })}
+            />
+          </Field>
+          <Field label="Data da conexão *">
+            <input
+              type="date"
+              className="glass-input"
+              value={segment.connectionDate}
+              onChange={(event) => onUpdate({ connectionDate: event.target.value })}
+            />
+          </Field>
+          <Field label="Duração da conexão (horas) *">
+            <input
+              type="number"
+              min="0.25"
+              step="0.25"
+              className="glass-input"
+              value={segment.connectionHours}
+              onChange={(event) => onUpdate({ connectionHours: event.target.value })}
+              placeholder="Ex.: 2"
+            />
+          </Field>
+        </div>
+
+        <div className="segment-derived">
+          <Metric label="Cidade" value={segment.originLocationId || 'Pendente'} />
+          <Metric label="Data da conexão" value={segment.connectionDate || 'Pendente'} />
+          <Metric label="Duração calculada" value={duration ? formatDuration(duration) : 'Pendente'} />
+          <Metric label="Custo" value="Sem custo" />
+        </div>
+
+        {!!errors.length && (
+          <ul className="validation-list">
+            {errors.map((message) => <li key={message}><AlertTriangle className="w-3.5 h-3.5" /> {message}</li>)}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
   const passengers = segment.passengerIds || selectedIds;
   const togglePassenger = (id) => {
     const next = passengers.includes(id) ? passengers.filter((item) => item !== id) : [...passengers, id];
@@ -846,46 +1097,94 @@ function SegmentForm({ segment, employees, selectedIds, errors, duration, onUpda
   };
   const rest = segment.segmentType === 'hotel_rest';
   const flexibleLabor = ['waiting', 'meal_break', 'hotel_rest'].includes(segment.segmentType);
+  const scheduleLabels = rest
+    ? {
+      departureDate: 'Data de chegada ao hotel *',
+      departureTime: 'Hora de chegada ao hotel *',
+      arrivalDate: 'Data de checkout / saída *',
+      arrivalTime: 'Hora de checkout / saída *',
+    }
+    : segment.segmentType === 'rental_car'
+      ? {
+        departureDate: 'Data de retirada / saída *',
+        departureTime: 'Hora de retirada / saída *',
+        arrivalDate: 'Data de devolução / chegada *',
+        arrivalTime: 'Hora de devolução / chegada *',
+      }
+      : {
+        departureDate: 'Data de saída *',
+        departureTime: 'Hora de saída *',
+        arrivalDate: 'Data de chegada *',
+        arrivalTime: 'Hora de chegada *',
+      };
   return (
     <div className="segment-form">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Field label="Origem *">
-          <input autoFocus className="glass-input" value={segment.originLocationId} onChange={(event) => onUpdate({ originLocationId: event.target.value })} placeholder="Cidade, terminal ou ponto operacional" />
-        </Field>
-        <Field label="Destino *">
-          <input className="glass-input" value={segment.destinationLocationId} onChange={(event) => onUpdate({ destinationLocationId: event.target.value })} placeholder="Cidade, terminal ou ponto operacional" />
-        </Field>
-        <Field label="Tipo da origem">
-          <select className="glass-input" value={segment.originLocationType} onChange={(event) => onUpdate({ originLocationType: event.target.value })}>
-            {LOCATION_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </Field>
-        <Field label="Tipo do destino">
-          <select className="glass-input" value={segment.destinationLocationType} onChange={(event) => onUpdate({ destinationLocationType: event.target.value })}>
-            {LOCATION_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </Field>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Field label="Data de saída *"><input type="date" className="glass-input" value={segment.departureDate} onChange={(event) => onUpdate({ departureDate: event.target.value })} /></Field>
-        <Field label="Hora de saída *"><input type="time" className="glass-input" value={segment.departureTime} onChange={(event) => onUpdate({ departureTime: event.target.value })} /></Field>
-        <Field label="Data de chegada *"><input type="date" className="glass-input" value={segment.arrivalDate} onChange={(event) => onUpdate({ arrivalDate: event.target.value })} /></Field>
-        <Field label="Hora de chegada *"><input type="time" className="glass-input" value={segment.arrivalTime} onChange={(event) => onUpdate({ arrivalTime: event.target.value })} /></Field>
-      </div>
-
-      {rest && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Field label="Data da liberação para descanso">
-            <input type="date" className="glass-input" value={segment.releaseDate} onChange={(event) => onUpdate({ releaseDate: event.target.value })} />
+      {rest ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Field label="Cidade do hotel / descanso *">
+            <CityAutocomplete
+              value={segment.originLocationId}
+              cities={cities}
+              required
+              autoFocus
+              placeholder="Buscar cidade do hotel..."
+              onChange={(city) => onUpdate({
+                originLocationId: city,
+                destinationLocationId: city,
+                originLocationType: 'hotel',
+                destinationLocationType: 'hotel',
+              })}
+            />
           </Field>
-          <Field label="Hora da liberação para descanso">
-            <input type="time" className="glass-input" value={segment.releaseTime} onChange={(event) => onUpdate({ releaseTime: event.target.value })} />
+          <Field label="Hotel ou local de descanso *">
+            <input className="glass-input" value={segment.hotelName} onChange={(event) => onUpdate({ hotelName: event.target.value })} placeholder="Nome do hotel ou alojamento" />
+          </Field>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Field label="Origem *">
+            <CityAutocomplete
+              value={segment.originLocationId}
+              cities={cities}
+              required
+              autoFocus
+              placeholder="Buscar cidade de origem..."
+              onChange={(originLocationId) => onUpdate({ originLocationId })}
+            />
+          </Field>
+          <Field label="Destino *">
+            <CityAutocomplete
+              value={segment.destinationLocationId}
+              cities={cities}
+              required
+              iconColor="orange"
+              placeholder="Buscar cidade de destino..."
+              onChange={(destinationLocationId) => onUpdate({ destinationLocationId })}
+            />
+          </Field>
+          <Field label="Tipo da origem">
+            <select className="glass-input" value={segment.originLocationType} onChange={(event) => onUpdate({ originLocationType: event.target.value })}>
+              {LOCATION_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </Field>
+          <Field label="Tipo do destino">
+            <select className="glass-input" value={segment.destinationLocationType} onChange={(event) => onUpdate({ destinationLocationType: event.target.value })}>
+              {LOCATION_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
           </Field>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Field label={scheduleLabels.departureDate}><input type="date" className="glass-input" value={segment.departureDate} onChange={(event) => onUpdate({ departureDate: event.target.value })} /></Field>
+        <Field label={scheduleLabels.departureTime}><input type="time" className="glass-input" value={segment.departureTime} onChange={(event) => onUpdate({ departureTime: event.target.value })} /></Field>
+        <Field label={scheduleLabels.arrivalDate}><input type="date" className="glass-input" value={segment.arrivalDate} onChange={(event) => onUpdate({ arrivalDate: event.target.value })} /></Field>
+        <Field label={scheduleLabels.arrivalTime}><input type="time" className="glass-input" value={segment.arrivalTime} onChange={(event) => onUpdate({ arrivalTime: event.target.value })} /></Field>
+      </div>
+
+      <TypeSpecificFields segment={segment} onUpdate={onUpdate} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Field label={PAID_TYPES.has(segment.segmentType) ? 'Preço manual (R$) *' : 'Preço manual (R$)'}>
           <input type="number" min="0" step="0.01" className="glass-input" value={segment.priceAmount} onChange={(event) => onUpdate({ priceAmount: event.target.value })} />
         </Field>
@@ -893,9 +1192,6 @@ function SegmentForm({ segment, employees, selectedIds, errors, duration, onUpda
           <select className="glass-input" value={segment.priceAllocation} onChange={(event) => onUpdate({ priceAllocation: event.target.value })}>
             {PRICE_ALLOCATIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
-        </Field>
-        <Field label="Fornecedor / empresa">
-          <input className="glass-input" value={segment.providerName} onChange={(event) => onUpdate({ providerName: event.target.value })} placeholder="Opcional" />
         </Field>
       </div>
 
@@ -933,7 +1229,7 @@ function SegmentForm({ segment, employees, selectedIds, errors, duration, onUpda
 
       <div className="segment-derived">
         <Metric label="Duração calculada" value={duration ? formatDuration(duration) : 'Pendente'} />
-        <Metric label="Preço comercial" value={segment.priceAmount !== '' ? formatBRL(toCentavos(Number(segment.priceAmount || 0))) : 'Pendente'} />
+        <Metric label="Preço comercial" value={segment.priceAmount !== '' ? formatBRL(toCentavos(segmentCommercialAmount(segment))) : 'Pendente'} />
         <Metric label="Jornada" value={segment.countsAsLabor === false ? 'Não contabiliza' : 'Conforme política'} />
         <Metric label="Direção" value={segment.direction === 'return' ? 'Volta' : 'Ida'} />
       </div>
@@ -945,6 +1241,115 @@ function SegmentForm({ segment, employees, selectedIds, errors, duration, onUpda
       )}
     </div>
   );
+}
+
+function TypeSpecificFields({ segment, onUpdate }) {
+  const set = (field) => (event) => onUpdate({ [field]: event.target.value });
+  const shell = (title, description, content) => (
+    <section className="rounded-xl border border-accent-cyan/15 bg-accent-cyan/[0.035] p-3 md:p-4">
+      <div className="mb-3">
+        <h4 className="text-[13px] font-semibold text-white/85">{title}</h4>
+        <p className="text-[11px] text-white/45 mt-0.5">{description}</p>
+      </div>
+      {content}
+    </section>
+  );
+
+  if (segment.segmentType === 'bus') {
+    return shell('Configuração do ônibus', 'Dados comerciais e operacionais próprios do trecho rodoviário.', (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Field label="Empresa de ônibus *"><input className="glass-input" value={segment.providerName} onChange={set('providerName')} placeholder="Ex.: Viação Xavante" /></Field>
+        <Field label="Classe / serviço"><input className="glass-input" value={segment.serviceClass} onChange={set('serviceClass')} placeholder="Convencional, executivo, leito..." /></Field>
+        <Field label="Referência da cotação"><input className="glass-input" value={segment.quoteReference} onChange={set('quoteReference')} placeholder="Código, telefone ou proposta" /></Field>
+        <Field label="Bagagem / materiais"><input className="glass-input" value={segment.baggageDescription} onChange={set('baggageDescription')} placeholder="Volumes e condições" /></Field>
+        <Field label="Taxas (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.taxesAmount} onChange={set('taxesAmount')} /></Field>
+        <Field label="Bagagem adicional (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.baggageFee} onChange={set('baggageFee')} /></Field>
+        <Field label="Antecedência de embarque (min)"><input type="number" min="0" className="glass-input" value={segment.boardingLeadMinutes} onChange={set('boardingLeadMinutes')} /></Field>
+        <Field label="Tempo de desembarque (min)"><input type="number" min="0" className="glass-input" value={segment.disembarkMinutes} onChange={set('disembarkMinutes')} /></Field>
+      </div>
+    ));
+  }
+
+  if (segment.segmentType === 'flight') {
+    return shell('Configuração do voo', 'Dados da companhia, voo, processamento e bagagem.', (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Field label="Companhia aérea *"><input className="glass-input" value={segment.providerName} onChange={set('providerName')} placeholder="Ex.: Azul" /></Field>
+        <Field label="Número do voo"><input className="glass-input" value={segment.flightNumber} onChange={set('flightNumber')} placeholder="Ex.: AD 2842" /></Field>
+        <Field label="Referência da cotação"><input className="glass-input" value={segment.quoteReference} onChange={set('quoteReference')} /></Field>
+        <Field label="Bagagem / materiais"><input className="glass-input" value={segment.baggageDescription} onChange={set('baggageDescription')} /></Field>
+        <Field label="Taxas aeroportuárias (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.taxesAmount} onChange={set('taxesAmount')} /></Field>
+        <Field label="Bagagem adicional (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.baggageFee} onChange={set('baggageFee')} /></Field>
+        <Field label="Antecedência / check-in (min)"><input type="number" min="0" className="glass-input" value={segment.boardingLeadMinutes} onChange={set('boardingLeadMinutes')} /></Field>
+        <Field label="Retirada de bagagem (min)"><input type="number" min="0" className="glass-input" value={segment.baggageClaimMinutes} onChange={set('baggageClaimMinutes')} /></Field>
+      </div>
+    ));
+  }
+
+  if (segment.segmentType === 'rental_car') {
+    return shell('Configuração do veículo locado', 'Locação, condutor, distância e custos rodoviários.', (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Field label="Locadora"><input className="glass-input" value={segment.providerName} onChange={set('providerName')} /></Field>
+        <Field label="Condutor *"><input className="glass-input" value={segment.driverName} onChange={set('driverName')} /></Field>
+        <Field label="Categoria"><input className="glass-input" value={segment.vehicleCategory} onChange={set('vehicleCategory')} placeholder="SUV, sedan, utilitário..." /></Field>
+        <Field label="Quantidade de diárias"><input type="number" min="0" step="1" className="glass-input" value={segment.rentalDays} onChange={set('rentalDays')} /></Field>
+        <Field label="Distância prevista (km)"><input type="number" min="0" step="0.1" className="glass-input" value={segment.distanceKm} onChange={set('distanceKm')} /></Field>
+        <Field label="Consumo (km/L)"><input type="number" min="0" step="0.1" className="glass-input" value={segment.fuelConsumptionKmL} onChange={set('fuelConsumptionKmL')} /></Field>
+        <Field label="Combustível (R$/L)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.fuelPricePerLiter} onChange={set('fuelPricePerLiter')} /></Field>
+        <Field label="Taxa de devolução (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.oneWayFee} onChange={set('oneWayFee')} /></Field>
+        <Field label="Pedágios (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.tollsAmount} onChange={set('tollsAmount')} /></Field>
+        <Field label="Estacionamento (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.parkingAmount} onChange={set('parkingAmount')} /></Field>
+        <Field label="Quilometragem excedente (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.extraMileageAmount} onChange={set('extraMileageAmount')} /></Field>
+        <Field label="Outras cobranças (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.otherChargesAmount} onChange={set('otherChargesAmount')} /></Field>
+      </div>
+    ));
+  }
+
+  if (segment.segmentType === 'company_car') {
+    return shell('Configuração do veículo da frota', 'Identificação do veículo, condutor e despesas do percurso.', (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Field label="Veículo / placa"><input className="glass-input" value={segment.vehicleReference} onChange={set('vehicleReference')} /></Field>
+        <Field label="Condutor"><input className="glass-input" value={segment.driverName} onChange={set('driverName')} /></Field>
+        <Field label="Distância prevista (km)"><input type="number" min="0" step="0.1" className="glass-input" value={segment.distanceKm} onChange={set('distanceKm')} /></Field>
+        <Field label="Consumo (km/L)"><input type="number" min="0" step="0.1" className="glass-input" value={segment.fuelConsumptionKmL} onChange={set('fuelConsumptionKmL')} /></Field>
+        <Field label="Combustível (R$/L)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.fuelPricePerLiter} onChange={set('fuelPricePerLiter')} /></Field>
+        <Field label="Pedágios (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.tollsAmount} onChange={set('tollsAmount')} /></Field>
+        <Field label="Estacionamento (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.parkingAmount} onChange={set('parkingAmount')} /></Field>
+        <Field label="Outros custos (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.otherChargesAmount} onChange={set('otherChargesAmount')} /></Field>
+      </div>
+    ));
+  }
+
+  if (segment.segmentType === 'transfer') {
+    return shell('Configuração do transfer', 'Fornecedor, tipo de veículo e margem operacional.', (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Field label="Fornecedor"><input className="glass-input" value={segment.providerName} onChange={set('providerName')} /></Field>
+        <Field label="Tipo de transfer"><input className="glass-input" value={segment.transferType} onChange={set('transferType')} placeholder="Van, táxi, executivo..." /></Field>
+        <Field label="Margem de segurança (min)"><input type="number" min="0" className="glass-input" value={segment.safetyMarginMinutes} onChange={set('safetyMarginMinutes')} /></Field>
+      </div>
+    ));
+  }
+
+  if (segment.segmentType === 'hotel_rest') {
+    return shell('Configuração da hospedagem e descanso', 'O descanso efetivo, e não apenas a estadia, controla o reinício da jornada.', (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Field label="Quantidade de quartos"><input type="number" min="0" step="1" className="glass-input" value={segment.roomCount} onChange={set('roomCount')} /></Field>
+        <Field label="Ocupação por quarto"><input type="number" min="1" step="1" className="glass-input" value={segment.roomOccupancy} onChange={set('roomOccupancy')} /></Field>
+        <Field label="Refeições incluídas"><input className="glass-input" value={segment.mealsIncluded} onChange={set('mealsIncluded')} placeholder="Ex.: café da manhã" /></Field>
+        <Field label="Referência da cotação"><input className="glass-input" value={segment.quoteReference} onChange={set('quoteReference')} /></Field>
+      </div>
+    ));
+  }
+
+  if (segment.segmentType === 'meal_break') {
+    return shell('Configuração da alimentação', 'Identifique o intervalo e seu tratamento operacional.', (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Field label="Tipo / descrição da refeição"><input className="glass-input" value={segment.mealDescription} onChange={set('mealDescription')} placeholder="Almoço, jantar, lanche..." /></Field>
+        <Field label="Fornecedor / local"><input className="glass-input" value={segment.providerName} onChange={set('providerName')} /></Field>
+      </div>
+    ));
+  }
+
+  return null;
 }
 
 function CalculationFooter({ state, complete, error, onCalculate }) {

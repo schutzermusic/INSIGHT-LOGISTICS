@@ -90,4 +90,22 @@ describe('ManualFeasibilityService (§15, §22)', () => {
     expect(rest.rests[0].restMinutes).toBe(660);
     expect(rest.journeyResetCount).toBe(1);
   });
+
+  it('uses the effective end of rest instead of hotel checkout', () => {
+    const it = buildManualItinerary({
+      scenarioId: 'r4', passengerIds: ['e1'],
+      segments: [
+        { segmentType: 'hotel_rest', originLocationId: 'B', destinationLocationId: 'B', originLocationType: 'hotel', destinationLocationType: 'hotel',
+          originTimezone: TZ, destinationTimezone: TZ,
+          departureAtUtc: '2026-01-05T04:00:00Z', arrivalAtUtc: '2026-01-05T18:00:00Z',
+          releaseAtUtc: '2026-01-05T05:00:00Z',
+          metadata: { restEndAtUtc: '2026-01-05T12:00:00Z' },
+          priceAllocation: 'per_room', priceAmountMinor: 15000 },
+      ],
+    }).itinerary;
+    const rest = evaluateRest(it, 660);
+    expect(rest.rests[0].restMinutes).toBe(420);
+    expect(rest.journeyResetCount).toBe(0);
+    expect(rest.restDeficitMinutes).toBe(240);
+  });
 });
