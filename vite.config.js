@@ -36,7 +36,12 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('@deck.gl') || id.includes('@luma.gl') || id.includes('@math.gl')) {
+            if (
+              id.includes('@deck.gl') ||
+              id.includes('@luma.gl') ||
+              id.includes('@math.gl') ||
+              id.includes('@loaders.gl')
+            ) {
               return 'deck';
             }
             if (id.includes('recharts') || id.includes('d3-')) {
@@ -44,9 +49,6 @@ export default defineConfig({
             }
             if (id.includes('framer-motion') || id.includes('motion')) {
               return 'motion';
-            }
-            if (id.includes('@loaders.gl')) {
-              return 'loaders';
             }
             if (id.includes('react-dom') || id.includes('scheduler')) {
               return 'react-dom';

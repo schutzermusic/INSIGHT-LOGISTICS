@@ -20,6 +20,7 @@ import { recommend } from './RecommendationEngine.js';
 import { DEFAULT_LABOR_POLICY, DEFAULT_TRAVEL_TIME_POLICY } from './laborPolicyDefaults.js';
 import { persistMobilizationSnapshot, isPersistenceEnabled } from './persistence.js';
 import { newCorrelationId, createTimer, logEvent } from './observability.js';
+import { isSerpApiConfigured, isBusConfigured, isClickBusConfigured } from './providers.js';
 
 function laborPolicySummary(p) {
   return {
@@ -30,7 +31,9 @@ function laborPolicySummary(p) {
       `${p.regularDailyMinutes / 60}h normais`,
       `+${p.weekdayFirstOvertimeMinutes / 60}h a +${Math.round((p.weekdayFirstOvertimeMultiplier - 1) * 100)}%`,
       `excedente a +${Math.round((p.weekdayExcessMultiplier - 1) * 100)}%`,
-      `sábado após ${p.saturdayRegularMinutes / 60}h a +${Math.round((p.saturdayExcessMultiplier - 1) * 100)}%`,
+      p.saturdayAllHoursOvertime
+        ? `sábado: todas as horas a +${Math.round((p.saturdayExcessMultiplier - 1) * 100)}%`
+        : `sábado após ${p.saturdayRegularMinutes / 60}h a +${Math.round((p.saturdayExcessMultiplier - 1) * 100)}%`,
       `domingo a ${p.sundayMultiplier}x`,
       `noturno ${p.nightStartLocalTime}–${p.nightEndLocalTime} a +${Math.round((p.nightMultiplier - 1) * 100)}%`,
     ],
@@ -74,10 +77,25 @@ export async function searchMobilization(input) {
   const nodesById = Object.fromEntries([origin, destination, ...hubs].map((n) => [n.id, n]));
 
   onProgress('Consultando trechos e montando o grafo multimodal...');
+  // Live providers (flights via SerpAPI, buses via Quero Passagem) with a per-
+  // search call budget; estimated timetable fills the gaps (§17/§32).
+  const flightsCfg = isSerpApiConfigured();
+  const busCfg = isBusConfigured();
+  const useReal = input.useRealProviders !== false && (flightsCfg || busCfg);
+  const real = {
+    enabled: useReal,
+    budget: { flights: input.realBudget?.flights ?? 8, buses: input.realBudget?.buses ?? 8 },
+    cache: new Map(),
+    sources: { flightRealPairs: 0, busRealPairs: 0, busProvider: null },
+  };
   const queryLegs = makeQueryLegs({
     nodesById,
     earliestDepartureUtc: input.earliestDepartureUtc,
     deadlineUtc: input.deadlineUtc,
+    real,
+    // No invented values: only real provider legs are used (§32). Estimated
+    // legs stay off unless explicitly requested.
+    allowEstimated: input.allowEstimated === true,
   });
   const { graph, stats: graphStats } = await expandCandidateGraph({
     origin, destination, hubs, queryLegs, onProgress,
@@ -171,6 +189,18 @@ export async function searchMobilization(input) {
     comparison: rec.comparison,
     stats: { ...graphStats, ...genStats, validCount: valid.length },
     metrics,
+    providers: {
+      flights: { configured: flightsCfg, source: real.sources.flightRealPairs > 0 ? 'realtime' : (flightsCfg ? 'no_data' : 'unavailable'), realPairs: real.sources.flightRealPairs, label: 'Google Flights (SerpAPI)' },
+      bus: {
+        configured: busCfg,
+        source: real.sources.busRealPairs > 0 ? 'realtime' : (busCfg ? 'no_data' : 'unavailable'),
+        realPairs: real.sources.busRealPairs,
+        label: real.sources.busProvider === 'clickbus' ? 'ClickBus'
+          : real.sources.busProvider === 'quero_passagem' ? 'Quero Passagem'
+          : (isClickBusConfigured() ? 'ClickBus' : 'Quero Passagem'),
+      },
+      usedRealProviders: useReal,
+    },
     policySummary: laborPolicySummary(DEFAULT_LABOR_POLICY),
     employees: employees.map(({ id, name, hourlyRateC }) => ({ id, name, hourlyRateC })),
   };

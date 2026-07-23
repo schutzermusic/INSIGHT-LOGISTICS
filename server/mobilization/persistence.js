@@ -14,7 +14,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const LABOR_POLICY_ID = '00000000-0000-4000-a000-000000000001';
+const LABOR_POLICY_ID = '00000000-0000-4000-a000-000000000011';
 const TRAVEL_POLICY_ID = '00000000-0000-4000-a000-000000000002';
 
 let _client;

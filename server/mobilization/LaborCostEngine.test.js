@@ -23,6 +23,7 @@ function seg(startUtc, endUtc, { rule = 'bus_time', tz = 'UTC' } = {}) {
     currency: 'BRL',
     availabilityStatus: 'available',
     laborCountingRuleId: rule,
+    qualifiesAsRest: rule === 'hotel_rest',
     metadata: {},
   };
 }
@@ -59,16 +60,27 @@ describe('LaborCostEngine — weekday bands', () => {
 });
 
 describe('LaborCostEngine — Saturday / Sunday', () => {
-  it('4. Saturday below eight hours = all regular', () => {
+  it('4. Saturday: every counted minute at +100% from the first minute (§4.2)', () => {
     const { totalCostC, blocks } = run([seg('2026-01-10T08:00:00Z', '2026-01-10T14:00:00Z')]);
-    expect(minutesByClass(blocks)).toEqual({ regular: 360 });
-    expect(totalCostC).toBe(36000);
+    // No regular band, no 50% band — all 6h at 2.0×.
+    expect(minutesByClass(blocks)).toEqual({ overtime_100: 360 });
+    expect(blocks.every((b) => b.dayType === 'saturday')).toBe(true);
+    expect(totalCostC).toBe(72000); // 6h × 6000 × 2.0
   });
 
-  it('5. Saturday above eight hours → 8 regular + excess at 100%', () => {
+  it('5. Saturday above eight hours → still all at 100% (no regular consumed)', () => {
     const { totalCostC, blocks } = run([seg('2026-01-10T08:00:00Z', '2026-01-10T18:00:00Z')]);
+    expect(minutesByClass(blocks)).toEqual({ overtime_100: 600 });
+    expect(totalCostC).toBe(600 / 60 * 6000 * 2.0); // 10h × 6000 × 2.0
+  });
+
+  it('5b. Saturday all-overtime flag can be disabled by a policy version (legacy band)', () => {
+    const legacy = { ...POLICY, saturdayAllHoursOvertime: false };
+    const { blocks } = classifyLabor({
+      segments: [seg('2026-01-10T08:00:00Z', '2026-01-10T18:00:00Z')],
+      hourlyRateC: RATE, policy: legacy, travelTimePolicy: TTP,
+    });
     expect(minutesByClass(blocks)).toEqual({ regular: 480, overtime_100: 120 });
-    expect(totalCostC).toBe(48000 + 24000);
   });
 
   it('6. Sunday hours at the 150% premium (2.5x)', () => {
@@ -107,20 +119,22 @@ describe('LaborCostEngine — boundary crossings (§14)', () => {
     expect(new Set(blocks.map(b => b.startAtUtc.slice(0, 10))).size).toBe(2); // spans two dates
   });
 
-  it('10. trip crossing Friday into Saturday', () => {
+  it('10. trip crossing Friday into Saturday flips the band at midnight', () => {
     const { blocks } = run([seg('2026-01-09T20:00:00Z', '2026-01-10T02:00:00Z')]);
     const days = blocks.map(b => b.startAtUtc.slice(0, 10));
     expect(days).toContain('2026-01-09');
     expect(days).toContain('2026-01-10');
-    expect(minutesByClass(blocks)).toEqual({ regular: 360 }); // 6h total, still under 8h
+    // Friday 20:00–24:00 = 4h weekday regular; Saturday 00:00–02:00 = 2h at 100%.
+    expect(minutesByClass(blocks)).toEqual({ regular: 240, overtime_100: 120 });
   });
 
-  it('11. trip crossing Saturday into Sunday flips the band to Sunday', () => {
+  it('11. trip crossing Saturday into Sunday flips Saturday-100 → Sunday-150', () => {
     const { blocks } = run([seg('2026-01-10T22:00:00Z', '2026-01-11T02:00:00Z')]);
     const cls = minutesByClass(blocks);
-    expect(cls.regular).toBe(120);       // Saturday portion
-    expect(cls.overtime_150).toBe(120);  // Sunday portion
-    expect(blocks.find(b => b.baseClassification === 'overtime_150')).toBeTruthy();
+    expect(cls.overtime_100).toBe(120);  // Saturday portion, all at 100%
+    expect(cls.overtime_150).toBe(120);  // Sunday portion at 2.5×
+    const sat = blocks.filter((b) => b.dayType === 'saturday');
+    expect(sat.every((b) => b.nightPremiumApplied)).toBe(true); // 22:00–24:00 is night
   });
 
   it('12. existing worked hours before departure (§7 worked example)', () => {
@@ -173,6 +187,29 @@ describe('LaborCostEngine — travel-time policy (§8)', () => {
     const { blocks } = run(segments);
     const day2 = blocks.filter(b => b.startAtUtc.startsWith('2026-01-08'));
     expect(day2.every(b => b.baseClassification === 'regular')).toBe(true); // reset → regular, not OT
+  });
+
+  it('15b. a long unmodelled gap does not reset the journey', () => {
+    const segments = [
+      seg('2026-01-07T08:00:00Z', '2026-01-07T16:00:00Z'),
+      // 16h elapsed, but no explicit qualifying rest segment.
+      seg('2026-01-08T08:00:00Z', '2026-01-08T10:00:00Z'),
+    ];
+    const { blocks } = run(segments);
+    const day2 = blocks.filter((block) => block.startAtUtc.startsWith('2026-01-08'));
+    expect(day2.every((block) => block.baseClassification === 'overtime_50')).toBe(true);
+  });
+
+  it('15c. hotel arrival does not start rest before effective release', () => {
+    const rest = seg('2026-01-07T16:00:00Z', '2026-01-08T08:00:00Z', { rule: 'hotel_rest' });
+    rest.metadata.releaseAtUtc = '2026-01-07T22:00:00Z'; // only 10h released
+    const { blocks } = run([
+      seg('2026-01-07T08:00:00Z', '2026-01-07T16:00:00Z'),
+      rest,
+      seg('2026-01-08T08:00:00Z', '2026-01-08T10:00:00Z'),
+    ]);
+    const day2 = blocks.filter((block) => block.startAtUtc.startsWith('2026-01-08'));
+    expect(day2.every((block) => block.baseClassification === 'overtime_50')).toBe(true);
   });
 });
 

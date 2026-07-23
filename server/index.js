@@ -6,6 +6,7 @@ import { googleGeocoding } from './routes/google-geocoding.js';
 import { queroPassagem } from './routes/quero-passagem.js';
 import { serpApiFlights } from './routes/serpapi.js';
 import { mobilization } from './routes/mobilization.js';
+import { dashboard } from './routes/dashboard.js';
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
@@ -38,6 +39,9 @@ app.use('/api/flights', serpApiFlights);
 
 // Multimodal Mobilization Intelligence pipeline (§24)
 app.use('/api/mobilization', mobilization);
+
+// Dashboard aggregation + confirmation gate (§3.1, §8, §9)
+app.use('/api/dashboard', dashboard);
 
 app.listen(PORT, () => {
   const keyPreview = process.env.GOOGLE_SERVER_API_KEY

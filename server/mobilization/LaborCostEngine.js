@@ -96,7 +96,11 @@ function classifyBase(dayType, counterBefore, policy) {
     };
   }
   if (dayType === 'saturday') {
-    if (counterBefore < policy.saturdayRegularMinutes) {
+    // §4.2 / Fase 2: when the policy flags Saturday as all-overtime, every counted
+    // minute is +100% from the first minute — no regular band is consumed. The
+    // legacy behaviour (first `saturdayRegularMinutes` as regular) is kept only
+    // for policies that explicitly disable the flag.
+    if (!policy.saturdayAllHoursOvertime && counterBefore < policy.saturdayRegularMinutes) {
       return { baseClassification: 'regular', baseMult: 1.0, holiday: false };
     }
     return { baseClassification: 'overtime_100', baseMult: policy.saturdayExcessMultiplier, holiday: false };
@@ -161,23 +165,43 @@ export function classifyLabor(input) {
   const minuteRecords = [];
 
   // Continuous journey counter (§7): seeded with the hours already worked today,
-  // accumulates across counted minutes, and resets only after a long rest gap.
+  // accumulates across counted minutes, and resets only after an EXPLICIT,
+  // qualifying uninterrupted rest segment. An empty time gap is not evidence
+  // that the employee was released from duty (§4.5).
   let counter = priorWorkedMinutes;
-  let lastCountedEndMs = null;
+  let pendingQualifiedRestEndMs = null;
 
   for (const seg of orderedSegments) {
+    // A manual segment may carry an explicit countsAsLabor override (§8/§12 —
+    // manual waiting/meal/custom rules); otherwise fall back to the versioned
+    // travel-time policy lookup for its LaborCountingRuleId. Never hardcoded.
     const flag = RULE_TO_TRAVEL_FLAG[seg.laborCountingRuleId];
-    const counts = flag ? travelTimePolicy[flag] === true : false;
-    if (!counts) continue; // non-paid time: neither costs nor advances the counter (§8)
+    const counts = typeof seg.countsAsLabor === 'boolean'
+      ? seg.countsAsLabor
+      : (flag ? travelTimePolicy[flag] === true : false);
 
     const tz = seg.originTimezone || seg.destinationTimezone || 'UTC';
     const startMs = Date.parse(seg.departureAtUtc);
     const endMs = Date.parse(seg.arrivalAtUtc);
     const totalMinutes = Math.round((endMs - startMs) / MS_PER_MINUTE);
 
-    // A real inter-journey rest (e.g. overnight hotel) resets the daily counter.
-    if (lastCountedEndMs !== null && startMs - lastCountedEndMs >= restThresholdMs) {
+    if (!counts) {
+      const releaseMs = Date.parse(seg.metadata?.releaseAtUtc || seg.departureAtUtc);
+      const explicitRest = seg.qualifiesAsRest === true;
+      if (explicitRest && Number.isFinite(releaseMs) && endMs - releaseMs >= restThresholdMs) {
+        pendingQualifiedRestEndMs = endMs;
+      }
+      continue; // non-paid time neither costs nor advances the counter (§8)
+    }
+
+    // Only a completed qualifying rest can reset the journey. Midnight, a long
+    // unmodelled gap, waiting, or a hotel arrival before effective release cannot.
+    if (pendingQualifiedRestEndMs !== null && startMs >= pendingQualifiedRestEndMs) {
       counter = 0;
+      pendingQualifiedRestEndMs = null;
+    } else if (pendingQualifiedRestEndMs !== null) {
+      // A counted activity before the explicit rest finishes interrupts it.
+      pendingQualifiedRestEndMs = null;
     }
 
     for (let m = 0; m < totalMinutes; m++) {
@@ -190,13 +214,11 @@ export function classifyLabor(input) {
 
       minuteRecords.push({
         startMs: t,
-        descriptor: { tz, dateKey, baseClassification, baseMult, nightApplied, holiday },
+        descriptor: { tz, dateKey, dayType, baseClassification, baseMult, nightApplied, holiday },
       });
 
       counter += 1;
     }
-
-    lastCountedEndMs = startMs + totalMinutes * MS_PER_MINUTE;
   }
 
   // Merge consecutive minutes sharing the same classification into blocks.
@@ -205,6 +227,7 @@ export function classifyLabor(input) {
   const sameGroup = (a, b) =>
     a.tz === b.tz &&
     a.dateKey === b.dateKey &&
+    a.dayType === b.dayType &&
     a.baseClassification === b.baseClassification &&
     a.nightApplied === b.nightApplied &&
     a.holiday === b.holiday;
@@ -247,6 +270,7 @@ function finalizeBlock(cur, hourlyRateC, policy) {
     endAtUtc: new Date(endMs).toISOString(),
     localTimezone: d.tz,
     countedMinutes: minutes,
+    dayType: d.dayType,
     baseClassification: d.baseClassification,
     nightPremiumApplied: d.nightApplied,
     holidayPremiumApplied: d.holiday,

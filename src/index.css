@@ -5,6 +5,207 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Manual mobilization editor: active operational controls need stronger
+   contrast than passive dashboard glass surfaces. */
+@layer components {
+  .manual-primary-action {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-semibold
+      border border-mint/35 bg-mint/15 text-mint transition-colors
+      hover:bg-mint/25 hover:border-mint/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/50
+      disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .trip-type-button {
+    @apply flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5
+      text-left text-[13px] text-white/65 transition-colors hover:border-white/25 hover:text-white
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40;
+  }
+
+  .trip-type-button.is-selected {
+    @apply border-mint/45 bg-mint/10 text-white;
+  }
+
+  .selection-dot {
+    @apply flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/25 text-[#061009];
+  }
+
+  .trip-type-button.is-selected .selection-dot {
+    @apply border-mint bg-mint;
+  }
+
+  .employee-scroll {
+    @apply max-h-[286px] min-h-[190px] overflow-y-auto overscroll-contain rounded-xl border border-white/10
+      bg-black/10 p-1.5;
+    scrollbar-gutter: stable;
+  }
+
+  .employee-option {
+    @apply flex w-full items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-left
+      transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40;
+  }
+
+  .employee-option.is-selected {
+    @apply border-mint/30 bg-mint/[0.09];
+  }
+
+  .employee-check {
+    @apply flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/25 text-[#061009];
+  }
+
+  .employee-option.is-selected .employee-check {
+    @apply border-mint bg-mint;
+  }
+
+  .selected-chip,
+  .passenger-chip {
+    @apply inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/[0.04] px-2 py-1
+      text-[11px] text-white/65 transition-colors hover:border-white/30
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40;
+  }
+
+  .passenger-chip.is-selected,
+  .selected-chip {
+    @apply border-mint/35 bg-mint/[0.09] text-mint;
+  }
+
+  .scenario-card {
+    @apply overflow-hidden rounded-2xl border border-white/[0.12] bg-black/[0.12] shadow-lg;
+  }
+
+  .scenario-header {
+    @apply flex items-center gap-3 border-b border-white/10 bg-white/[0.025] px-4 py-3.5 md:px-5;
+  }
+
+  .scenario-name {
+    @apply w-full max-w-md bg-transparent text-[15px] font-semibold text-white outline-none
+      placeholder:text-white/30 focus-visible:ring-0;
+  }
+
+  .direction-tabs {
+    @apply flex items-center gap-1 border-b border-white/10 bg-black/10 px-4 pt-2;
+  }
+
+  .direction-tabs > button[role="tab"] {
+    @apply border-b-2 border-transparent px-4 py-2 text-[13px] font-semibold text-white/50 transition-colors
+      hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40;
+  }
+
+  .direction-tabs > button[role="tab"].is-active {
+    @apply border-mint text-mint;
+  }
+
+  .copy-return-action {
+    @apply ml-auto inline-flex items-center gap-1.5 rounded-lg border border-accent-cyan/25 bg-accent-cyan/[0.07]
+      px-2.5 py-1.5 text-[11px] font-semibold text-accent-cyan hover:bg-accent-cyan/[0.12];
+  }
+
+  .empty-timeline {
+    @apply flex min-h-[110px] flex-col items-center justify-center rounded-xl border border-dashed border-white/15
+      bg-white/[0.02] text-center text-white/35;
+  }
+
+  .empty-timeline p {
+    @apply mt-2 text-[13px] font-semibold text-white/55;
+  }
+
+  .empty-timeline span {
+    @apply mt-0.5 text-[11px];
+  }
+
+  .segment-card {
+    @apply overflow-hidden rounded-xl border bg-white/[0.035] transition-colors;
+  }
+
+  .segment-card.has-errors {
+    @apply border-amber-400/25;
+  }
+
+  .segment-card.is-valid {
+    @apply border-mint/20;
+  }
+
+  .segment-summary {
+    @apply flex items-center gap-2 p-2;
+  }
+
+  .segment-expand {
+    @apply flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5
+      hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40;
+  }
+
+  .segment-icon {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05] text-white/70;
+  }
+
+  .segment-status {
+    @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold;
+  }
+
+  .segment-status.error {
+    @apply bg-amber-400/10 text-amber-300;
+  }
+
+  .segment-status.valid {
+    @apply bg-mint/10 text-mint;
+  }
+
+  .segment-actions {
+    @apply flex shrink-0 items-center gap-0.5;
+  }
+
+  .manual-icon-button {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-white/55
+      transition-colors hover:border-white/15 hover:bg-white/[0.07] hover:text-white
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40
+      disabled:cursor-not-allowed disabled:opacity-25;
+  }
+
+  .segment-form {
+    @apply space-y-4 border-t border-white/10 bg-black/10 p-4 md:p-5;
+  }
+
+  .segment-derived {
+    @apply grid grid-cols-2 gap-3 rounded-xl border border-accent-cyan/15 bg-accent-cyan/[0.04] p-3 md:grid-cols-4;
+  }
+
+  .validation-list {
+    @apply space-y-1 rounded-xl border border-amber-400/20 bg-amber-400/[0.05] p-3;
+  }
+
+  .validation-list li {
+    @apply flex items-center gap-2 text-[12px] text-amber-200/80;
+  }
+
+  .add-segment-row {
+    @apply flex flex-wrap items-center gap-1.5 border-t border-white/10 pt-3;
+  }
+
+  .add-segment-button {
+    @apply inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.045] px-2.5 py-1.5
+      text-[11px] font-semibold text-white/70 transition-colors hover:border-accent-cyan/35
+      hover:bg-accent-cyan/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40;
+  }
+
+  .calculation-footer {
+    @apply flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-400/20
+      bg-amber-400/[0.04] p-4 md:px-5;
+  }
+
+  .calculation-footer.is-ready {
+    @apply border-mint/20 bg-mint/[0.04];
+  }
+}
+
+@media (max-width: 640px) {
+  .segment-summary {
+    @apply flex-wrap;
+  }
+
+  .segment-actions {
+    @apply ml-11;
+  }
+}
+
 /* ════════════════════════════════════════════════════════════════
    THEME TOKEN SYSTEM
    Every color that differs between themes is a CSS var. Tailwind
@@ -592,6 +793,26 @@
     transform: translateY(-1px);
   }
   .btn-primary-mint:active { transform: translateY(0); }
+
+  /* Secondary / icon buttons — used by the Manual Mobilization Simulator. */
+  .btn-secondary {
+    @apply text-sm font-medium rounded-xl px-4 py-2 transition-colors;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .btn-secondary:hover {
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .icon-btn {
+    @apply w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors;
+    color: rgba(255, 255, 255, 0.45);
+    background: transparent;
+  }
+  .icon-btn:hover { color: rgba(255, 255, 255, 0.85); background: rgba(255, 255, 255, 0.06); }
+  .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .btn-primary-orange {
     @apply btn-premium text-white;
@@ -1491,4 +1712,3 @@
   html[data-motion="reduced"] .chart-skeleton__shimmer,
   html[data-motion="off"] .chart-skeleton__shimmer { animation: none; opacity: 0; }
 }
-

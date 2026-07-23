@@ -268,6 +268,14 @@ export async function mobilizationSearch(payload) {
   return post('/mobilization/search', payload, { timeoutMs: 30000 });
 }
 
+/**
+ * Run a manual mobilization simulation across scenarios (§21).
+ * @param {object} payload - { simulation, employees, scenarios, deadlineUtc?, config?, daysInField? }
+ */
+export async function mobilizationManualCalculate(payload) {
+  return post('/mobilization/manual/calculate', payload, { timeoutMs: 30000 });
+}
+
 /** Select an itinerary; pass override {isOverride, recommendedItineraryId, reason} when not the recommended one. */
 export async function mobilizationSelect(itineraryId, body) {
   return post(`/mobilization/itineraries/${itineraryId}/select`, body);
@@ -276,6 +284,46 @@ export async function mobilizationSelect(itineraryId, body) {
 /** Submit the selected route for approval. */
 export async function mobilizationSubmitForApproval(requestId, body) {
   return post(`/mobilization/requests/${requestId}/submit-for-approval`, body);
+}
+
+// ── Dashboard & Confirmation (§3.1, §8, §9) ───────────
+
+function toQuery(filters = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') params.append(k, v);
+  });
+  const s = params.toString();
+  return s ? `?${s}` : '';
+}
+
+/**
+ * Confirm a selected mobilization so it becomes dashboard-eligible (§3.1).
+ * The backend re-validates the mandatory gate (project, schedule, collaborators,
+ * scenario/itinerary, route/dates/cost/labor snapshots) and rejects drafts.
+ */
+export async function dashboardConfirm(payload) {
+  return post('/dashboard/confirm', payload, { timeoutMs: 15000 });
+}
+
+/** Full aggregated dashboard payload for the given global filters (§8, §12). */
+export async function dashboardOverview(filters = {}) {
+  return get(`/dashboard/overview${toQuery(filters)}`, { timeoutMs: 15000 });
+}
+
+/** Realtime slice: overview counts + HUD globe items + alerts (§9). */
+export async function dashboardRealtime(filters = {}) {
+  return get(`/dashboard/realtime${toQuery(filters)}`, { timeoutMs: 10000 });
+}
+
+/** Distinct filter option values for the global filter bar (§12). */
+export async function dashboardFilters() {
+  return get('/dashboard/filters', { timeoutMs: 8000 });
+}
+
+/** Whether the backend can persist confirmations / feed the dashboard. */
+export async function dashboardStatus() {
+  return get('/dashboard/status', { timeoutMs: 4000 });
 }
 
 // ── Health Check ──────────────────────────────────────

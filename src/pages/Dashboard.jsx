@@ -1,905 +1,580 @@
-import { useMemo } from 'react';
+/**
+ * Insight Logistics — Command Center Dashboard (§1–§21).
+ *
+ * A real-time executive + operational control tower fed EXCLUSIVELY by confirmed
+ * mobilizations (§3.1). Every number here comes from the backend aggregation
+ * layer (DashboardService), which begins from the confirmed dataset — drafts,
+ * searches, previews and unselected scenarios never appear. All money is integer
+ * centavos from the API and formatted only at the edge.
+ *
+ * Layout (§7): HUD command hero + globe → KPI strip → financial analytics →
+ * operational intelligence → supporting analytics, with global filters (§12) and
+ * drill-down drawers (§11).
+ */
+
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  TrendingUp, Users, DollarSign, Clock, Sparkles, ArrowRight,
-  Route, Target, BarChart3 as BarChartIcon,
-  Globe, ChevronRight, Brain, TrendingDown,
-  Activity, Layers, Crosshair, Radio,
-  MapPin, Zap, AlertTriangle, CheckCircle, Compass,
+  Activity, Sparkles, Crosshair, Radio, Route as RouteIcon, DollarSign, Clock,
+  TrendingDown, Users, AlertTriangle, ShieldCheck, Globe, Layers, Target, MapPin,
+  Gauge, Zap, Moon, Filter, RotateCcw, ChevronRight, CheckCircle, Briefcase, Plane, Bus, Car,
 } from 'lucide-react';
-import { useCollaborators, useSimulations } from '../hooks/useStore';
-import { formatCurrency } from '../engine/calculator.js';
-import { getExtendedCitiesData } from '../engine/routes-intelligence-db.js';
+import { useDashboard } from '../hooks/useDashboard';
+import { formatBRL } from '../domain/money.js';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
-import { PremiumAreaChart, PremiumDonutChart, KpiSparkline } from '../components/charts';
+import { AnimatedNumber } from '../components/ui/AnimatedNumber';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 import { MagneticWrap } from '../components/ui/MagneticWrap';
-import { AnimatedNumber } from '../components/ui/AnimatedNumber';
-import { MotionStagger, MotionStaggerItem } from '../components/ui/MotionStagger';
-import BrazilMap, { buildMapRoutes, buildMapPoints } from '../components/map/BrazilMap';
-import { useSpotlight } from '../hooks/useSpotlight';
+import { Modal } from '../components/ui/Modal';
+import { PremiumAreaChart, PremiumDonutChart } from '../components/charts';
+import HudGlobe, { STATUS_COLOR, STATUS_LABEL } from '../components/map/HudGlobe';
 import { CHART_PALETTE, CHART_SEQUENCE } from '../lib/chartTheme';
 
-const CHART_COLORS = CHART_SEQUENCE;
+const fmtDur = (min) => {
+  if (!min) return '0h';
+  const h = Math.floor(min / 60); const m = Math.round(min % 60);
+  return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
+};
+const MODAL_META = {
+  air: { label: 'Aéreo', icon: Plane }, bus: { label: 'Ônibus', icon: Bus },
+  rental: { label: 'Locado', icon: Car }, fleet: { label: 'Frota', icon: Car },
+  multimodal: { label: 'Multimodal', icon: Layers },
+};
 
-const COST_EVOLUTION_SERIES = [
-  { key: 'custo', name: 'Custo Total', color: CHART_PALETTE.mint },
-  { key: 'transito', name: 'Horas Transito', color: CHART_PALETTE.cyan },
-];
+const EMPTY_FILTERS = { dateFrom: '', dateTo: '', projectId: '', modal: '', status: '', source: '' };
 
 export default function Dashboard() {
-  const { collaborators } = useCollaborators();
-  const { simulations } = useSimulations();
   const navigate = useNavigate();
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [drawer, setDrawer] = useState(null); // { type, payload }
+  const { data, options, status, loading, error, lastSync } = useDashboard(filters);
 
-  const citiesDb = useMemo(() => getExtendedCitiesData(), []);
+  const setFilter = (k, v) => setFilters((f) => ({ ...f, [k]: v }));
+  const resetFilters = () => setFilters(EMPTY_FILTERS);
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
-  // Exclude manual comparisons (type: 'comparison') from dashboard metrics
-  const dashboardSims = useMemo(() => simulations.filter(s => s.type !== 'comparison'), [simulations]);
+  const ov = data?.overview;
+  const persistenceOff = status && status.persistenceEnabled === false;
+  const hasData = ov && ov.totalMobilizationsInRange > 0;
 
-  const stats = useMemo(() => {
-    const totalSims = dashboardSims.length;
-    const totalCollabs = collaborators.length;
-    let avgCost = 0;
-    let totalSavings = 0;
-    let avgTravelTime = 0;
-    const aiCount = dashboardSims.filter(s => s.type === 'ai-analysis').length;
-
-    if (totalSims > 0) {
-      const totalCost = dashboardSims.reduce((s, sim) => s + (sim.resumo?.custoTotalEquipe || 0), 0);
-      avgCost = totalCost / totalSims;
-      avgTravelTime = dashboardSims.reduce((s, sim) => s + (sim.resumo?.horasTransito || 0), 0) / totalSims;
-
-      const aiAnalyses = dashboardSims.filter(s => s.type === 'ai-analysis');
-      if (aiAnalyses.length >= 2) {
-        const costs = aiAnalyses.map(s => s.resumo?.custoTotalEquipe || 0).sort((a, b) => a - b);
-        totalSavings = costs[costs.length - 1] - costs[0];
-      }
-    }
-
-    return { totalSims, totalCollabs, avgCost, totalSavings, avgTravelTime, aiCount };
-  }, [dashboardSims, collaborators]);
-
-  const costComposition = useMemo(() => {
-    if (dashboardSims.length === 0) return [];
-    const totals = { horas: 0, transito: 0, passagens: 0, hospedagem: 0, alimentacao: 0, logistico: 0 };
-    dashboardSims.forEach(s => {
-      const r = s.resumo;
-      if (!r) return;
-      totals.horas += r.custoEquipeHoras || 0;
-      totals.transito += r.custoEquipeTransito || 0;
-      totals.passagens += r.custoEquipePassagens || 0;
-      totals.hospedagem += r.custoEquipeHospedagem || 0;
-      totals.alimentacao += r.custoEquipeAlimentacao || 0;
-      totals.logistico += r.custoLogistico || 0;
-    });
-    const total = Object.values(totals).reduce((a, b) => a + b, 0);
-    if (total === 0) return [];
-    return [
-      { name: 'Horas Trabalhadas', value: totals.horas, pct: Math.round((totals.horas / total) * 100) },
-      { name: 'Deslocamento', value: totals.transito, pct: Math.round((totals.transito / total) * 100) },
-      { name: 'Passagens', value: totals.passagens, pct: Math.round((totals.passagens / total) * 100) },
-      { name: 'Hospedagem', value: totals.hospedagem, pct: Math.round((totals.hospedagem / total) * 100) },
-      { name: 'Alimentacao', value: totals.alimentacao, pct: Math.round((totals.alimentacao / total) * 100) },
-      { name: 'Logistico', value: totals.logistico, pct: Math.round((totals.logistico / total) * 100) },
-    ].filter(d => d.value > 0).sort((a, b) => b.value - a.value);
-  }, [dashboardSims]);
-
-  const trendData = useMemo(() => {
-    const recent = [...dashboardSims].reverse().slice(0, 10);
-    return recent.map((s, i) => ({
-      name: `#${i + 1}`,
-      custo: s.resumo?.custoTotalEquipe || 0,
-      transito: s.resumo?.horasTransito || 0,
-    }));
-  }, [dashboardSims]);
-
-  // Phase 5D — sparkline data arrays for KPI cards
-  const sparkCost = useMemo(() => trendData.map((d) => d.custo), [trendData]);
-  const sparkTransit = useMemo(() => trendData.map((d) => d.transito), [trendData]);
-  const sparkSavings = useMemo(() => {
-    const aiSims = [...dashboardSims].filter(s => s.type === 'ai-analysis').reverse().slice(0, 7);
-    if (aiSims.length < 2) return null;
-    return aiSims.map(s => s.resumo?.custoTotalEquipe || 0);
-  }, [dashboardSims]);
-
-  const modalDistribution = useMemo(() => {
-    const dist = {};
-    dashboardSims.forEach(s => {
-      const modal = s.modal || 'Outro';
-      dist[modal] = (dist[modal] || 0) + 1;
-    });
-    return Object.entries(dist).map(([name, value]) => ({ name, value }));
-  }, [dashboardSims]);
-
-  const topDestinations = useMemo(() => {
-    const destCount = {};
-    dashboardSims.forEach(s => {
-      const dest = s.destino;
-      if (!dest) return;
-      if (!destCount[dest]) destCount[dest] = { name: dest, count: 0, totalCost: 0 };
-      destCount[dest].count += 1;
-      destCount[dest].totalCost += s.resumo?.custoTotalEquipe || 0;
-    });
-    return Object.values(destCount)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
-      .map(d => ({
-        ...d,
-        shortName: d.name.split(' - ')[0],
-        avgCost: d.count > 0 ? Math.round(d.totalCost / d.count) : 0,
-      }));
-  }, [dashboardSims]);
-
-  const mapRoutes = useMemo(() => buildMapRoutes(dashboardSims, citiesDb), [dashboardSims, citiesDb]);
-  const mapPoints = useMemo(() => buildMapPoints(dashboardSims, citiesDb), [dashboardSims, citiesDb]);
-
-  const aiInsights = useMemo(() => {
-    const insights = [];
-
-    if (stats.totalSavings > 0) {
-      insights.push({
-        type: 'success',
-        icon: CheckCircle,
-        title: 'Economia Detectada',
-        text: `Economia de ${formatCurrency(stats.totalSavings)} identificada entre cenarios comparados. Continue otimizando com analise AI.`,
-      });
-    }
-
-    if (stats.aiCount > 0) {
-      insights.push({
-        type: 'info',
-        icon: Brain,
-        title: 'Analises Inteligentes',
-        text: `${stats.aiCount} analise(s) inteligente(s) realizada(s) com otimizacao multi-modal e recomendacoes automaticas.`,
-      });
-    }
-
-    if (stats.avgTravelTime > 8) {
-      insights.push({
-        type: 'warning',
-        icon: AlertTriangle,
-        title: 'Tempo de Transito Elevado',
-        text: `Media de ${stats.avgTravelTime.toFixed(1)}h de transito por mobilizacao. Considere modais aereos para destinos distantes.`,
-      });
-    }
-
-    if (topDestinations.length > 0) {
-      const topDest = topDestinations[0];
-      insights.push({
-        type: 'info',
-        icon: MapPin,
-        title: 'Destino Mais Frequente',
-        text: `${topDest.shortName} concentra ${topDest.count} mobilizacao(es) com custo medio de ${formatCurrency(topDest.avgCost)}.`,
-      });
-    }
-
-    if (costComposition.length > 0) {
-      const biggest = costComposition[0];
-      if (biggest.pct >= 40) {
-        insights.push({
-          type: 'warning',
-          icon: Zap,
-          title: 'Concentracao de Custo',
-          text: `"${biggest.name}" representa ${biggest.pct}% dos custos totais. Avalie oportunidades de reducao nessa categoria.`,
-        });
-      }
-    }
-
-    if (stats.totalSims > 0 && stats.aiCount === 0) {
-      insights.push({
-        type: 'suggestion',
-        icon: Sparkles,
-        title: 'Use Inteligencia AI',
-        text: 'Nenhuma analise AI realizada ainda. Use a inteligencia de rotas para otimizar custos automaticamente.',
-      });
-    }
-
-    if (mapRoutes.length > 3) {
-      insights.push({
-        type: 'info',
-        icon: Compass,
-        title: 'Cobertura Nacional',
-        text: `${mapRoutes.length} corredores logisticos ativos em ${mapPoints.length} pontos do territorio nacional.`,
-      });
-    }
-
-    if (stats.totalSims === 0) {
-      insights.push({
-        type: 'suggestion',
-        icon: Sparkles,
-        title: 'Comece Agora',
-        text: 'Crie simulacoes para receber insights automaticos de otimizacao logistica.',
-      });
-    }
-
-    return insights;
-  }, [stats, topDestinations, costComposition, mapRoutes, mapPoints]);
-
-  const recentSims = dashboardSims.slice(0, 5);
-
-  if (stats.totalSims === 0 && stats.totalCollabs === 0) {
-    return (
-      <div>
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-mint/20 to-accent-cyan/10 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-mint" />
-            </div>
-            <h2 className="display-md">Centro de Comando</h2>
-          </div>
-        </div>
-        <EmptyState
-          icon={Sparkles}
-          title="Bem-vindo ao Insight Logistics"
-          description="Comece cadastrando seus colaboradores e criando analises para visualizar dados de inteligencia logistica."
-        >
-          <LiquidMetalButton label="Cadastrar Equipe" width={180} onClick={() => navigate('/colaboradores')} />
-        </EmptyState>
-      </div>
-    );
-  }
-
-  const topModal = modalDistribution.length > 0
-    ? modalDistribution.reduce((a, b) => a.value > b.value ? a : b).name
-    : '—';
+  const trendData = useMemo(
+    () => (data?.trend || []).map((d) => ({ name: d.date.slice(5), custo: d.amountMinor, mobilizacoes: d.count })),
+    [data?.trend]
+  );
+  const modalDonut = useMemo(
+    () => (data?.modalMix || []).map((m) => ({ name: MODAL_META[m.modal]?.label || m.modal, value: m.count })),
+    [data?.modalMix]
+  );
 
   return (
     <div className="space-y-6">
-
-      {/* ═══════════════════════════════════════════
-          ZONE 1 — EXECUTIVE HERO / COMMAND HEADER
-          ═══════════════════════════════════════════ */}
+      {/* ═══ HERO COMMAND CENTER ═══ */}
       <section className="premium-panel-hero">
-        {/* Orbital ambient lights — lit from within */}
         <div className="absolute -top-40 -right-24 w-[420px] h-[420px] bg-mint/[0.06] rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-32 -left-16 w-[320px] h-[320px] bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative px-8 py-8">
-          {/* Top row: title + status + action */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-start justify-between mb-6 gap-6 flex-wrap">
             <div className="flex items-center gap-4">
               <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-mint/20 to-accent-cyan/10 flex items-center justify-center border border-mint/15 shadow-[0_8px_24px_-8px_rgba(73,220,122,0.4)]">
                 <Crosshair className="w-[22px] h-[22px] text-mint" />
-                <div className="absolute inset-0 rounded-xl bg-mint/[0.05] blur-lg -z-10" />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="label-micro text-mint/80">Command Center</span>
+                  <span className="label-micro text-mint/80">Control Tower</span>
                   <span className="w-1 h-1 rounded-full bg-mint/50" />
-                  <span className="label-micro text-white/30">v2.4</span>
+                  <span className="label-micro text-white/30">Mobilizações confirmadas</span>
                 </div>
-                <h1 className="display-md">
-                  <span className="text-gradient-premium">Insight</span>
-                  <span className="text-white/90 ml-2">Logistics</span>
-                </h1>
-                <p className="body mt-2">Inteligencia logistica em tempo real · cenarios multi-modais · otimizacao AI</p>
+                <h1 className="display-md"><span className="text-gradient-premium">Insight</span><span className="text-white/90 ml-2">Logistics</span></h1>
+                <p className="body mt-2">Centro de comando em tempo real · somente mobilizações confirmadas alimentam os indicadores</p>
               </div>
             </div>
-
             <div className="flex items-center gap-3">
-              {/* AI Engine Status */}
               <div className="surface-elevated flex items-center gap-3 px-4 py-2 rounded-full">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-mint/60 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-mint" />
                 </span>
-                <span className="label-micro text-white/50">AI Engine Ativo</span>
-                {stats.aiCount > 0 && (
-                  <span className="ml-1 px-2 py-1 rounded-full bg-accent-purple/15 border border-accent-purple/20 text-[11px] font-semibold text-accent-purple tabular-data">
-                    {stats.aiCount} analises
-                  </span>
-                )}
+                <span className="label-micro text-white/50">Ao vivo</span>
+                {lastSync && <span className="label-micro text-white/25 tabular-data">{lastSync.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
               </div>
               <MagneticWrap strength={7}>
-                <button onClick={() => navigate('/inteligencia-rotas')} className="cta-white-with-accent">
-                  <span className="pl-2">Nova Analise</span>
-                  <span className="accent-chip">
-                    <Sparkles className="w-4 h-4" strokeWidth={2.5} />
-                  </span>
+                <button onClick={() => navigate('/mobilizacao')} className="cta-white-with-accent">
+                  <span className="pl-2">Nova Análise</span>
+                  <span className="accent-chip"><Sparkles className="w-4 h-4" strokeWidth={2.5} /></span>
                 </button>
               </MagneticWrap>
             </div>
           </div>
 
-          {/* KPI INTEGRATED STRIP — lifted off the panel like floating shelves */}
-          <div className="surface-recessed grid grid-cols-4 gap-0 rounded-2xl overflow-hidden">
-            <MetricCell
-              label="Mobilizacoes"
-              value={stats.totalSims}
-              detail={`${stats.aiCount} via AI`}
-              icon={Route}
-              color="mint"
-            />
-            <MetricCell
-              label="Custo Medio"
-              value={stats.avgCost}
-              detail="por mobilizacao"
-              icon={DollarSign}
-              color="cyan"
-              border
-              sparkData={sparkCost}
-              sparkColor={CHART_PALETTE.cyan}
-            />
-            <MetricCell
-              label="Economia AI"
-              value={stats.totalSavings}
-              detail="entre cenarios"
-              icon={TrendingDown}
-              color="orange"
-              border
-              highlight={stats.totalSavings > 0}
-              sparkData={sparkSavings}
-              sparkColor={CHART_PALETTE.amber}
-            />
-            <MetricCell
-              label="Transito Medio"
-              value={stats.avgTravelTime}
-              detail={`${stats.totalCollabs} colaboradores`}
-              icon={Clock}
-              color="blue"
-              border
-              sparkData={sparkTransit}
-              sparkColor={CHART_PALETTE.violet}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════
-          ZONE 2 — MAIN INTELLIGENCE PANEL
-          Cost Evolution (8 cols) + Brazil Map (4 cols)
-          ═══════════════════════════════════════════ */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Primary panel — cost evolution, dominant */}
-        <div className="lg:col-span-8 premium-panel">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/15 to-transparent" />
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-mint/[0.08] flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-mint/70" />
-                </div>
-                <div>
-                  <h3 className="heading">Evolucao de Custos</h3>
-                  <p className="body text-[13px] mt-1">Tendencia das ultimas mobilizacoes</p>
-                </div>
-              </div>
-              <Badge variant="success" dot>Tempo real</Badge>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* KPI strip (left) */}
+            <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-4 gap-0 surface-recessed rounded-2xl overflow-hidden self-start">
+              <Kpi label="Ativas" value={ov?.activeMobilizations ?? 0} detail={`${ov?.multimodalCount ?? 0} multimodais`} icon={RouteIcon} color="mint" onClick={() => setDrawer({ type: 'active' })} />
+              <Kpi label="Custo no período" value={ov?.totalSpendMinor ?? 0} money detail={`${ov?.totalMobilizationsInRange ?? 0} confirmadas`} icon={DollarSign} color="cyan" border onClick={() => setDrawer({ type: 'categories' })} />
+              <Kpi label="Custo médio" value={ov?.averageSpendPerMobilizationMinor ?? 0} money detail={`mediana ${formatBRL(ov?.medianSpendPerMobilizationMinor ?? 0)}`} icon={Target} color="blue" border />
+              <Kpi label="Economia" value={ov?.estimatedSavingsMinor ?? 0} money detail="vs. alternativas" icon={TrendingDown} color="orange" border highlight={(ov?.estimatedSavingsMinor ?? 0) > 0} />
+              <Kpi label="Duração média" value={ov?.averageDurationMinutes ?? 0} duration detail="porta a porta" icon={Clock} color="blue" />
+              <Kpi label="No prazo" value={ov?.onTimeRate == null ? null : Math.round(ov.onTimeRate * 100)} suffix="%" detail="chegadas" icon={Gauge} color="mint" border />
+              <Kpi label="Em trânsito" value={ov?.activeEmployeesInTransit ?? 0} detail="colaboradores" icon={Users} color="cyan" border />
+              <Kpi label="Alertas" value={ov?.alertCount ?? 0} detail="operacionais" icon={AlertTriangle} color="orange" border highlight={(ov?.alertCount ?? 0) > 0} onClick={() => setDrawer({ type: 'alerts' })} />
             </div>
 
-            {trendData.length > 1 ? (
-              <PremiumAreaChart
-                data={trendData}
-                xKey="name"
-                series={COST_EVOLUTION_SERIES}
-                yFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
-                tooltipValueFormatter={(v) => formatCurrency(v)}
-                showLegend={false}
-                height={320}
-              />
-            ) : (
-              <div className="h-[320px] flex items-center justify-center text-white/15 text-sm">
-                Dados insuficientes para grafico de tendencia
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Brazil Map — territorial intelligence */}
-        <div className="lg:col-span-4 premium-panel">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/15 to-transparent" />
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-accent-cyan/[0.08] flex items-center justify-center">
-                  <Globe className="w-[14px] h-[14px] text-accent-cyan/60" />
-                </div>
-                <div>
-                  <h4 className="heading">Mapa de Operacoes</h4>
-                  <p className="label-micro mt-1">{mapRoutes.length} rotas ativas</p>
-                </div>
-              </div>
-              {mapPoints.length > 0 && (
-                <Badge variant="info" className="tabular-data">{mapPoints.length} pontos</Badge>
-              )}
-            </div>
-
-            <div className="relative h-[300px]">
-              <BrazilMap
-                routes={mapRoutes}
-                activePoints={mapPoints}
-                showLabels={true}
-                className="w-full h-full"
-              />
-              {mapRoutes.length === 0 && mapPoints.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <Globe className="w-8 h-8 text-white/10 mx-auto mb-2" />
-                    <p className="body text-[13px]">Crie simulacoes para visualizar rotas no mapa</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Map legend */}
-            {mapPoints.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/[0.04]">
-                <div className="flex items-center gap-4 text-[11px] text-white/25 tabular-data">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-mint" />
-                    <span>Origem/Destino</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-3 h-px bg-mint/50" style={{ borderTop: '1px dashed rgba(73,220,122,0.5)' }} />
-                    <span>Rota ativa</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════
-          ZONE 3 — SECONDARY ANALYTICS (4x3 grid)
-          Modal Distribution + Cost Composition + Top Destinations + AI Summary
-          ═══════════════════════════════════════════ */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
-        {/* Modal Distribution */}
-        <div className="lg:col-span-3 premium-panel">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-purple/15 to-transparent" />
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-accent-purple/[0.08] flex items-center justify-center">
-                <Layers className="w-[14px] h-[14px] text-accent-purple/60" />
-              </div>
-              <h4 className="heading">Modais</h4>
-            </div>
-
-            {modalDistribution.length > 0 ? (
-              <PremiumDonutChart
-                data={modalDistribution}
-                nameKey="name"
-                valueKey="value"
-                colors={CHART_COLORS}
-                innerRadius={40}
-                outerRadius={62}
-                paddingAngle={4}
-                height={160}
-              />
-            ) : (
-              <div className="h-[160px] flex items-center justify-center text-white/15 text-xs">
-                Sem dados
-              </div>
-            )}
-
-            {modalDistribution.length > 0 && (
-              <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-2">
-                {modalDistribution.map((entry, i) => (
-                  <div key={entry.name} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                    <span className="body text-[13px]">{entry.name}</span>
-                    <span className="tabular-data text-[11px] text-white/60 font-semibold">{entry.value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Cost Composition Breakdown */}
-        <div className="lg:col-span-3 premium-panel">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-orange/15 to-transparent" />
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-accent-orange/[0.08] flex items-center justify-center">
-                <Target className="w-[14px] h-[14px] text-accent-orange/60" />
-              </div>
-              <h4 className="heading">Composicao de Custos</h4>
-            </div>
-
-            {costComposition.length > 0 ? (
-              <div className="space-y-3">
-                {costComposition.map((item, i) => (
-                  <div key={item.name}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="body text-[13px]">{item.name}</span>
-                      <span className="tabular-data text-[11px] text-white/60 font-semibold">{item.pct}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-[width,background-color] duration-[var(--motion-duration-large)] ease-[var(--motion-ease-out)]"
-                        style={{
-                          width: `${item.pct}%`,
-                          backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
-                          opacity: 0.7,
-                        }}
-                      />
+            {/* HUD Globe (right) */}
+            <div className="lg:col-span-5 premium-panel">
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/20 to-transparent" />
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-accent-cyan/[0.08] flex items-center justify-center"><Globe className="w-[14px] h-[14px] text-accent-cyan/70" /></div>
+                    <div>
+                      <h4 className="heading">HUD · Mobilizações ao vivo</h4>
+                      <p className="label-micro mt-0.5">{data?.map?.length ?? 0} operações ativas</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-[160px] flex items-center justify-center text-white/15 text-xs">
-                Sem dados de custos
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Top Destinations */}
-        <div className="lg:col-span-3 premium-panel">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/15 to-transparent" />
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-accent-cyan/[0.08] flex items-center justify-center">
-                <MapPin className="w-[14px] h-[14px] text-accent-cyan/60" />
-              </div>
-              <h4 className="heading">Top Destinos</h4>
-            </div>
-
-            {topDestinations.length > 0 ? (
-              <div className="space-y-2">
-                {topDestinations.map((dest, i) => (
-                  <div key={dest.name} className="surface-recessed flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.04] transition-colors">
-                    <div className="surface-recessed w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-[10px] font-bold text-white/25">{i + 1}</span>
+                  <Badge variant="info" dot>Tempo real</Badge>
+                </div>
+                <div className="relative h-[300px]">
+                  {(data?.map?.length ?? 0) > 0 ? (
+                    <HudGlobe items={data.map} onSelect={(item) => setDrawer({ type: 'mobilization', payload: item })} className="w-full h-full" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-center">
+                      <div>
+                        <Globe className="w-8 h-8 text-white/10 mx-auto mb-2" />
+                        <p className="body text-[13px] max-w-[220px]">Nenhuma mobilização confirmada ativa. Confirme uma mobilização para vê-la no mapa.</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="body text-[13px] font-medium text-white/70 block truncate">{dest.shortName}</span>
-                      <span className="label-micro mt-1 block">{dest.count} mobilizacao(es)</span>
-                    </div>
-                    <span className="tabular-data text-[11px] font-semibold text-mint flex-shrink-0">{formatCurrency(dest.avgCost)}</span>
+                  )}
+                </div>
+                {(data?.map?.length ?? 0) > 0 && (
+                  <div className="mt-3 pt-3 border-t border-white/[0.04] flex flex-wrap items-center gap-3">
+                    {['on_track', 'in_transit', 'warning', 'delayed'].map((s) => (
+                      <span key={s} className="flex items-center gap-1.5 label-micro text-white/35">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLOR[s] }} />{STATUS_LABEL[s]}
+                      </span>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            ) : (
-              <div className="h-[160px] flex items-center justify-center text-white/15 text-xs">
-                Sem destinos registrados
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* AI Summary Card */}
-        <div className="lg:col-span-3 premium-panel-mint">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/20 to-transparent" />
-          <div className="p-6">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-mint/[0.08] flex items-center justify-center">
-                <Brain className="w-[14px] h-[14px] text-mint/60" />
-              </div>
-              <h4 className="heading">Resumo AI</h4>
-            </div>
-            <div className="space-y-3">
-              <InsightRow label="Modal predominante" value={topModal} />
-              <InsightRow label="Total simulacoes" value={stats.totalSims} />
-              <InsightRow label="Equipe ativa" value={`${stats.totalCollabs} pessoas`} />
-              <InsightRow label="Destinos unicos" value={topDestinations.length} />
-              <InsightRow label="Corredores logisticos" value={mapRoutes.length} />
-              {stats.totalSavings > 0 && (
-                <InsightRow label="Economia detectada" value={formatCurrency(stats.totalSavings)} highlight />
-              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          ZONE 4 — AI INSIGHTS STRIP (full width)
-          ═══════════════════════════════════════════ */}
-      {aiInsights.length > 0 && (
-        <section className="premium-panel-purple">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-purple/20 to-transparent" />
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-accent-purple/[0.08] flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-accent-purple/70" />
-                </div>
-                <div>
-                  <h3 className="heading">Insights AI</h3>
-                  <p className="body text-[13px] mt-1">Recomendacoes inteligentes baseadas nos seus dados</p>
-                </div>
-              </div>
-              <Badge variant="accent" dot>{aiInsights.length} insight(s)</Badge>
-            </div>
+      {/* ═══ GLOBAL FILTERS (§12) ═══ */}
+      <section className="premium-panel">
+        <div className="px-5 py-4 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-white/40"><Filter className="w-4 h-4" /><span className="label-micro">Filtros</span></div>
+          <input type="date" className="glass-input !py-1.5 !w-auto text-[13px]" value={filters.dateFrom} onChange={(e) => setFilter('dateFrom', e.target.value)} aria-label="Data inicial" />
+          <span className="text-white/20">→</span>
+          <input type="date" className="glass-input !py-1.5 !w-auto text-[13px]" value={filters.dateTo} onChange={(e) => setFilter('dateTo', e.target.value)} aria-label="Data final" />
+          <FilterSelect value={filters.projectId} onChange={(v) => setFilter('projectId', v)} placeholder="Projeto"
+            options={(options?.projects || []).map((p) => ({ value: p.id, label: p.name }))} />
+          <FilterSelect value={filters.modal} onChange={(v) => setFilter('modal', v)} placeholder="Modal"
+            options={(options?.modals || []).map((m) => ({ value: m, label: MODAL_META[m]?.label || m }))} />
+          <FilterSelect value={filters.status} onChange={(v) => setFilter('status', v)} placeholder="Status"
+            options={[{ value: 'confirmed', label: 'Confirmada' }, { value: 'in_progress', label: 'Em andamento' }, { value: 'completed', label: 'Concluída' }]} />
+          <FilterSelect value={filters.source} onChange={(v) => setFilter('source', v)} placeholder="Origem"
+            options={[{ value: 'automatic_mobilization', label: 'Automática' }, { value: 'manual_simulation', label: 'Manual' }]} />
+          {activeFilterCount > 0 && (
+            <button onClick={resetFilters} className="flex items-center gap-1.5 label-micro text-white/40 hover:text-mint transition-colors ml-auto">
+              <RotateCcw className="w-3.5 h-3.5" /> Limpar ({activeFilterCount})
+            </button>
+          )}
+        </div>
+      </section>
 
-            <MotionStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" fast>
-              {aiInsights.map((insight, i) => (
-                <MotionStaggerItem key={i}>
-                  <AIInsightCard
-                    type={insight.type}
-                    icon={insight.icon}
-                    title={insight.title}
-                    text={insight.text}
-                  />
-                </MotionStaggerItem>
-              ))}
-            </MotionStagger>
-
-            <div className="mt-4 pt-4 border-t border-white/[0.04] flex items-center justify-between">
-              <span className="body text-[13px]">Powered by Insight Logistics AI Engine</span>
-              <button
-                onClick={() => navigate('/inteligencia-rotas')}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-purple/10 border border-accent-purple/15 text-accent-purple text-xs font-semibold hover:bg-accent-purple/15 transition-colors"
-              >
-                <Brain className="w-3.5 h-3.5" />
-                Abrir Inteligencia de Rotas
-              </button>
-            </div>
-          </div>
-        </section>
+      {/* ═══ GOVERNANCE / EMPTY STATES ═══ */}
+      {error && (
+        <div className="surface-card rounded-2xl border border-danger-border/20 p-6 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-danger-text flex-shrink-0" />
+          <div><h3 className="heading text-white mb-1">Falha ao carregar o dashboard</h3><p className="body text-[13px]">{error}</p></div>
+        </div>
+      )}
+      {persistenceOff && (
+        <div className="surface-card rounded-2xl border border-warning-border/20 p-5 flex items-start gap-3">
+          <ShieldCheck className="w-5 h-5 text-warning-text flex-shrink-0" />
+          <p className="body text-[13px]">Persistência de confirmações desativada — configure <span className="tabular-data text-white/70">SUPABASE_SERVICE_ROLE_KEY</span> no servidor para que mobilizações confirmadas alimentem o dashboard.</p>
+        </div>
+      )}
+      {!loading && !hasData && !error && (
+        <EmptyState icon={ShieldCheck} title="Nenhuma mobilização confirmada"
+          description="O dashboard é alimentado apenas por mobilizações confirmadas nos fluxos de Simulação Manual ou Mobilização Automática. Rascunhos, buscas e cenários não selecionados nunca aparecem aqui.">
+          <LiquidMetalButton label="Iniciar mobilização" width={200} onClick={() => navigate('/mobilizacao')} />
+        </EmptyState>
       )}
 
-      {/* ═══════════════════════════════════════════
-          ZONE 5 — ACTIVITY STREAM + COMMAND ACTIONS
-          ═══════════════════════════════════════════ */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Recent simulations */}
-        <div className="lg:col-span-8 premium-panel">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-white/[0.05] flex items-center justify-center">
-                  <Radio className="w-[14px] h-[14px] text-white/40" />
-                </div>
-                <h4 className="heading">Atividade Recente</h4>
-              </div>
-              {recentSims.length > 0 && (
-                <button
-                  className="label-micro text-white/25 hover:text-mint flex items-center gap-1 transition-colors"
-                  onClick={() => navigate('/historico')}
-                >
-                  Ver historico <ChevronRight className="w-3 h-3" />
-                </button>
-              )}
-            </div>
+      {hasData && (
+        <>
+          {/* ═══ FINANCIAL INTELLIGENCE ═══ */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <Panel className="lg:col-span-7" accent="mint" title="Evolução de custos" subtitle="Gasto confirmado por dia" icon={TrendingDown}
+              action={<Badge variant="success" dot>Confirmadas</Badge>}>
+              {trendData.length > 1 ? (
+                <PremiumAreaChart data={trendData} xKey="name"
+                  series={[{ key: 'custo', name: 'Custo', color: CHART_PALETTE.mint }]}
+                  yFormatter={(v) => `R$${(v / 100000).toFixed(0)}k`} tooltipValueFormatter={(v) => formatBRL(v)} showLegend={false} height={300} />
+              ) : <NoData height={300} />}
+            </Panel>
 
-            {recentSims.length > 0 ? (
-              <MotionStagger as="div" className="space-y-0" fast inView>
-                {recentSims.map((sim, i) => (
-                  <MotionStaggerItem
-                    key={sim.id || i}
-                    className="flex items-center gap-4 px-4 py-3 -mx-1 rounded-xl hover:bg-white/[0.02] transition-colors group"
-                  >
-                    <div className="w-8 h-8 rounded-xl bg-white/[0.04] flex items-center justify-center flex-shrink-0">
-                      <span className="text-[11px] font-bold text-white/20">{String(i + 1).padStart(2, '0')}</span>
-                    </div>
+            <Panel className="lg:col-span-5" accent="orange" title="Gasto por categoria" subtitle="Composição normalizada" icon={Target}
+              action={<button className="label-micro text-white/30 hover:text-mint flex items-center gap-1" onClick={() => setDrawer({ type: 'categories' })}>Detalhar<ChevronRight className="w-3 h-3" /></button>}>
+              <CategoryBars items={data.categorySpend} />
+            </Panel>
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <Panel className="lg:col-span-5" accent="cyan" title="Gasto por projeto" subtitle="Ranking por custo total" icon={Briefcase}>
+              <div className="space-y-2 max-h-[360px] overflow-y-auto">
+                {data.projectSpend.slice(0, 12).map((p, i) => (
+                  <button key={p.projectId} onClick={() => setDrawer({ type: 'project', payload: p })}
+                    className="w-full surface-recessed flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.04] transition-colors text-left">
+                    <div className="w-6 h-6 rounded-lg surface-recessed flex items-center justify-center flex-shrink-0"><span className="text-[10px] font-bold text-white/30">{i + 1}</span></div>
                     <div className="flex-1 min-w-0">
-                      <span className="body text-[13px] font-medium text-white/80 block truncate">{sim.nome || 'Simulacao'}</span>
-                      <span className="label-micro mt-1 block">{sim.origem || '—'} → {sim.destino || '—'}</span>
+                      <span className="body text-[13px] font-medium text-white/75 block truncate">{p.projectName}</span>
+                      <span className="label-micro mt-0.5 block">{p.mobilizationCount} mob · {p.activeMobilizations} ativas</span>
                     </div>
-                    <Badge
-                      variant={sim.modal === 'Aereo' ? 'info' : sim.modal === 'Onibus' ? 'warning' : 'accent'}
-                      dot
-                      compact
-                    >
-                      {sim.modal || '—'}
-                    </Badge>
-                    <span className="label-micro text-white/25 w-20 text-right tabular-data">{sim.qtdColaboradores || '—'} pessoa(s)</span>
-                    <AnimatedNumber
-                      as="span"
-                      className="tabular-data text-sm font-bold text-mint w-28 text-right"
-                      value={sim.resumo?.custoTotalEquipe || 0}
-                      format={(v) => formatCurrency(v)}
-                    />
-                  </MotionStaggerItem>
+                    <span className="tabular-data text-[12px] font-semibold text-mint flex-shrink-0">{formatBRL(p.amountMinor)}</span>
+                  </button>
                 ))}
-              </MotionStagger>
-            ) : (
-              <div className="py-12 text-center text-white/15 text-sm">
-                Nenhuma simulacao registrada
+                {data.projectSpend.length === 0 && <NoData height={200} />}
               </div>
-            )}
-          </div>
-        </div>
+            </Panel>
 
-        {/* Command actions */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
-          <CommandAction
-            icon={Globe}
-            label="Inteligencia de Rotas"
-            description="Analise AI multi-modal com otimizacao"
-            accentFrom="from-accent-purple/15"
-            accentTo="to-accent-blue/10"
-            borderColor="border-accent-purple/10"
-            iconColor="text-accent-purple"
-            onClick={() => navigate('/inteligencia-rotas')}
-          />
-          <CommandAction
-            icon={BarChartIcon}
-            label="Comparar Cenarios"
-            description="Simule Bus vs Air vs Car"
-            accentFrom="from-accent-orange/15"
-            accentTo="to-accent-orange/5"
-            borderColor="border-accent-orange/10"
-            iconColor="text-accent-orange"
-            onClick={() => navigate('/comparador')}
-          />
-          <CommandAction
-            icon={Users}
-            label="Gerenciar Equipe"
-            description={`${stats.totalCollabs} colaborador(es) cadastrado(s)`}
-            accentFrom="from-accent-cyan/15"
-            accentTo="to-accent-blue/5"
-            borderColor="border-accent-cyan/10"
-            iconColor="text-accent-cyan"
-            onClick={() => navigate('/colaboradores')}
-          />
-        </div>
-      </section>
+            <Panel className="lg:col-span-7" accent="purple" title="Top 20 colaboradores" subtitle="Custo atribuído por colaborador" icon={Users}
+              action={<Badge variant="accent" compact>{data.collaboratorSpend.length}</Badge>}>
+              <div className="overflow-x-auto max-h-[360px] overflow-y-auto">
+                <table className="w-full text-left">
+                  <thead className="sticky top-0 bg-[rgb(var(--surface-3))]">
+                    <tr className="label-micro text-white/30 border-b border-white/[0.05]">
+                      <th className="px-3 py-2 font-medium">#</th><th className="px-3 py-2 font-medium">Colaborador</th>
+                      <th className="px-3 py-2 font-medium text-right">Mob.</th><th className="px-3 py-2 font-medium text-right">Mão de obra</th>
+                      <th className="px-3 py-2 font-medium text-right">Transporte</th><th className="px-3 py-2 font-medium text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.collaboratorSpend.map((c, i) => (
+                      <tr key={c.employeeId || c.employeeName} onClick={() => setDrawer({ type: 'collaborator', payload: c })}
+                        className="border-b border-white/[0.03] hover:bg-white/[0.03] cursor-pointer transition-colors">
+                        <td className="px-3 py-2.5 tabular-data text-[11px] text-white/25">{i + 1}</td>
+                        <td className="px-3 py-2.5"><span className="body text-[13px] text-white/75 block truncate max-w-[160px]">{c.employeeName}</span>{c.role && <span className="label-micro text-white/25">{c.role}</span>}</td>
+                        <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-white/50">{c.mobilizationCount}</td>
+                        <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-accent-purple/80">{formatBRL(c.laborSpendMinor)}</td>
+                        <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-accent-cyan/70">{formatBRL(c.transportSpendMinor)}</td>
+                        <td className="px-3 py-2.5 text-right tabular-data text-[12px] font-semibold text-white">{formatBRL(c.totalSpendMinor)}</td>
+                      </tr>
+                    ))}
+                    {data.collaboratorSpend.length === 0 && <tr><td colSpan={6}><NoData height={160} /></td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+          </section>
+
+          {/* ═══ OPERATIONAL INTELLIGENCE ═══ */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <Panel className="lg:col-span-8" accent="white" title="Mobilizações ativas" subtitle="Operações confirmadas em campo" icon={Radio}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="label-micro text-white/30 border-b border-white/[0.05]">
+                      <th className="px-3 py-2 font-medium">Projeto</th><th className="px-3 py-2 font-medium">Rota</th>
+                      <th className="px-3 py-2 font-medium">Modal</th><th className="px-3 py-2 font-medium text-right">Equipe</th>
+                      <th className="px-3 py-2 font-medium">Status</th><th className="px-3 py-2 font-medium text-right">ETA</th><th className="px-3 py-2 font-medium text-right">Custo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data.map || []).map((m) => {
+                      const Mi = MODAL_META[m.modal]?.icon || Layers;
+                      return (
+                        <tr key={m.mobilizationId} onClick={() => setDrawer({ type: 'mobilization', payload: m })}
+                          className="border-b border-white/[0.03] hover:bg-white/[0.03] cursor-pointer transition-colors">
+                          <td className="px-3 py-2.5"><span className="body text-[13px] text-white/75 block truncate max-w-[140px]">{m.projectName}</span><span className="label-micro text-white/25">{m.scheduleName}</span></td>
+                          <td className="px-3 py-2.5"><span className="body text-[12px] text-white/50">{m.origin.label?.split(' - ')[0]} → {m.destination.label?.split(' - ')[0]}</span></td>
+                          <td className="px-3 py-2.5"><span className="flex items-center gap-1.5 label-micro text-white/50"><Mi className="w-3.5 h-3.5" />{MODAL_META[m.modal]?.label || m.modal}</span></td>
+                          <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-white/50">{m.teamSize}</td>
+                          <td className="px-3 py-2.5"><span className="flex items-center gap-1.5 label-micro" style={{ color: STATUS_COLOR[m.status] }}><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: STATUS_COLOR[m.status] }} />{STATUS_LABEL[m.status] || m.status}</span></td>
+                          <td className="px-3 py-2.5 text-right label-micro text-white/40 tabular-data">{new Date(m.estimatedArrivalAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                          <td className="px-3 py-2.5 text-right tabular-data text-[12px] font-semibold text-mint">{formatBRL(m.totalCostMinor)}</td>
+                        </tr>
+                      );
+                    })}
+                    {(data.map || []).length === 0 && <tr><td colSpan={7}><NoData height={140} /></td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+
+            {/* Alerts + SLA */}
+            <div className="lg:col-span-4 space-y-6">
+              <Panel accent="orange" title="Alertas" subtitle="Mais urgentes primeiro" icon={AlertTriangle} action={<Badge variant="warning" compact>{data.alerts.length}</Badge>}>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {data.alerts.slice(0, 8).map((a, i) => (
+                    <div key={i} className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border ${a.severity === 'high' ? 'bg-danger-bg/40 border-danger-border/20' : a.severity === 'medium' ? 'bg-warning-bg/40 border-warning-border/20' : 'bg-white/[0.02] border-white/[0.05]'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${a.severity === 'high' ? 'bg-danger-text' : a.severity === 'medium' ? 'bg-warning-text' : 'bg-white/40'}`} />
+                      <span className="body text-[12px] text-white/65">{a.message}</span>
+                    </div>
+                  ))}
+                  {data.alerts.length === 0 && <div className="py-8 text-center label-micro text-white/25 flex flex-col items-center gap-2"><CheckCircle className="w-6 h-6 text-mint/40" />Nenhum alerta ativo</div>}
+                </div>
+              </Panel>
+              <Panel accent="mint" title="SLA de chegada" subtitle="Cumprimento de prazo" icon={Gauge}>
+                <div className="grid grid-cols-2 gap-3">
+                  <Stat label="No prazo" value={data.sla.onTimeRate == null ? '—' : `${Math.round(data.sla.onTimeRate * 100)}%`} accent="text-mint" />
+                  <Stat label="Atrasadas" value={data.sla.lateCount} accent="text-danger-text" />
+                  <Stat label="Em risco" value={data.sla.activeAtRisk} accent="text-accent-orange" />
+                  <Stat label="Concluídas" value={data.sla.completedCount} accent="text-white/70" />
+                </div>
+              </Panel>
+            </div>
+          </section>
+
+          {/* ═══ SUPPORTING ANALYTICS ═══ */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <Panel className="lg:col-span-4" accent="purple" title="Mix de modais" subtitle="Distribuição por transporte" icon={Layers}>
+              {modalDonut.length > 0 ? (
+                <>
+                  <PremiumDonutChart data={modalDonut} nameKey="name" valueKey="value" colors={CHART_SEQUENCE} innerRadius={40} outerRadius={62} paddingAngle={4} height={160} />
+                  <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-2">
+                    {(data.modalMix || []).map((m, i) => (
+                      <div key={m.modal} className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_SEQUENCE[i % CHART_SEQUENCE.length] }} />
+                        <span className="body text-[12px]">{MODAL_META[m.modal]?.label || m.modal}</span>
+                        <span className="tabular-data text-[11px] text-white/50 font-semibold">{formatBRL(m.amountMinor)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : <NoData height={160} />}
+            </Panel>
+
+            <Panel className="lg:col-span-4" accent="mint" title="Inteligência de economia" subtitle={data.savings.methodology} icon={TrendingDown}>
+              <div className="space-y-3">
+                <Stat label="Economia total" value={formatBRL(data.savings.totalSavingsMinor)} accent="text-mint" big />
+                <Row label="Economia média / mob." value={formatBRL(data.savings.averageSavingsMinor)} />
+                <Row label="Cobertura do cálculo" value={`${Math.round((data.savings.coverage || 0) * 100)}%`} />
+                {(data.savings.byProject || []).slice(0, 3).map((p) => (
+                  <Row key={p.projectId} label={p.projectName} value={formatBRL(p.savingsMinor)} />
+                ))}
+              </div>
+            </Panel>
+
+            <Panel className="lg:col-span-4" accent="cyan" title="Conformidade & exposição" subtitle="HE, noturno e origem" icon={ShieldCheck}>
+              <div className="space-y-3">
+                <Row label="Manual vs automática" value={`${ov.manualCount} / ${ov.automaticCount}`} />
+                <Row label="Projetos com mobilização" value={ov.projectsWithMobilization} />
+                <Row label="Rotas multimodais" value={ov.multimodalCount} />
+                <Row label="Colaboradores em trânsito" value={ov.activeEmployeesInTransit} />
+                <div className="pt-2 flex items-center gap-2 label-micro text-white/25"><Moon className="w-3.5 h-3.5" />Adicional noturno e HE detalhados no drill-down por colaborador</div>
+              </div>
+            </Panel>
+          </section>
+        </>
+      )}
+
+      {/* ═══ DRILL-DOWN DRAWER (§11) ═══ */}
+      <DrillDownDrawer drawer={drawer} data={data} onClose={() => setDrawer(null)} />
     </div>
   );
 }
 
-
-/* ═══════════════════════════════════════════
-   SUB-COMPONENTS
-   ═══════════════════════════════════════════ */
-
-function MetricCell({ label, value, detail, icon: Icon, color, border, highlight, sparkData, sparkColor }) {
-  const colors = {
-    mint: { icon: 'text-success-text', value: 'text-success-text', bg: 'bg-success-bg' },
-    cyan: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
-    orange: { icon: 'text-accent-text', value: 'text-accent-text', bg: 'bg-accent-bg' },
-    blue: { icon: 'text-info-text', value: 'text-info-text', bg: 'bg-info-bg' },
-  };
-  const c = colors[color] || colors.mint;
-
+/* ── Drill-down drawer ── */
+function DrillDownDrawer({ drawer, data, onClose }) {
+  if (!drawer) return null;
+  const titles = { mobilization: 'Mobilização', collaborator: 'Colaborador', project: 'Projeto', categories: 'Gasto por categoria', alerts: 'Alertas operacionais', active: 'Mobilizações ativas' };
   return (
-    <div className={`relative px-6 py-6 ${border ? 'border-l border-white/[0.06]' : ''}`}>
-      {highlight && (
-        <div className="absolute inset-0 bg-gradient-to-r from-accent-orange/[0.05] to-transparent pointer-events-none" />
-      )}
-      <div className="relative">
-        <div className="flex items-center justify-between mb-4">
-          <span className="label-micro">{label}</span>
-          {Icon && (
-            <div className={`w-8 h-8 rounded-xl ${c.bg} flex items-center justify-center`}>
-              <Icon className={`w-[15px] h-[15px] ${c.icon}`} />
+    <Modal open={!!drawer} onClose={onClose} title={titles[drawer.type] || 'Detalhe'} size="lg">
+      {drawer.type === 'mobilization' && <MobilizationDetail m={drawer.payload} />}
+      {drawer.type === 'collaborator' && <CollaboratorDetail c={drawer.payload} />}
+      {drawer.type === 'project' && <ProjectDetail p={drawer.payload} data={data} />}
+      {drawer.type === 'categories' && <CategoryBars items={data?.categorySpend || []} full />}
+      {drawer.type === 'alerts' && (
+        <div className="space-y-2">
+          {(data?.alerts || []).map((a, i) => (
+            <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+              <Badge variant={a.severity === 'high' ? 'danger' : a.severity === 'medium' ? 'warning' : 'neutral'} compact>{a.severity}</Badge>
+              <span className="body text-[13px] text-white/70">{a.message}</span>
             </div>
-          )}
+          ))}
+          {(data?.alerts || []).length === 0 && <NoData height={120} />}
         </div>
-        <div className="flex items-end justify-between gap-2">
-          <div className="min-w-0">
-            {typeof value === 'number' ? (
-              <AnimatedNumber
-                as="div"
-                className={`metric-value ${c.value}`}
-                value={value}
-                format={(v) => {
-                  if (label === 'Custo Medio' || label === 'Economia AI') return formatCurrency(v);
-                  if (label === 'Transito Medio') return `${v.toFixed(1)}h`;
-                  return Math.round(v).toLocaleString('pt-BR');
-                }}
-              />
-            ) : (
-              <div className={`metric-value ${c.value}`}>
-                {value}
-              </div>
-            )}
+      )}
+      {drawer.type === 'active' && (
+        <div className="space-y-2">
+          {(data?.map || []).map((m) => <MobRow key={m.mobilizationId} m={m} />)}
+          {(data?.map || []).length === 0 && <NoData height={120} />}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function MobilizationDetail({ m }) {
+  const Mi = MODAL_META[m.modal]?.icon || Layers;
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div><h4 className="heading text-white">{m.projectName}</h4><p className="label-micro mt-0.5">{m.scheduleName}</p></div>
+        <span className="flex items-center gap-1.5 label-micro" style={{ color: STATUS_COLOR[m.status] }}><span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLOR[m.status] }} />{STATUS_LABEL[m.status] || m.status}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Info label="Origem" value={m.origin.label} icon={MapPin} />
+        <Info label="Destino" value={m.destination.label} icon={MapPin} />
+        <Info label="Modal" value={<span className="flex items-center gap-1.5"><Mi className="w-3.5 h-3.5" />{MODAL_META[m.modal]?.label || m.modal}</span>} />
+        <Info label="Equipe" value={`${m.teamSize} · ${m.employeeSummary}`} />
+        <Info label="Partida" value={new Date(m.plannedDepartureAt).toLocaleString('pt-BR')} />
+        <Info label="ETA" value={new Date(m.estimatedArrivalAt).toLocaleString('pt-BR')} />
+        <Info label="Progresso" value={`${m.progressPercentage}%`} />
+        <Info label="Custo total" value={formatBRL(m.totalCostMinor)} />
+        <Info label="Origem do dado" value={m.source === 'manual' ? 'Simulação manual' : 'Mobilização automática'} />
+        <Info label="Risco" value={m.riskLevel} />
+      </div>
+    </div>
+  );
+}
+function CollaboratorDetail({ c }) {
+  return (
+    <div className="space-y-4">
+      <div><h4 className="heading text-white">{c.employeeName}</h4><p className="label-micro mt-0.5">{c.role || '—'} · {c.projectCount} projeto(s)</p></div>
+      <div className="grid grid-cols-2 gap-3">
+        <Info label="Custo total atribuído" value={formatBRL(c.totalSpendMinor)} />
+        <Info label="Mobilizações" value={c.mobilizationCount} />
+        <Info label="Mão de obra" value={formatBRL(c.laborSpendMinor)} />
+        <Info label="Transporte" value={formatBRL(c.transportSpendMinor)} />
+        <Info label="Custo médio / mob." value={formatBRL(c.averageSpendMinor)} />
+        <Info label="Duração média" value={fmtDur(c.averageDurationMinutes)} />
+        <Info label="HE (min)" value={c.overtimeMinutes} />
+        <Info label="Noturno (min)" value={c.nightMinutes} />
+        <Info label="Ativas" value={c.activeMobilizationCount} />
+      </div>
+    </div>
+  );
+}
+function ProjectDetail({ p, data }) {
+  const cats = useMemo(() => (data?.categorySpend || []).slice(0, 8), [data]);
+  return (
+    <div className="space-y-4">
+      <div><h4 className="heading text-white">{p.projectName}</h4><p className="label-micro mt-0.5">{p.mobilizationCount} mobilização(ões) · {p.activeMobilizations} ativas</p></div>
+      <div className="grid grid-cols-2 gap-3">
+        <Info label="Gasto total" value={formatBRL(p.amountMinor)} />
+        <Info label="Custo médio" value={formatBRL(p.averageSpendMinor)} />
+      </div>
+      <div><span className="label-micro text-white/30 mb-2 block">Composição por categoria (período)</span><CategoryBars items={cats} /></div>
+    </div>
+  );
+}
+function MobRow({ m }) {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: STATUS_COLOR[m.status] }} />
+      <div className="flex-1 min-w-0"><span className="body text-[13px] text-white/75 block truncate">{m.projectName}</span><span className="label-micro">{m.origin.label?.split(' - ')[0]} → {m.destination.label?.split(' - ')[0]}</span></div>
+      <span className="tabular-data text-[12px] font-semibold text-mint">{formatBRL(m.totalCostMinor)}</span>
+    </div>
+  );
+}
+
+/* ── Presentational helpers ── */
+function Panel({ children, className = '', accent = 'mint', title, subtitle, icon: Icon, action }) {
+  const line = { mint: 'via-mint/15', cyan: 'via-accent-cyan/15', orange: 'via-accent-orange/15', purple: 'via-accent-purple/15', white: 'via-white/10' }[accent];
+  const iconBg = { mint: 'bg-mint/[0.08] text-mint/70', cyan: 'bg-accent-cyan/[0.08] text-accent-cyan/70', orange: 'bg-accent-orange/[0.08] text-accent-orange/70', purple: 'bg-accent-purple/[0.08] text-accent-purple/70', white: 'bg-white/[0.05] text-white/40' }[accent];
+  return (
+    <div className={`premium-panel ${className}`}>
+      <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${line} to-transparent`} />
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            {Icon && <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${iconBg}`}><Icon className="w-4 h-4" /></div>}
+            <div><h3 className="heading">{title}</h3>{subtitle && <p className="body text-[12px] mt-0.5">{subtitle}</p>}</div>
           </div>
-          {/* Phase 5D — KPI Sparkline */}
-          {sparkData && sparkData.length >= 2 && (
-            <KpiSparkline
-              data={sparkData}
-              color={sparkColor}
-              width={64}
-              height={24}
-              className="flex-shrink-0 opacity-60"
-            />
-          )}
+          {action}
         </div>
-        {detail && (
-          <p className="body text-[13px] mt-2">
-            {detail}
-          </p>
-        )}
+        {children}
       </div>
     </div>
   );
 }
 
-function InsightRow({ label, value, highlight }) {
+function CategoryBars({ items = [], full }) {
+  if (!items.length) return <NoData height={160} />;
+  const max = Math.max(...items.map((i) => i.amountMinor), 1);
+  return (
+    <div className={`space-y-2.5 ${full ? '' : 'max-h-[300px] overflow-y-auto'}`}>
+      {items.map((c, i) => (
+        <div key={c.category}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="body text-[12px] truncate">{c.label}</span>
+            <span className="tabular-data text-[11px] text-white/60 font-semibold ml-2 flex-shrink-0">{formatBRL(c.amountMinor)} · {c.percentage}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${(c.amountMinor / max) * 100}%`, backgroundColor: CHART_SEQUENCE[i % CHART_SEQUENCE.length], opacity: 0.75 }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Kpi({ label, value, detail, icon: Icon, color, border, highlight, money, duration, suffix, onClick }) {
+  const c = {
+    mint: 'text-success-text bg-success-bg', cyan: 'text-info-text bg-info-bg',
+    orange: 'text-accent-text bg-accent-bg', blue: 'text-info-text bg-info-bg',
+  }[color] || 'text-success-text bg-success-bg';
+  const [txt, bg] = c.split(' ');
+  const Comp = onClick ? 'button' : 'div';
+  return (
+    <Comp onClick={onClick} className={`relative px-5 py-5 text-left ${border ? 'border-l border-white/[0.06]' : ''} ${onClick ? 'hover:bg-white/[0.02] transition-colors' : ''}`}>
+      {highlight && <div className="absolute inset-0 bg-gradient-to-r from-accent-orange/[0.05] to-transparent pointer-events-none" />}
+      <div className="relative">
+        <div className="flex items-center justify-between mb-3">
+          <span className="label-micro">{label}</span>
+          {Icon && <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}><Icon className={`w-[14px] h-[14px] ${txt}`} /></div>}
+        </div>
+        {value == null ? (
+          <div className={`metric-value ${txt}`}>—</div>
+        ) : (
+          <AnimatedNumber as="div" className={`metric-value ${txt}`} value={value}
+            format={(v) => (money ? formatBRL(Math.round(v)) : duration ? fmtDur(v) : `${Math.round(v).toLocaleString('pt-BR')}${suffix || ''}`)} />
+        )}
+        {detail && <p className="body text-[12px] mt-1.5">{detail}</p>}
+      </div>
+    </Comp>
+  );
+}
+
+function Stat({ label, value, accent = 'text-white', big }) {
+  return (
+    <div className="surface-recessed rounded-xl px-3 py-3">
+      <div className={`${big ? 'display-sm' : 'metric-value'} ${accent}`}>{value}</div>
+      <div className="label-micro text-white/30 mt-1">{label}</div>
+    </div>
+  );
+}
+function Row({ label, value }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-white/[0.03] last:border-0">
-      <span className="body text-[13px]">{label}</span>
-      {typeof value === 'number' ? (
-        <AnimatedNumber
-          as="span"
-          className={`tabular-data text-[13px] font-semibold ${highlight ? 'text-success-text' : 'text-white/70'}`}
-          value={value}
-          format={(v) => Math.round(v).toLocaleString('pt-BR')}
-        />
-      ) : (
-        <span className={`tabular-data text-[13px] font-semibold ${highlight ? 'text-success-text' : 'text-white/70'}`}>{value}</span>
-      )}
+      <span className="body text-[13px] truncate mr-2">{label}</span>
+      <span className="tabular-data text-[13px] font-semibold text-white/70 flex-shrink-0">{value}</span>
     </div>
   );
 }
-
-function AIInsightCard({ type, icon: Icon, title, text }) {
-  const styles = {
-    success: {
-      bg: 'bg-success-bg/60',
-      border: 'border-success-border/20',
-      iconBg: 'bg-success-bg',
-      iconColor: 'text-success-text',
-      titleColor: 'text-success-text',
-      textColor: 'text-success-text/70',
-    },
-    info: {
-      bg: 'bg-info-bg/60',
-      border: 'border-info-border/20',
-      iconBg: 'bg-info-bg',
-      iconColor: 'text-info-text',
-      titleColor: 'text-info-text',
-      textColor: 'text-info-text/70',
-    },
-    warning: {
-      bg: 'bg-warning-bg/60',
-      border: 'border-warning-border/20',
-      iconBg: 'bg-warning-bg',
-      iconColor: 'text-warning-text',
-      titleColor: 'text-warning-text',
-      textColor: 'text-warning-text/70',
-    },
-    suggestion: {
-      bg: 'bg-accent-bg/60',
-      border: 'border-accent-border/20',
-      iconBg: 'bg-accent-bg',
-      iconColor: 'text-accent-text',
-      titleColor: 'text-accent-text',
-      textColor: 'text-accent-text/70',
-    },
-  };
-  const s = styles[type] || styles.info;
-
+function Info({ label, value, icon: Icon }) {
   return (
-    <div className={`px-4 py-4 rounded-xl ${s.bg} border ${s.border}`}>
-      <div className="flex items-start gap-3">
-        <div className={`w-7 h-7 rounded-lg ${s.iconBg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-          {Icon && <Icon className={`w-3.5 h-3.5 ${s.iconColor}`} />}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h5 className={`heading text-[15px] ${s.titleColor} mb-1`}>{title}</h5>
-          <p className={`body text-[13px] ${s.textColor}`}>{text}</p>
-        </div>
-      </div>
+    <div className="surface-recessed rounded-xl px-3 py-2.5">
+      <span className="label-micro text-white/30 flex items-center gap-1">{Icon && <Icon className="w-3 h-3" />}{label}</span>
+      <span className="body text-[13px] text-white/75 block mt-0.5">{value}</span>
     </div>
   );
 }
-
-function CommandAction({ icon: Icon, label, description, accentFrom, accentTo, borderColor, iconColor, onClick }) {
-  const { ref, onMouseMove } = useSpotlight();
+function FilterSelect({ value, onChange, placeholder, options }) {
   return (
-    <button
-      ref={ref}
-      onMouseMove={onMouseMove}
-      onClick={onClick}
-      className={`surface-card spotlight group relative overflow-hidden rounded-2xl border ${borderColor} bg-gradient-to-r ${accentFrom} ${accentTo} p-6 flex items-center gap-4 text-left transition-[transform,border-color,box-shadow] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] hover:scale-[1.015] hover:-translate-y-0.5`}
-      style={{
-        boxShadow: '0 10px 30px -12px rgb(var(--shadow-ink) / 0.35), inset 0 1px 0 rgb(var(--highlight-ink) / 0.06)',
-      }}
-    >
-      {/* hover sheen */}
-      <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-[var(--motion-duration-large)] ease-[var(--motion-ease-out)] pointer-events-none"
-        style={{
-          background: 'linear-gradient(120deg, transparent 30%, rgb(var(--highlight-ink) / 0.04) 50%, transparent 70%)',
-        }}
-      />
-      <div className="relative w-11 h-11 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0 border border-white/[0.08]">
-        <Icon className={`w-5 h-5 ${iconColor}`} />
-      </div>
-      <div className="relative flex-1 min-w-0">
-        <span className="heading text-white/90 block">{label}</span>
-        <span className="body text-[13px] block mt-1">{description}</span>
-      </div>
-      <ArrowRight className="relative w-4 h-4 text-white/20 group-hover:text-white/60 group-hover:translate-x-1 transition-[transform,color] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] flex-shrink-0" />
-    </button>
+    <select value={value} onChange={(e) => onChange(e.target.value)}
+      className="glass-input !py-1.5 !w-auto text-[13px] cursor-pointer">
+      <option value="">{placeholder}</option>
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
   );
+}
+function NoData({ height = 200 }) {
+  return <div className="flex items-center justify-center text-white/15 text-xs" style={{ height }}>Sem dados no período</div>;
 }

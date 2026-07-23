@@ -16,6 +16,7 @@ import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 import { formatBRL } from '../domain/money.js';
 import { mobilizationSearch, mobilizationSelect, mobilizationSubmitForApproval } from '../services/BackendApiClient.js';
 import { getConfig } from '../data/policyStore.js';
+import { ConfirmMobilizationModal } from '../components/mobilization/ConfirmMobilizationModal.jsx';
 
 const MODE_META = {
   flight: { icon: Plane, label: 'Voo', color: 'text-accent-cyan', bg: 'bg-accent-cyan/10', ring: 'border-accent-cyan/20' },
@@ -73,6 +74,8 @@ export default function MobilizationIntelligence() {
   const [expanded, setExpanded] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [approval, setApproval] = useState('idle'); // idle|saving|sent|error
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
   const selected = collaborators.filter((c) => selectedIds.has(c.id));
 
@@ -256,6 +259,7 @@ export default function MobilizationIntelligence() {
       {/* ── Results ── */}
       {result?.success && result.itineraries.length > 0 && (
         <div className="space-y-6 animate-slide-up">
+          <ProvidersStrip providers={result.providers} />
           {rec && <RecommendationHero rec={rec} explanation={result.explanation} reasonCodes={result.reasonCodes} />}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -267,13 +271,86 @@ export default function MobilizationIntelligence() {
 
           <ApprovalBar audit={result.audit} selectedId={selectedId} rec={rec} itineraries={result.itineraries} approval={approval} onSubmit={handleSubmit} />
 
+          {/* Confirmation gate (§3.1) — only a confirmed mobilization feeds the dashboard */}
+          {selectedId && (
+            <div className="surface-card rounded-2xl border border-mint/20 p-5 flex flex-wrap items-center gap-4">
+              <FileCheck className="w-5 h-5 text-mint flex-shrink-0" />
+              <div className="flex-1 min-w-[220px]">
+                <h3 className="heading text-white/85 mb-0.5">Confirmar mobilização</h3>
+                <p className="body text-[13px]">
+                  {confirmed
+                    ? 'Mobilização confirmada — já alimenta o Dashboard, os rankings e o mapa em tempo real.'
+                    : 'Vincule projeto, cronograma e colaboradores para tornar esta mobilização elegível ao Dashboard.'}
+                </p>
+              </div>
+              {confirmed ? (
+                <span className="flex items-center gap-1.5 body text-[13px] text-success-text"><CheckCircle className="w-4 h-4" /> Confirmada</span>
+              ) : (
+                <button onClick={() => setConfirmOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold bg-mint/15 text-mint border border-mint/25 hover:bg-mint/20 transition-colors">
+                  <ShieldCheck className="w-4 h-4" /> Confirmar mobilização
+                </button>
+              )}
+            </div>
+          )}
+
           <ComparisonTable itineraries={result.itineraries} recId={rec?.id} />
+
+          {selectedId && (() => {
+            const chosen = result.itineraries.find((i) => i.id === selectedId);
+            return (
+              <ConfirmMobilizationModal
+                open={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+                source="automatic_mobilization"
+                scenario={chosen}
+                alternatives={result.itineraries}
+                employees={selected.map((c) => ({ id: c.id, name: c.nome || c.name, role: c.cargo || c.role }))}
+                origin={origin}
+                destination={destination}
+                refs={{
+                  requestId: result.audit?.requestId || null,
+                  selectedItineraryId: result.audit?.itineraryIdMap?.[selectedId] || null,
+                  reasonCodes: result.reasonCodes || [],
+                  policySummary: result.policySummary || null,
+                }}
+                onConfirmed={() => { setConfirmed(true); }}
+              />
+            );
+          })()}
         </div>
       )}
 
       {result?.success && result.itineraries.length === 0 && !loading && (
-        <EmptyState icon={RouteIcon} title="Nenhuma rota viável no prazo" description="Nenhuma composição atende ao prazo de chegada e às restrições. Tente ampliar a janela de tempo." />
+        <div className="space-y-4">
+          <EmptyState icon={RouteIcon} title="Nenhuma rota viável no prazo" description="Nenhuma composição atende ao prazo de chegada e às restrições. Tente ampliar a janela de tempo." />
+          <ManualCTA navigate={navigate} />
+        </div>
       )}
+
+      {/* §2.1/§8: when the automatic road search is unavailable, offer the manual
+          simulator — same engine, manual segments. */}
+      {(error || (result?.providers && result.providers.bus?.source === 'unavailable' && result.providers.flights?.source === 'unavailable')) && !loading && (
+        <ManualCTA navigate={navigate} />
+      )}
+    </div>
+  );
+}
+
+function ManualCTA({ navigate }) {
+  return (
+    <div className="surface-card relative overflow-hidden border border-accent-cyan/[0.15]">
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/25 to-transparent" />
+      <div className="p-6 flex items-center justify-between gap-6">
+        <div>
+          <h3 className="heading text-white/85 mb-1">Busca automática indisponível?</h3>
+          <p className="body text-[13px] max-w-xl">
+            Utilize a Simulação Manual para cadastrar os trechos e calcular jornada, adicionais e custo
+            total com o mesmo motor de mobilização — útil também para fretamentos e tarifas negociadas.
+          </p>
+        </div>
+        <button className="btn-primary-mint whitespace-nowrap" onClick={() => navigate('/comparador')}>Abrir Simulação Manual</button>
+      </div>
     </div>
   );
 }
@@ -309,7 +386,7 @@ function Hero() {
 }
 
 function PolicyCard({ policy }) {
-  const lines = policy?.lines || ['8h normais', '+2h a +50%', 'excedente a +100%', 'sábado após 8h a +100%', 'domingo a 2.5x', 'noturno 22:00–05:00 a +20%'];
+  const lines = policy?.lines || ['8h normais', '+2h a +50%', 'excedente a +100%', 'sábado: todas as horas a +100%', 'domingo a 2.5x', 'noturno 22:00–05:00 a +20%'];
   return (
     <div className="surface-recessed rounded-2xl border border-white/[0.04] p-5">
       <div className="flex items-center gap-2 mb-3">
@@ -323,6 +400,34 @@ function PolicyCard({ policy }) {
           <span key={i} className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.05] label-micro text-white/50">{l}</span>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ProvidersStrip({ providers }) {
+  if (!providers) return null;
+  const badge = (p, Icon, name) => {
+    const map = {
+      realtime: { t: 'tempo real', c: 'text-mint', d: 'bg-mint' },
+      no_data: { t: 'sem viagens reais', c: 'text-white/40', d: 'bg-white/30' },
+      unavailable: { t: 'indisponível', c: 'text-white/30', d: 'bg-white/20' },
+      estimated: { t: 'estimado', c: 'text-accent-orange', d: 'bg-accent-orange' },
+    };
+    const m = map[p.source] || map.estimated;
+    return (
+      <span className="flex items-center gap-1.5">
+        <Icon className="w-3.5 h-3.5 text-white/40" />
+        <span className="label-micro text-white/40">{name}:</span>
+        <span className={`flex items-center gap-1 label-micro ${m.c}`}><span className={`w-1.5 h-1.5 rounded-full ${m.d}`} />{m.t}</span>
+        {p.realPairs > 0 && <span className="label-micro text-white/20">({p.realPairs} par{p.realPairs !== 1 ? 'es' : ''})</span>}
+      </span>
+    );
+  };
+  return (
+    <div className="surface-card rounded-2xl border border-white/[0.05] px-6 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+      <span className="label-micro text-white/25">Fontes de dados</span>
+      {badge(providers.flights, Plane, providers.flights.label || 'Voos')}
+      {badge(providers.bus, Bus, providers.bus.label || 'Ônibus')}
     </div>
   );
 }
@@ -551,7 +656,21 @@ function Timeline({ segments }) {
   );
 }
 
-const LABOR_LABEL = { regular: 'Regular', overtime_50: '+50%', overtime_100: '+100%', overtime_150: '+150% (Dom/Fer)', custom: 'Custom' };
+// Labels keyed by (dayType, baseClassification) so Saturday +100% is shown
+// distinctly from weekday +100% — Saturday is always 100% from the first
+// counted minute (§4.2), never a regular band.
+const LABOR_LABEL = {
+  regular: 'Regular', overtime_50: '+50%', overtime_100: '+100%',
+  overtime_150: '+150% (Dom/Fer)', custom: 'Custom',
+  saturday_overtime_100: '+100% Sábado', sunday_overtime_150: '2,5× Domingo', holiday_overtime_150: '2,5× Feriado',
+};
+
+/** Bucket key that separates Saturday/Sunday/holiday premium bands (via dayType). */
+function laborBucketKey(bl) {
+  if (bl.dayType === 'saturday' && bl.baseClassification === 'overtime_100') return 'saturday_overtime_100';
+  if (bl.baseClassification === 'overtime_150') return bl.dayType === 'holiday' ? 'holiday_overtime_150' : 'sunday_overtime_150';
+  return bl.baseClassification;
+}
 
 function LaborBreakdown({ laborByEmployee }) {
   if (!laborByEmployee?.length) return null;
@@ -563,7 +682,8 @@ function LaborBreakdown({ laborByEmployee }) {
           const byClass = {};
           let nightMin = 0;
           for (const bl of emp.blocks) {
-            byClass[bl.baseClassification] = (byClass[bl.baseClassification] || 0) + bl.countedMinutes;
+            const key = laborBucketKey(bl);
+            byClass[key] = (byClass[key] || 0) + bl.countedMinutes;
             if (bl.nightPremiumApplied) nightMin += bl.countedMinutes;
           }
           return (

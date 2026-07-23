@@ -12,6 +12,9 @@ altered, and RLS is only enabled on the new tables (plus `profiles`).
 | `0004_mobilization_core.sql` | `mobilization_requests`, `mobilization_search_snapshots`, `itineraries`, `itinerary_segments` (§16) |
 | `0005_cost_audit.sql` | `cost_breakdowns`, `labor_cost_blocks`, `feasibility_checks`, `recommendations`, audit/approval/override (§15/§19/§25) |
 | `0006_config.sql` | admin config tables + audited via `config_audit_events` (§22) |
+| `0009_manual_mobilization.sql` | manual simulations, scenarios, normalized segments and labor snapshots |
+| `0010_confirmed_mobilizations.sql` | governed confirmation gate and dashboard-eligible immutable snapshots |
+| `0011_manual_round_trip.sql` | one-way/round-trip context, segment direction and manual audit stream |
 
 ## How to apply
 
@@ -41,8 +44,26 @@ supabase db push        # applies everything in supabase/migrations/
 
 ## Seeded default IDs (referenced by code)
 
-- Default labor policy: `00000000-0000-4000-a000-000000000001`
+- Default labor policy **v1** (retired by 0009): `00000000-0000-4000-a000-000000000001`
+- Default labor policy **v2** (active — Saturday all-overtime §4.2): `00000000-0000-4000-a000-000000000011`
 - Default travel-time policy: `00000000-0000-4000-a000-000000000002`
+
+## 0009 — Manual Mobilization Simulator
+
+Adds `manual_mobilization_simulations`, `manual_mobilization_scenarios`,
+`manual_itinerary_segments`, `manual_labor_calculation_blocks`, plus the
+`saturday_all_hours_overtime` policy flag and the corrected **v2** labor policy
+(Saturday +100% from the first counted minute). New permission slugs used by the
+manual flow: `mobilization.create`, `labor_breakdown.view` (granted to anyone
+who already has `mobilization.search`). Manual and automatic flows share the
+same labor/operational/recommendation engines — no parallel engine (§3, §28).
+
+## 0011 — Revised compact simulator and round trip
+
+Adds `trip_type`, outbound/return dates, normalized segment `direction`, and an
+append-only manual audit stream. Drafts still do not require project allocation;
+project, schedule/activity and identified collaborators remain enforced by the
+confirmation gate from `0010`.
 
 ## Open business decision
 

@@ -14,6 +14,7 @@
 
 import { localToUtc } from './MultimodalGraphBuilder.js';
 import { roadKm } from './geo.js';
+import { fetchRealFlightLegs, fetchRealBusLegs } from './providers.js';
 
 const BUS_SPEED_KMH = 60;
 const FLIGHT_SPEED_KMH = 700;
@@ -43,15 +44,48 @@ function departureSlots(tz, earliestMs, deadlineMs) {
   return [...slots].sort((a, b) => Date.parse(a) - Date.parse(b));
 }
 
+/** Local YYYY-MM-DD of the earliest departure, per node timezone (SerpAPI/Quero date). */
+function localSearchDate(utcMs, tz) {
+  return localDate(utcMs, tz);
+}
+
+function estimatedBusLegs(a, b, dist, slots, fromId, toId) {
+  const durMin = Math.max(30, Math.round((dist / BUS_SPEED_KMH) * 60));
+  const costC = Math.max(3000, Math.round(dist * 18));
+  return slots.map((dep, i) => ({
+    id: `bus-${fromId}-${toId}-${i}`, mode: 'bus', departureAtUtc: dep,
+    arrivalAtUtc: new Date(Date.parse(dep) + durMin * 60000).toISOString(), costC,
+    fromTerminalType: 'bus_terminal', toTerminalType: 'bus_terminal', providerId: 'estimate_bus', estimated: true,
+  }));
+}
+
+function estimatedFlightLegs(a, b, dist, slots, fromId, toId) {
+  const durMin = Math.round((dist / FLIGHT_SPEED_KMH) * 60) + 30;
+  const costC = Math.round(25000 + dist * 22);
+  return slots.map((dep, i) => ({
+    id: `fly-${fromId}-${toId}-${i}`, mode: 'flight', departureAtUtc: dep,
+    arrivalAtUtc: new Date(Date.parse(dep) + durMin * 60000).toISOString(), costC,
+    fromTerminalType: 'airport', toTerminalType: 'airport', providerId: 'estimate_flight', estimated: true,
+  }));
+}
+
 /**
  * Create a queryLegs(fromId, toId) for the candidate graph expander.
+ *
+ * When `real.enabled`, live providers are queried per mode (within a call
+ * budget) and, if they return data, REPLACE the estimated legs for that mode
+ * (accuracy over synthetic coverage). Otherwise the estimated timetable is used.
+ *
  * @param {Object} p
  * @param {Record<string, object>} p.nodesById
  * @param {string} p.earliestDepartureUtc
  * @param {string} p.deadlineUtc
+ * @param {{ enabled: boolean, budget: { flights: number, buses: number }, cache: Map, sources?: object }} [p.real]
+ * @param {boolean} [p.allowEstimated] — when false (default), NO synthetic legs
+ *   are produced; only real provider data is used (never invents values §32).
  * @returns {(fromId: string, toId: string) => Promise<object[]>}
  */
-export function makeQueryLegs({ nodesById, earliestDepartureUtc, deadlineUtc }) {
+export function makeQueryLegs({ nodesById, earliestDepartureUtc, deadlineUtc, real, allowEstimated = false }) {
   const earliestMs = Date.parse(earliestDepartureUtc);
   const deadlineMs = Date.parse(deadlineUtc);
 
@@ -59,53 +93,41 @@ export function makeQueryLegs({ nodesById, earliestDepartureUtc, deadlineUtc }) 
     const a = nodesById[fromId];
     const b = nodesById[toId];
     if (!a || !b) return [];
-
     const dist = roadKm(a, b);
     if (dist <= 0) return [];
+
     const slots = departureSlots(a.timezone, earliestMs, deadlineMs);
+    const busViable = dist <= BUS_MAX_KM;
+    const flightViable = a.airports?.length && b.airports?.length && dist >= MIN_FLIGHT_KM;
     const legs = [];
 
-    // Bus legs
-    if (dist <= BUS_MAX_KM) {
-      const durMin = Math.max(30, Math.round((dist / BUS_SPEED_KMH) * 60));
-      const costC = Math.max(3000, Math.round(dist * 18)); // ~R$0,18/km, per person
-      slots.forEach((dep, i) => {
-        const depMs = Date.parse(dep);
-        legs.push({
-          id: `bus-${fromId}-${toId}-${i}`,
-          mode: 'bus',
-          departureAtUtc: dep,
-          arrivalAtUtc: new Date(depMs + durMin * 60000).toISOString(),
-          costC,
-          fromTerminalType: 'bus_terminal',
-          toTerminalType: 'bus_terminal',
-          providerId: 'estimate_bus',
-          estimated: true,
-        });
-      });
+    // --- Bus ---
+    if (busViable) {
+      let realBus = [];
+      if (real?.enabled && real.budget.buses > 0) {
+        real.budget.buses -= 1;
+        realBus = await fetchRealBusLegs(a, b, localSearchDate(earliestMs, a.timezone), real.cache);
+        if (realBus.length && real.sources) {
+          real.sources.busRealPairs += 1;
+          real.sources.busProvider = realBus[0].providerId;
+        }
+      }
+      if (realBus.length) legs.push(...realBus);
+      else if (allowEstimated) legs.push(...estimatedBusLegs(a, b, dist, slots, fromId, toId));
     }
 
-    // Flight legs (both endpoints must have an airport)
-    if (a.airports?.length && b.airports?.length && dist >= MIN_FLIGHT_KM) {
-      const durMin = Math.round((dist / FLIGHT_SPEED_KMH) * 60) + 30;
-      const costC = Math.round(25000 + dist * 22); // ~R$250 + R$0,22/km, per person
-      slots.forEach((dep, i) => {
-        const depMs = Date.parse(dep);
-        legs.push({
-          id: `fly-${fromId}-${toId}-${i}`,
-          mode: 'flight',
-          departureAtUtc: dep,
-          arrivalAtUtc: new Date(depMs + durMin * 60000).toISOString(),
-          costC,
-          fromTerminalType: 'airport',
-          toTerminalType: 'airport',
-          providerId: 'estimate_flight',
-          estimated: true,
-        });
-      });
+    // --- Flight ---
+    if (flightViable) {
+      let realFlight = [];
+      if (real?.enabled && real.budget.flights > 0) {
+        real.budget.flights -= 1;
+        realFlight = await fetchRealFlightLegs(a, b, localSearchDate(earliestMs, a.timezone), real.cache);
+        if (realFlight.length && real.sources) real.sources.flightRealPairs += 1;
+      }
+      if (realFlight.length) legs.push(...realFlight);
+      else if (allowEstimated) legs.push(...estimatedFlightLegs(a, b, dist, slots, fromId, toId));
     }
 
-    // Interleave modes and cap so the graph stays bounded.
     return legs.slice(0, MAX_LEGS_PER_PAIR);
   };
 }

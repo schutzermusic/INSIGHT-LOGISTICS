@@ -9,13 +9,47 @@
 import express from 'express';
 import { searchMobilization } from '../mobilization/MobilizationSearchService.js';
 import {
+  runManualSimulation,
+  validateManualSimulationInput,
+} from '../mobilization/ManualSimulationService.js';
+import {
   selectItinerary, recordOverride, submitForApproval, recordApprovalAction, isPersistenceEnabled,
 } from '../mobilization/persistence.js';
+import { persistManualSimulation } from '../mobilization/manualPersistence.js';
 
 export const mobilization = express.Router();
 
 mobilization.get('/status', (_req, res) => {
   res.json({ auditEnabled: isPersistenceEnabled() });
+});
+
+// Manual Mobilization Simulator (§21): compute all scenarios of a manual
+// simulation through the SAME shared pipeline as the automatic flow.
+mobilization.post('/manual/calculate', async (req, res) => {
+  const { scenarios, employees } = req.body || {};
+  if (!Array.isArray(scenarios) || scenarios.length === 0) {
+    return res.status(400).json({ error: 'Informe ao menos um cenário (scenarios[]).' });
+  }
+  if (!Array.isArray(employees) || employees.length === 0) {
+    return res.status(400).json({ error: 'Selecione ao menos um colaborador (employees[]).' });
+  }
+  const validationErrors = validateManualSimulationInput(req.body);
+  if (validationErrors.length) {
+    return res.status(422).json({
+      error: validationErrors[0],
+      validationErrors,
+    });
+  }
+  try {
+    const result = runManualSimulation(req.body);
+    // Best-effort immutable audit snapshot (§19/§23) — never blocks the result.
+    const persist = await persistManualSimulation({ input: req.body, result });
+    result.audit = { enabled: !!persist, simulationId: persist?.simulationId || null };
+    res.json(result);
+  } catch (err) {
+    console.error('[mobilization/manual/calculate]', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 mobilization.post('/search', async (req, res) => {

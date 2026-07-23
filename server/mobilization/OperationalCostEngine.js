@@ -56,14 +56,26 @@ export function computeItineraryCost({ itinerary, employees, laborContext, confi
   const cfg = { ...DEFAULT_COST_CONFIG, ...config };
   const team = Math.max(1, employees.length);
 
+  // Manual itineraries arrive with segment costs already resolved by the
+  // ManualItineraryAdapter (§7.2 price allocation) and with EXPLICIT hotel/meal/
+  // transfer segments — so we must not re-apply the per-person split nor auto-
+  // derive permanence from duration. Automatic itineraries keep the original
+  // per-person × team behaviour. Labor is the SAME shared engine in both (§3).
+  const manual = itinerary.commercialResolved === true;
+
   // --- Commercial (per-person fares × team, shared vehicle once) ---
   let perPersonC = 0;
   let sharedC = 0;
   for (const s of itinerary.segments) {
-    if (PER_PERSON_MODES.has(s.mode)) perPersonC += s.commercialCostC || 0;
-    else if (SHARED_MODES.has(s.mode)) sharedC += s.commercialCostC || 0;
+    if (manual) {
+      if (PER_PERSON_MODES.has(s.mode) || SHARED_MODES.has(s.mode)) perPersonC += s.commercialCostC || 0;
+    } else if (PER_PERSON_MODES.has(s.mode)) {
+      perPersonC += s.commercialCostC || 0;
+    } else if (SHARED_MODES.has(s.mode)) {
+      sharedC += s.commercialCostC || 0;
+    }
   }
-  const commercialCostC = perPersonC * team + sharedC;
+  const commercialCostC = manual ? perPersonC : perPersonC * team + sharedC;
 
   // --- Labor (deterministic engine, per employee, §15) ---
   // Employees without a valid hourly rate (missing salary/hours) contribute no
@@ -87,23 +99,43 @@ export function computeItineraryCost({ itinerary, employees, laborContext, confi
 
   // --- Transit meals (scale with timeline duration) ---
   const durationHours = itinerary.durationMinutes / 60;
-  const mealsCount = Math.floor(durationHours / cfg.mealIntervalHours);
-  const perMealC = Math.round(cfg.mealDailyC / 3);
-  const transitMealsC = mealsCount * perMealC * team;
+  let mealsCount = 0;
+  let transitMealsC = 0;
+  if (manual) {
+    // Manual: explicit meal_break segment prices are the source of truth.
+    transitMealsC = itinerary.segments
+      .filter((s) => s.mode === 'meal_break')
+      .reduce((sum, s) => sum + (s.commercialCostC || 0), 0);
+  } else {
+    mealsCount = Math.floor(durationHours / cfg.mealIntervalHours);
+    const perMealC = Math.round(cfg.mealDailyC / 3);
+    transitMealsC = mealsCount * perMealC * team;
+  }
 
   // --- Transit hotel (long night waits/rests not spent on a vehicle) ---
   let hotelNights = 0;
-  for (const s of itinerary.segments) {
-    if (s.mode !== 'waiting' && s.mode !== 'hotel_rest') continue;
-    const dur = (Date.parse(s.arrivalAtUtc) - Date.parse(s.departureAtUtc)) / 60000;
-    if (dur < cfg.overnightMinHours * 60) continue;
-    if (overlapsNight(Date.parse(s.departureAtUtc), Date.parse(s.arrivalAtUtc), s.originTimezone)) hotelNights++;
+  let transitHotelC = 0;
+  if (manual) {
+    // Manual: explicit hotel_rest segment prices are the source of truth.
+    transitHotelC = itinerary.segments
+      .filter((s) => s.mode === 'hotel_rest')
+      .reduce((sum, s) => sum + (s.commercialCostC || 0), 0);
+    hotelNights = itinerary.segments.filter((s) => s.mode === 'hotel_rest' && (s.commercialCostC || 0) > 0).length;
+  } else {
+    for (const s of itinerary.segments) {
+      if (s.mode !== 'waiting' && s.mode !== 'hotel_rest') continue;
+      const dur = (Date.parse(s.arrivalAtUtc) - Date.parse(s.departureAtUtc)) / 60000;
+      if (dur < cfg.overnightMinHours * 60) continue;
+      if (overlapsNight(Date.parse(s.departureAtUtc), Date.parse(s.arrivalAtUtc), s.originTimezone)) hotelNights++;
+    }
+    transitHotelC = hotelNights * cfg.hotelDailyC * team;
   }
-  const transitHotelC = hotelNights * cfg.hotelDailyC * team;
 
-  // --- Local mobility (terminal transfers, shared) ---
+  // --- Local mobility (terminal transfers) ---
   const transferCount = itinerary.segments.filter((s) => s.mode === 'local_transfer').length;
-  const transferC = transferCount * cfg.transferFlatC;
+  const transferC = manual
+    ? itinerary.segments.filter((s) => s.mode === 'local_transfer').reduce((sum, s) => sum + (s.commercialCostC || 0), 0)
+    : transferCount * cfg.transferFlatC;
 
   // --- Optional destination field permanence (constant across options) ---
   const daysInField = fieldContext.daysInField || 0;
@@ -116,7 +148,7 @@ export function computeItineraryCost({ itinerary, employees, laborContext, confi
   const totalMobilizationCostC = commercialCostC + laborCostC + permanenceCostC + localMobilityCostC;
 
   const breakdown = {
-    ticket_c: perPersonC * team,
+    ticket_c: manual ? perPersonC : perPersonC * team,
     shared_vehicle_c: sharedC,
     labor_c: laborCostC,
     transit_meals_c: transitMealsC,

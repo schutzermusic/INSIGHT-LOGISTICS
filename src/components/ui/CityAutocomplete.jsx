@@ -17,6 +17,7 @@ function normalize(str) {
  */
 export function CityAutocomplete({
   name,
+  value,
   placeholder = 'Buscar cidade...',
   cities = [],
   icon,
@@ -31,6 +32,16 @@ export function CityAutocomplete({
   const inputRef = useRef(null);
   const listRef = useRef(null);
   const containerRef = useRef(null);
+
+  // Optional controlled mode. Existing form-only consumers can keep omitting
+  // `value`; the manual simulator uses it so copied/reversed itineraries and
+  // draft restoration remain in sync with the visible field.
+  useEffect(() => {
+    if (value === undefined || value === selected) return;
+    const next = value || '';
+    setQuery(next);
+    setSelected(next);
+  }, [value, selected]);
 
   // Filter cities based on normalized query
   const filtered = useCallback(() => {

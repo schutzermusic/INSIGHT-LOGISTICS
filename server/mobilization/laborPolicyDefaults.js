@@ -14,7 +14,9 @@
 
 /** @type {import('../../src/domain/types.js').LaborPolicyVersion} */
 export const DEFAULT_LABOR_POLICY = Object.freeze({
-  id: '00000000-0000-4000-a000-000000000001',
+  // v2 (0009 migration): Saturday all-overtime. v1 (…0001) is retired but kept
+  // for historical snapshot reproducibility.
+  id: '00000000-0000-4000-a000-000000000011',
   name: 'Política CLT Padrão',
   effectiveFrom: '2000-01-01',
   effectiveTo: undefined,
@@ -24,6 +26,11 @@ export const DEFAULT_LABOR_POLICY = Object.freeze({
   weekdayExcessMultiplier: 2.0,
   saturdayRegularMinutes: 480,
   saturdayExcessMultiplier: 2.0,
+  // Spec §4.2 / Fase 2: on Saturday EVERY counted minute is +100% from the very
+  // first minute — no 8h regular band, no 50% band. When true this overrides
+  // saturdayRegularMinutes. Kept as a versioned, configurable policy flag (§5),
+  // never hardcoded in the UI.
+  saturdayAllHoursOvertime: true,
   sundayMultiplier: 2.5,
   nightStartLocalTime: '22:00',
   nightEndLocalTime: '05:00',
@@ -34,7 +41,7 @@ export const DEFAULT_LABOR_POLICY = Object.freeze({
   // the labor policy `data` jsonb in the DB (no dedicated column).
   interJourneyRestMinutes: 660,
   status: 'approved',
-  version: 1,
+  version: 2,
 });
 
 /** @type {import('../../src/domain/types.js').TravelTimePolicy} */
