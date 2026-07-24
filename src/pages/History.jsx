@@ -264,12 +264,20 @@ export default function History() {
                                   <span className="label-micro text-warning-text/75 block">Mobilização ainda não confirmada</span>
                                   <span className="body text-[12px] text-white/35">Revise o cenário e conclua os campos obrigatórios quando decidir seguir.</span>
                                 </div>
-                                <button
-                                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-warning-bg text-warning-text border border-warning-border/25 text-[12px] font-semibold hover:bg-warning-bg/80 transition-colors"
-                                  onClick={() => navigate('/comparador', { state: { mobilizationDraft: sim } })}
-                                >
-                                  Continuar e confirmar <ArrowRight className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white/75 text-[12px] font-semibold hover:bg-white/[0.08] transition-colors"
+                                    onClick={() => navigate('/comparador', { state: { mobilizationDraft: sim, draftIntent: 'edit' } })}
+                                  >
+                                    Editar rascunho
+                                  </button>
+                                  <button
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-warning-bg text-warning-text border border-warning-border/25 text-[12px] font-semibold hover:bg-warning-bg/80 transition-colors"
+                                    onClick={() => navigate('/comparador', { state: { mobilizationDraft: sim, draftIntent: 'confirm' } })}
+                                  >
+                                    Continuar e confirmar <ArrowRight className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>

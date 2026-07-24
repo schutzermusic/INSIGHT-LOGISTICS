@@ -4,11 +4,12 @@ import {
   Rocket, Sparkles, Plane, Bus, Car, Clock, DollarSign, AlertTriangle,
   CheckCircle, ChevronDown, Users, MapPin, CalendarClock, Timer, Route as RouteIcon,
   Zap, ShieldCheck, Layers, ArrowRight, Check, Loader2, Briefcase, Moon, ListTree,
-  Send, FileCheck, ShieldAlert,
+  Send, FileCheck, ShieldAlert, Search, X,
 } from 'lucide-react';
 import { useCollaborators } from '../hooks/useStore';
 import { getExtendedCities } from '../engine/routes-intelligence-db.js';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
+import { DatePicker } from '../components/ui/DatePicker';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { AnimatedNumber } from '../components/ui/AnimatedNumber';
@@ -46,6 +47,23 @@ const fmtTime = (iso, tz) => {
 };
 const toUtcIso = (localValue) => (localValue ? new Date(localValue).toISOString() : null);
 const boldMd = (s) => s.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+const timePart = (dateTime, fallback = '08:00') => (dateTime || '').slice(11, 16) || fallback;
+const withDatePart = (date, dateTime, fallbackTime = '08:00') => (date ? `${date}T${timePart(dateTime, fallbackTime)}` : dateTime);
+const employeeName = (employee) => employee.nome || employee.name || 'Colaborador';
+const employeeRole = (employee) => employee.cargo || employee.role || 'Cargo não informado';
+const hourlyRateC = (employee) => (
+  employee.hourlyRateC ??
+  employee.valorHoraC ??
+  employee.valor_hora_c ??
+  employee.hourly_rate_c ??
+  employee.custoHoraC ??
+  employee.custo_hora_c ??
+  // O cadastro guarda salário mensal e carga horária; convertemos para os
+  // centavos/hora que o seletor e o motor de custos utilizam.
+  (employee.salarioBase && employee.cargaHoraria
+    ? Math.round((Number(employee.salarioBase) / Number(employee.cargaHoraria)) * 100)
+    : 0)
+);
 
 const PROGRESS_STEPS = [
   'Selecionando hubs e aeroportos no corredor...',
@@ -62,9 +80,13 @@ export default function MobilizationIntelligence() {
 
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
+  const [tripType, setTripType] = useState('oneway');
+  const [outboundDate, setOutboundDate] = useState('');
+  const [returnDate, setReturnDate] = useState('');
   const [departure, setDeparture] = useState('');
   const [deadline, setDeadline] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [employeeQuery, setEmployeeQuery] = useState('');
   const [config, setConfig] = useState(null);
 
   const [loading, setLoading] = useState(false);
@@ -78,6 +100,17 @@ export default function MobilizationIntelligence() {
   const [confirmed, setConfirmed] = useState(false);
 
   const selected = collaborators.filter((c) => selectedIds.has(c.id));
+  const normalizedQuery = employeeQuery.trim().toLocaleLowerCase('pt-BR');
+  const visibleEmployees = useMemo(() => collaborators.filter((employee) => {
+    if (!normalizedQuery) return true;
+    return [
+      employeeName(employee),
+      employeeRole(employee),
+      employee.matricula,
+      employee.projeto || employee.project,
+      employee.cidadeAtual || employee.cidade || employee.city,
+    ].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(normalizedQuery);
+  }), [collaborators, normalizedQuery]);
 
   useEffect(() => { loadConfig().then(setConfig).catch(() => setConfig({})); }, []);
   useEffect(() => {
@@ -91,7 +124,10 @@ export default function MobilizationIntelligence() {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
 
-  const canSearch = origin && destination && departure && deadline && selected.length > 0 && !loading;
+  // A data de ida abre a janela de busca. Os horários abaixo são filtros finos
+  // opcionais; quando ausentes, enviamos a janela completa para o motor atual.
+  const canSearch = origin && destination && outboundDate && (tripType === 'oneway' || returnDate) &&
+    selected.length > 0 && !loading;
 
   const handleSelect = async (it) => {
     if (!result?.audit?.enabled) { setSelectedId(it.id); return; }
@@ -123,10 +159,14 @@ export default function MobilizationIntelligence() {
   const runSearch = async () => {
     setLoading(true); setError(null); setResult(null); setExpanded(null); setSelectedId(null); setApproval('idle');
     try {
+      const defaultDeadlineDate = tripType === 'roundtrip' && returnDate ? returnDate : outboundDate;
       const payload = {
         origin, destination,
-        earliestDepartureUtc: toUtcIso(departure),
-        deadlineUtc: toUtcIso(deadline),
+        tripType,
+        outboundDate,
+        returnDate: tripType === 'roundtrip' ? returnDate : null,
+        earliestDepartureUtc: toUtcIso(departure || `${outboundDate}T00:00`),
+        deadlineUtc: toUtcIso(deadline || `${defaultDeadlineDate}T23:59`),
         employees: selected.map((c) => ({ id: c.id, nome: c.nome, salarioBase: c.salarioBase, cargaHoraria: c.cargaHoraria })),
         config: config || undefined,
       };
@@ -157,74 +197,46 @@ export default function MobilizationIntelligence() {
     <div className="space-y-6">
       <Hero />
 
-      {/* ── Search panel ── */}
-      <div className="surface-card relative rounded-2xl border border-white/[0.05] overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-mint/[0.05] rounded-full blur-3xl pointer-events-none" />
-        <div className="px-8 py-4 border-b border-white/[0.04] flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-mint/70 animate-pulse" />
-          <span className="label-micro text-white/40">Parâmetros da Mobilização</span>
-        </div>
-
-        <div className="p-8 space-y-6 relative">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="flex items-center gap-1.5 label-micro text-white/40 mb-2"><MapPin className="w-3 h-3 text-mint/60" /> Origem</label>
-                  <CityAutocomplete name="mob-origin" placeholder="Cidade atual do colaborador" cities={cities} iconColor="mint" value={origin} onChange={setOrigin} />
-                </div>
-                <div>
-                  <label className="flex items-center gap-1.5 label-micro text-white/40 mb-2"><MapPin className="w-3 h-3 text-accent-orange/60" /> Destino final</label>
-                  <CityAutocomplete name="mob-dest" placeholder="Destino da operação" cities={cities} iconColor="orange" value={destination} onChange={setDestination} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="flex items-center gap-1.5 label-micro text-white/40 mb-2"><CalendarClock className="w-3 h-3 text-white/40" /> Partida mais cedo</label>
-                  <input type="datetime-local" className="glass-input" value={departure} onChange={(e) => setDeparture(e.target.value)} />
-                </div>
-                {/* Arrival deadline — visually prominent (§21) */}
-                <div className="relative">
-                  <label className="flex items-center gap-1.5 label-micro text-mint/70 mb-2"><Timer className="w-3 h-3 text-mint" /> Prazo de chegada</label>
-                  <input type="datetime-local" className="glass-input border-mint/25 bg-mint/[0.04] focus:border-mint/50" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-                  <span className="label-micro text-mint/40 mt-1 block">Determina a viabilidade de cada rota</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Team selector */}
-            <div className="lg:col-span-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="flex items-center gap-1.5 label-micro text-white/40"><Users className="w-3.5 h-3.5 text-accent-purple/60" /> Equipe</span>
-                <button type="button" onClick={() => setSelectedIds(selectedIds.size === collaborators.length ? new Set() : new Set(collaborators.map((c) => c.id)))} className="label-micro text-accent-purple/60 hover:text-accent-purple">
-                  {selectedIds.size === collaborators.length ? 'Limpar' : 'Todos'}
-                </button>
-              </div>
-              <div className="surface-recessed rounded-2xl border border-white/[0.03] max-h-[200px] overflow-y-auto p-2 space-y-1">
-                {collaborators.map((c) => {
-                  const on = selectedIds.has(c.id);
-                  return (
-                    <button key={c.id} type="button" onClick={() => toggle(c.id)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors ${on ? 'bg-accent-purple/[0.08] border border-accent-purple/15' : 'border border-transparent hover:bg-white/[0.03]'}`}>
-                      <div className={`w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 ${on ? 'bg-accent-purple' : 'bg-white/[0.06] border border-white/[0.08]'}`}>
-                        {on && <Check className="w-3 h-3 text-white" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className={`body text-[13px] truncate block ${on ? 'text-white/80' : 'text-white/40'}`}>{c.nome}</span>
-                        {c.cargo && <span className="label-micro text-white/20 truncate block">{c.cargo}</span>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Applied policy (read-only) — replaces manual hour inputs (§21) */}
-          <PolicyCard policy={result?.policySummary} />
-        </div>
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)] gap-6 items-stretch">
+        <SearchParametersCard
+          origin={origin}
+          destination={destination}
+          tripType={tripType}
+          outboundDate={outboundDate}
+          returnDate={returnDate}
+          departure={departure}
+          deadline={deadline}
+          cities={cities}
+          onOrigin={setOrigin}
+          onDestination={setDestination}
+          onTripType={(nextTripType) => {
+            setTripType(nextTripType);
+            if (nextTripType === 'oneway') setReturnDate('');
+          }}
+          onOutboundDate={(nextOutboundDate) => {
+            setOutboundDate(nextOutboundDate);
+            // Mantém somente o horário opcional associado à nova data de ida.
+            setDeparture((current) => current ? withDatePart(nextOutboundDate, current, '00:00') : '');
+          }}
+          onReturnDate={(nextReturnDate) => {
+            setReturnDate(nextReturnDate);
+          }}
+          onDeparture={setDeparture}
+          onDeadline={setDeadline}
+        />
+        <IntelligentTeamSelector
+          employees={visibleEmployees}
+          selectedEmployees={selected}
+          selectedIds={selectedIds}
+          query={employeeQuery}
+          onQuery={setEmployeeQuery}
+          onToggle={toggle}
+          onSelectVisible={() => setSelectedIds((current) => new Set([...current, ...visibleEmployees.map((employee) => employee.id)]))}
+          onClear={() => setSelectedIds(new Set())}
+        />
       </div>
+
+      <PolicyCard policy={result?.policySummary} />
 
       <div className="flex flex-col items-center gap-2 pt-1">
         {selected.length === 0 && <span className="body text-[13px] text-warning-text/80">Selecione ao menos 1 colaborador</span>}
@@ -308,6 +320,7 @@ export default function MobilizationIntelligence() {
                 employees={selected.map((c) => ({ id: c.id, name: c.nome || c.name, role: c.cargo || c.role }))}
                 origin={origin}
                 destination={destination}
+                context={{ tripType, outboundDate, returnDate: tripType === 'roundtrip' ? returnDate : null }}
                 refs={{
                   requestId: result.audit?.requestId || null,
                   selectedItineraryId: result.audit?.itineraryIdMap?.[selectedId] || null,
@@ -747,6 +760,222 @@ function ComparisonTable({ itineraries, recId }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function SearchParametersCard({
+  origin, destination, tripType, outboundDate, returnDate, departure, deadline, cities,
+  onOrigin, onDestination, onTripType, onOutboundDate, onReturnDate, onDeparture, onDeadline,
+}) {
+  return (
+    <section className="surface-card h-full">
+      <div className="p-5 md:p-6">
+        <PanelTitle
+          icon={RouteIcon}
+          title="Parâmetros da mobilização"
+          subtitle="Origem, destino e data da viagem. Horários são filtros opcionais."
+        />
+        <div className="mt-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <FieldBlock label="Origem *" icon={MapPin} iconClassName="text-mint/60">
+                <CityAutocomplete
+                  name="mob-origin"
+                  placeholder="Buscar cidade de origem..."
+                  cities={cities}
+                  iconColor="mint"
+                  value={origin}
+                  onChange={onOrigin}
+                />
+              </FieldBlock>
+              <fieldset>
+                <legend className="label-micro text-white/55 mb-2">Tipo de viagem *</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    ['oneway', 'Somente ida'],
+                    ['roundtrip', 'Ida e volta'],
+                  ].map(([value, label]) => (
+                    <button
+                      type="button"
+                      key={value}
+                      className={`trip-type-button ${tripType === value ? 'is-selected' : ''}`}
+                      onClick={() => onTripType(value)}
+                      aria-pressed={tripType === value}
+                    >
+                      <span className="selection-dot">{tripType === value && <Check className="w-3 h-3" />}</span>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+            <FieldBlock label="Destino final *" icon={MapPin} iconClassName="text-accent-orange/60">
+              <CityAutocomplete
+                name="mob-dest"
+                placeholder="Buscar destino da operação..."
+                cities={cities}
+                iconColor="orange"
+                value={destination}
+                onChange={onDestination}
+              />
+            </FieldBlock>
+          </div>
+
+          <div className={`grid gap-4 ${tripType === 'roundtrip' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+            <DatePicker label="Data de ida *" value={outboundDate} onChange={onOutboundDate} />
+            {tripType === 'roundtrip' && (
+              <DatePicker
+                label="Data de volta *"
+                value={returnDate}
+                onChange={onReturnDate}
+                minDate={outboundDate ? new Date(`${outboundDate}T00:00:00`) : undefined}
+              />
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FieldBlock label="Horário a partir de (opcional)" icon={CalendarClock}>
+              <input
+                type="time"
+                className="glass-input"
+                value={timePart(departure, '')}
+                disabled={!outboundDate}
+                onChange={(e) => onDeparture(e.target.value ? `${outboundDate}T${e.target.value}` : '')}
+              />
+              <span className="label-micro text-white/35 mt-1 block">Aplica-se à data de ida selecionada acima.</span>
+            </FieldBlock>
+            <FieldBlock label="Prazo de chegada (opcional)" icon={Timer} labelClassName="text-mint/70" iconClassName="text-mint">
+              <input
+                type="datetime-local"
+                className="glass-input border-mint/25 bg-mint/[0.04] focus:border-mint/50"
+                value={deadline}
+                onChange={(e) => onDeadline(e.target.value)}
+              />
+              <span className="label-micro text-mint/40 mt-1 block">Preencha apenas para limitar as opções encontradas.</span>
+            </FieldBlock>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IntelligentTeamSelector({
+  employees, selectedEmployees, selectedIds, query, onQuery, onToggle, onSelectVisible, onClear,
+}) {
+  const [scrollTop, setScrollTop] = useState(0);
+  const selectedCount = selectedIds.size;
+  const virtualized = employees.length > 80;
+  const rowHeight = 58;
+  const visibleStart = virtualized ? Math.max(0, Math.floor(scrollTop / rowHeight) - 3) : 0;
+  const visibleEnd = virtualized ? Math.min(employees.length, visibleStart + 12) : employees.length;
+  const renderedEmployees = employees.slice(visibleStart, visibleEnd);
+
+  const employeeOption = (employee, virtualIndex = null) => {
+    const isSelected = selectedIds.has(employee.id);
+    const rate = hourlyRateC(employee);
+    return (
+      <button
+        type="button"
+        key={employee.id}
+        role="option"
+        aria-selected={isSelected}
+        className={`employee-option ${isSelected ? 'is-selected' : ''}`}
+        style={virtualIndex === null ? undefined : {
+          position: 'absolute',
+          left: 6,
+          right: 6,
+          top: virtualIndex * rowHeight + 6,
+          height: rowHeight - 2,
+        }}
+        onClick={() => onToggle(employee.id)}
+      >
+        <span className="employee-check">{isSelected && <Check className="w-3 h-3" />}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-semibold text-white/85 truncate">{employeeName(employee)}</span>
+          <span className="block text-[11px] text-white/45 truncate">{employeeRole(employee)}</span>
+        </span>
+        <span className="tabular-data text-[11px] text-white/65 whitespace-nowrap">
+          {rate ? `${formatBRL(rate)}/h` : 'sem custo-hora'}
+        </span>
+      </button>
+    );
+  };
+
+  return (
+    <section className="surface-card h-full">
+      <div className="p-5 md:p-6 h-full flex flex-col">
+        <div className="flex items-start justify-between gap-3">
+          <PanelTitle icon={Users} title="Equipe" subtitle="Custo individual preservado no cálculo." />
+          <Badge variant={selectedCount ? 'success' : 'neutral'} compact>{selectedCount} selecionado(s)</Badge>
+        </div>
+        <div className="relative mt-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35" />
+          <input
+            className="glass-input pl-10"
+            value={query}
+            onChange={(event) => onQuery(event.target.value)}
+            placeholder="Buscar nome, cargo, matrícula, projeto ou cidade..."
+            aria-label="Buscar colaborador"
+          />
+        </div>
+        <div
+          className="employee-scroll mt-3"
+          role="listbox"
+          aria-multiselectable="true"
+          onScroll={virtualized ? (event) => setScrollTop(event.currentTarget.scrollTop) : undefined}
+        >
+          {employees.length ? (
+            virtualized
+              ? <div className="relative" style={{ height: employees.length * rowHeight + 12 }}>
+                {renderedEmployees.map((employee, index) => employeeOption(employee, visibleStart + index))}
+              </div>
+              : renderedEmployees.map((employee) => employeeOption(employee))
+          ) : (
+            <p className="body text-[12px] text-white/45 p-4 text-center">Nenhum colaborador encontrado.</p>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-3 mt-3">
+          <button type="button" className="text-[12px] text-white/60 hover:text-white" onClick={onClear}>Limpar seleção</button>
+          <button type="button" className="text-[12px] text-accent-cyan hover:text-white" onClick={onSelectVisible}>Selecionar visíveis</button>
+        </div>
+        {!!selectedEmployees.length && (
+          <div className="flex flex-wrap gap-1.5 mt-3" aria-label="Colaboradores selecionados">
+            {selectedEmployees.map((employee) => (
+              <button key={employee.id} type="button" className="selected-chip" onClick={() => onToggle(employee.id)}>
+                {employeeName(employee)} <X className="w-3 h-3" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PanelTitle({ icon: Icon, title, subtitle }) {
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <Icon className="w-4 h-4 text-accent-cyan" />
+        <h3 className="heading text-white/85">{title}</h3>
+      </div>
+      {subtitle && <p className="body text-[13px] text-white/40 mt-1">{subtitle}</p>}
+    </div>
+  );
+}
+
+function FieldBlock({
+  label, icon: Icon, children, labelClassName = '', iconClassName = 'text-white/40',
+}) {
+  return (
+    <div>
+      <label className={`flex items-center gap-1.5 label-micro text-white/40 mb-2 ${labelClassName}`}>
+        {Icon && <Icon className={`w-3 h-3 ${iconClassName}`} />}
+        {label}
+      </label>
+      {children}
     </div>
   );
 }

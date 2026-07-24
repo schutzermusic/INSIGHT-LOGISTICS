@@ -245,6 +245,7 @@ export default function Comparator() {
     setCalculationState(draft.calculationResult ? 'calculated' : 'pending');
     setDraftContext(draft.confirmationContext || {});
     setActiveDraftId(draft.id || null);
+    setConfirmOpen(location.state?.draftIntent === 'confirm' && !!draft.calculationResult?.recommended);
     navigate(location.pathname, { replace: true, state: null });
   }, [collaborators, location.pathname, location.state, navigate]);
 
