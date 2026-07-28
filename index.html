@@ -61,11 +61,14 @@
     })();
   </script>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
-    rel="stylesheet" />
+  <!-- Type is self-hosted Helvetica Neue (subset, WOFF2 — see index.css).
+       The render-blocking Google Fonts request for Outfit was removed.
+       Roman/Medium carry almost all UI text and Light sets the large display
+       numbers (the LCP text), so those three are preloaded. Bold is rare and
+       loads on demand. -->
+  <link rel="preload" href="/fonts/HelveticaNeue-Roman.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/HelveticaNeue-Medium.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/HelveticaNeue-Light.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="icon" type="image/png" href="/INSIGHT-LOGISTICS-SYMBOL.png" />
   <link rel="apple-touch-icon" href="/INSIGHT-LOGISTICS-SYMBOL.png" />
 </head>

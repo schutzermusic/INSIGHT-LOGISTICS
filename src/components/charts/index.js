@@ -5,3 +5,4 @@ export { PremiumDonutChart } from './PremiumDonutChart';
 export { ChartTooltip } from './ChartTooltip';
 export { ChartSkeleton, ChartEmpty, ChartError } from './ChartStates';
 export { KpiSparkline } from './KpiSparkline';
+export { SCurveChart } from './SCurveChart';

@@ -267,7 +267,7 @@ export default function BrazilMap({
             fill="currentColor"
             fillOpacity="0.32"
             fontSize="8"
-            fontFamily="Outfit, system-ui"
+            fontFamily="Helvetica Neue LT, Helvetica Neue, system-ui"
             fontWeight="600"
           >
             {state.uf}
@@ -318,7 +318,7 @@ export default function BrazilMap({
                   fill="currentColor"
                   fillOpacity="0.6"
                   fontSize="7"
-                  fontFamily="Outfit, system-ui"
+                  fontFamily="Helvetica Neue LT, Helvetica Neue, system-ui"
                   fontWeight="500"
                 >
                   {point.label}
@@ -366,7 +366,7 @@ export default function BrazilMap({
               fill="currentColor"
               fillOpacity="0.95"
               fontSize="7"
-              fontFamily="Outfit, system-ui"
+              fontFamily="Helvetica Neue LT, Helvetica Neue, system-ui"
               fontWeight="600"
             >
               {tooltip.label}
@@ -377,7 +377,7 @@ export default function BrazilMap({
                 y={tooltip.y + 3}
                 fill="#49DC7A"
                 fontSize="7"
-                fontFamily="Outfit, system-ui"
+                fontFamily="Helvetica Neue LT, Helvetica Neue, system-ui"
                 fontWeight="700"
               >
                 {tooltip.value}

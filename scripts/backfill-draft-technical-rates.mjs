@@ -72,8 +72,8 @@ for (const row of rows || []) {
     return {
       ...storedEmployee,
       hourlyRateC,
-      hourlyCostBasis: 'technical_with_labor_charges',
-      laborChargesPercent: 70,
+      hourlyCostBasis: 'technical_base',
+      laborChargesPercent: 0,
     };
   });
 
@@ -106,8 +106,8 @@ for (const row of rows || []) {
         employeeId: employee.id,
         employeeName: employee.name,
         hourlyRateC: employee.hourlyRateC,
-        hourlyCostBasis: 'technical_with_labor_charges',
-        laborChargesPercent: 70,
+        hourlyCostBasis: 'technical_base',
+        laborChargesPercent: 0,
         priorWorkedMinutes: employee.priorWorkedMinutes || previous?.priorWorkedMinutes || 0,
         workedMinutesSource: employee.workedMinutesSource || previous?.workedMinutesSource || 'cadastro',
         totalCostC: calculation.totalCostC,
@@ -146,8 +146,8 @@ for (const row of rows || []) {
     comparison: ranking.comparison || null,
     policySummary: {
       ...(result.policySummary || {}),
-      hourlyCostBasis: 'technical_with_labor_charges',
-      laborChargesPercent: 70,
+      hourlyCostBasis: 'technical_base',
+      laborChargesPercent: 0,
     },
   };
   const nextDraft = {

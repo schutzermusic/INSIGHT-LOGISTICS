@@ -17,13 +17,47 @@
  * ──────────────────────────────────────────────────────────────── */
 
 export const CHART_PALETTE = {
-  mint: 'var(--chart-1)',       /* mint – primary / positive */
-  cyan: 'var(--chart-2)',       /* cyan – secondary */
-  violet: 'var(--chart-3)',     /* violet – tertiary */
-  magenta: 'var(--chart-4)',    /* magenta */
-  amber: 'var(--chart-5)',      /* amber – neutral / alternative */
-  rose: 'var(--chart-6)',       /* rose – danger only, never in default sequence */
+  /* Semantic names — prefer these. */
+  primary: 'var(--chart-1)',    /* amber accent – primary series */
+  secondary: 'var(--chart-2)',  /* muted teal */
+  tertiary: 'var(--chart-3)',   /* muted violet */
+  quaternary: 'var(--chart-4)', /* muted rose-mauve */
+  neutral: 'var(--chart-5)',    /* benchmark / comparison / alternative */
+  danger: 'var(--chart-6)',     /* danger only, never in the default sequence */
+
+  /* Legacy hue names. The underlying values are no longer mint/cyan/etc —
+     they now resolve to the desaturated set above. Kept so existing call
+     sites keep working; migrate to the semantic names and delete these. */
+  mint: 'var(--chart-1)',
+  cyan: 'var(--chart-2)',
+  violet: 'var(--chart-3)',
+  magenta: 'var(--chart-4)',
+  amber: 'var(--chart-5)',
+  rose: 'var(--chart-6)',
 };
+
+/**
+ * ACCENT_RAMP — for SINGLE-MEASURE magnitude comparisons: category spend,
+ * project ranking, collaborator spend. One hue, varying weight by rank.
+ *
+ * Rotating hue across categories of a single measure implies a categorical
+ * distinction that does not exist, and is the strongest "generic dashboard"
+ * signal in a UI. Use CHART_SEQUENCE only when series are genuinely
+ * categorical (modal mix, transport type).
+ */
+export const ACCENT_RAMP = [
+  'rgb(var(--color-accent) / 1)',
+  'rgb(var(--color-accent) / 0.85)',
+  'rgb(var(--color-accent) / 0.70)',
+  'rgb(var(--color-accent) / 0.55)',
+  'rgb(var(--color-accent) / 0.42)',
+  'rgb(var(--color-accent) / 0.32)',
+  'rgb(var(--color-accent) / 0.24)',
+  'rgb(var(--color-accent) / 0.18)',
+];
+
+/** Rank-indexed accent step; clamps to the faintest stop past the ramp end. */
+export const accentByRank = (i) => ACCENT_RAMP[Math.min(i, ACCENT_RAMP.length - 1)];
 
 /**
  * Default color sequence — used when consumers don't specify per-series colors.
@@ -55,8 +89,10 @@ export const COST_BREAKDOWN_COLORS = {
 
 /**
  * Comparator scenario accent selector.
- * Best/recommended scenario gets mint; alternatives get amber.
+ * Best/recommended scenario gets the interface accent; alternatives go
+ * neutral. (Previously mint vs. amber — two saturated hues competing for
+ * attention, which blunted the "this is the recommendation" signal.)
  */
 export function getComparatorScenarioAccent(name, bestName) {
-  return name === bestName ? CHART_PALETTE.mint : CHART_PALETTE.amber;
+  return name === bestName ? CHART_PALETTE.primary : CHART_PALETTE.neutral;
 }

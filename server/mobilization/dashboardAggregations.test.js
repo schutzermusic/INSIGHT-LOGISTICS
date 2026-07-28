@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   eligible, applyFilters, computeOverview, categorySpend, projectSpend,
   collaboratorSpend, modalMix, savings, activeMapItems, deriveLiveState,
-  computeAlerts, buildDashboard,
+  computeAlerts, buildDashboard, costTrend,
 } from './dashboardAggregations.js';
 
 const NOW = Date.parse('2026-07-20T12:00:00Z');
@@ -185,6 +185,23 @@ describe('deriveLiveState + activeMapItems (§4 HUD globe)', () => {
     expect(items.map((i) => i.mobilizationId)).toEqual(['active']);
     expect(items[0].currentPosition).toBeTruthy();
   });
+  it('repairs legacy zero coordinates from the Brazilian city label', () => {
+    const items = activeMapItems(eligible([
+      row({
+        id: 'legacy-zero',
+        origin_label: 'Alta Floresta - MT',
+        origin_lat: -9.87,
+        origin_lng: -56.1,
+        destination_label: 'Tucuruí - PA',
+        destination_lat: 0,
+        destination_lng: 0,
+      }),
+    ]), NOW);
+    expect(items[0].destination).toMatchObject({
+      lat: -3.766817,
+      lng: -49.6703074,
+    });
+  });
 });
 
 describe('computeAlerts', () => {
@@ -192,5 +209,55 @@ describe('computeAlerts', () => {
     const rows = eligible([row({ id: 'late', planned_departure_at: '2026-07-19T00:00:00Z', expected_arrival_at: '2026-07-20T00:00:00Z' })]);
     const alerts = computeAlerts(rows, NOW);
     expect(alerts.some((a) => a.type === 'delay' && a.severity === 'high')).toBe(true);
+  });
+});
+
+describe('computeOverview — cost composition (§6.1)', () => {
+  it('splits labor (hours + HE + noturno) from logistics, reconciling to total', () => {
+    const rows = eligible([
+      row({ id: 'a', total_cost_c: 300000, labor_cost_c: 160000, overtime_cost_c: 20000, night_premium_cost_c: 10000 }),
+      row({ id: 'b', total_cost_c: 100000, labor_cost_c: 40000, overtime_cost_c: 0, night_premium_cost_c: 0 }),
+    ]);
+    const ov = computeOverview(rows, NOW);
+    expect(ov.laborBaseSpendMinor).toBe(200000);
+    expect(ov.overtimeSpendMinor).toBe(20000);
+    expect(ov.nightPremiumSpendMinor).toBe(10000);
+    expect(ov.laborSpendMinor).toBe(230000);
+    expect(ov.logisticsSpendMinor).toBe(170000);
+    // The split must always reconcile to the reported total.
+    expect(ov.laborSpendMinor + ov.logisticsSpendMinor).toBe(ov.totalSpendMinor);
+    expect(ov.laborSharePercent).toBe(57.5);
+  });
+
+  it('derives team-hours and cost per team-hour from duration x headcount', () => {
+    const rows = eligible([
+      row({ id: 'a', total_cost_c: 300000, duration_minutes: 600, team_size: 3 }), // 30h
+      row({ id: 'b', total_cost_c: 100000, duration_minutes: 300, team_size: 2 }), // 10h
+    ]);
+    const ov = computeOverview(rows, NOW);
+    expect(ov.teamHours).toBe(40);
+    expect(ov.costPerTeamHourMinor).toBe(10000);
+    expect(ov.averageTeamSize).toBe(2.5);
+  });
+
+  it('never reports negative logistics when labor exceeds the recorded total', () => {
+    const rows = eligible([row({ id: 'a', total_cost_c: 50000, labor_cost_c: 90000 })]);
+    expect(computeOverview(rows, NOW).logisticsSpendMinor).toBe(0);
+  });
+});
+
+describe('costTrend — S-curve series (§6.6)', () => {
+  it('accumulates spend and count, and emits a straight-line baseline', () => {
+    const t = costTrend(eligible([
+      row({ id: 'a', confirmed_at: '2026-07-18T10:00:00Z', total_cost_c: 100000 }),
+      row({ id: 'b', confirmed_at: '2026-07-19T10:00:00Z', total_cost_c: 300000 }),
+      row({ id: 'c', confirmed_at: '2026-07-20T10:00:00Z', total_cost_c: 200000 }),
+    ]));
+    expect(t.map((d) => d.cumulativeAmountMinor)).toEqual([100000, 400000, 600000]);
+    expect(t.map((d) => d.cumulativeCount)).toEqual([1, 2, 3]);
+    // Constant-rate reference: total/days * dayIndex.
+    expect(t.map((d) => d.baselineAmountMinor)).toEqual([200000, 400000, 600000]);
+    // The curve must land exactly on the period total.
+    expect(t.at(-1).cumulativeAmountMinor).toBe(600000);
   });
 });

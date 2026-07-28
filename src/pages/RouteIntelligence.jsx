@@ -729,13 +729,13 @@ export default function RouteIntelligence() {
                           }`}>Logistics + Labor Cost</div>
                           <div className={`label-micro mt-1 ${
                             operationalMode === 'logistics-labor' ? 'text-white/30' : 'text-white/15'
-                          }`}>Hora técnica +70% + horas extras</div>
+                          }`}>Hora técnica padrão + horas extras</div>
                         </div>
                       </div>
                       <div className={`body text-[13px] leading-relaxed ${
                         operationalMode === 'logistics-labor' ? 'text-white/25' : 'text-white/12'
                       }`}>
-                        Inclui hora técnica com 70% de encargos, hora normal, HE 50%, HE 100%, HE 150% e adicional noturno
+                        Inclui hora técnica sem acréscimo, hora normal, HE 50%, HE 100%, HE 150% e adicional noturno
                       </div>
                       {operationalMode === 'logistics-labor' && (
                         <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-accent-purple animate-pulse" />
@@ -1171,7 +1171,7 @@ export default function RouteIntelligence() {
                               }}
                               {...(isBest ? { className: 'w-10 h-10 rounded-xl flex items-center justify-center border border-mint/15 bg-gradient-to-br from-mint/20 to-mint/5' } : {})}
                             >
-                              <ScenarioIcon className="w-5 h-5" style={{ color: isBest ? '#49DC7A' : scenarioMeta.color }} />
+                              <ScenarioIcon className="w-5 h-5" style={{ color: isBest ? 'rgb(var(--mint-ink))' : scenarioMeta.color }} />
                             </div>
                             <h3 className={`heading ${isBest ? 'text-mint' : 'text-white/80'}`}>{c.nome}</h3>
                           </div>
@@ -1858,7 +1858,7 @@ function ComparativeDetailTable({ alternatives }) {
                   return (
                     <th key={alt.id} className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <AltIcon className="w-3.5 h-3.5" style={{ color: isBest ? '#49DC7A' : color }} />
+                        <AltIcon className="w-3.5 h-3.5" style={{ color: isBest ? 'rgb(var(--mint-ink))' : color }} />
                         <span className={`label-micro ${isBest ? 'text-mint/60' : 'text-white/20'}`}>
                           {alt.tipo}
                         </span>

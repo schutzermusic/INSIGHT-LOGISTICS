@@ -113,10 +113,10 @@ export default function HudGlobe({ items = [], onSelect, className }) {
           <g pointerEvents="none">
             <rect x={hover.pos.x + 10} y={hover.pos.y - 30} width={Math.max(120, (hover.item.projectName || '').length * 5 + 40)} height="34" rx="5"
               fill="rgb(var(--surface-3))" fillOpacity="0.96" stroke={hover.color} strokeOpacity="0.3" strokeWidth="0.6" />
-            <text x={hover.pos.x + 16} y={hover.pos.y - 17} fill="currentColor" fillOpacity="0.95" fontSize="7.5" fontFamily="Outfit, system-ui" fontWeight="700">
+            <text x={hover.pos.x + 16} y={hover.pos.y - 17} fill="currentColor" fillOpacity="0.95" fontSize="7.5" fontFamily="Helvetica Neue LT, Helvetica Neue, system-ui" fontWeight="700">
               {hover.item.projectName}
             </text>
-            <text x={hover.pos.x + 16} y={hover.pos.y - 7} fill={hover.color} fontSize="7" fontFamily="Outfit, system-ui" fontWeight="600">
+            <text x={hover.pos.x + 16} y={hover.pos.y - 7} fill={hover.color} fontSize="7" fontFamily="Helvetica Neue LT, Helvetica Neue, system-ui" fontWeight="600">
               {hover.item.origin.label?.split(' - ')[0]} → {hover.item.destination.label?.split(' - ')[0]} · {STATUS_LABEL[hover.item.status] || hover.item.status}
             </text>
           </g>

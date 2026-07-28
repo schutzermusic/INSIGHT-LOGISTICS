@@ -88,7 +88,7 @@ export default function Collaborators() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/[0.04]">
-                  {['Nome', 'Cargo', 'Categoria diária', 'Salario Base', 'CH', 'Hora Normal', 'HE 50%', 'HE 100%', 'HE 150%', 'Noturno', 'H. Técnica (+70%)', ''].map((h, i) => (
+                  {['Nome', 'Cargo', 'Categoria diária', 'Salario Base', 'CH', 'Hora Normal', 'HE 50%', 'HE 100%', 'HE 150%', 'Noturno', 'H. Técnica', ''].map((h, i) => (
                     <th key={i} className="px-6 py-4 label-micro text-white/20 text-left">{h}</th>
                   ))}
                 </tr>
@@ -217,7 +217,7 @@ export default function Collaborators() {
             <div>
               <label className="block label-micro text-white/35 mb-2">Valor-base da hora técnica (R$)</label>
               <input className="glass-input" type="number" name="valorHoraTecnica" defaultValue={editing?.valorHoraTecnica || ''} step="0.01" min="0" placeholder="Calculado se vazio" />
-              <span className="body text-[13px] mt-2 block">Se vazio, usa a hora normal. Ao resultado são adicionados 70% de encargos trabalhistas.</span>
+              <span className="body text-[13px] mt-2 block">Se vazio, usa a hora normal, sem acréscimo sobre o valor-base.</span>
             </div>
             <div>
               <label className="block label-micro text-white/35 mb-2">Multiplicador HE 50%</label>

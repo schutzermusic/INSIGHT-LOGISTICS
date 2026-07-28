@@ -190,7 +190,7 @@ export function ConfirmMobilizationModal({
 
           {/* Acknowledgment */}
           <label className="flex items-start gap-3 p-3 rounded-xl bg-mint/[0.04] border border-mint/15 cursor-pointer">
-            <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5 accent-[#49dc7a]" />
+            <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5" style={{ accentColor: 'rgb(var(--mint-ink))' }} />
             <span className="body text-[13px] text-white/70">
               Ao confirmar, esta mobilização passará a alimentar o Dashboard, os indicadores financeiros, o mapa em tempo real e os rankings.
             </span>

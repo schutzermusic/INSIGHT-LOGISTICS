@@ -85,7 +85,7 @@ export function NavBar({ items, className }) {
                   style={{
                     background: isDark
                       ? 'linear-gradient(180deg, #ffffff 0%, #e8ede9 100%)'
-                      : 'linear-gradient(180deg, rgba(73,220,122,0.18) 0%, rgba(73,220,122,0.10) 100%)',
+                      : 'linear-gradient(180deg, rgb(var(--mint-ink) / 0.20) 0%, rgb(var(--mint-ink) / 0.10) 100%)',
                     boxShadow: isDark
                       ? '0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 14px -4px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.05)'
                       : '0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 10px -2px rgba(12,122,60,0.18), 0 0 0 1px rgba(12,122,60,0.15)',
@@ -96,8 +96,8 @@ export function NavBar({ items, className }) {
                   {/* subtle top sheen beam — preserves the "tubelight" signature */}
                   <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-full"
                        style={{
-                         background: isDark ? '#49DC7A' : '#49DC7A',
-                         boxShadow: '0 0 12px rgba(73,220,122,0.9), 0 0 24px rgba(73,220,122,0.5)',
+                         background: 'rgb(var(--mint-ink))',
+                         boxShadow: '0 0 12px rgb(var(--mint-ink) / 0.75), 0 0 24px rgb(var(--mint-ink) / 0.35)',
                        }}
                   />
                 </motion.div>

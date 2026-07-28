@@ -47,14 +47,15 @@ export default {
           'glass-strong': 'rgb(var(--glass-ink) / 0.09)',
         },
 
-        // Brand colors — identical in both themes.
+        // Brand green — theme-aware so light mode uses a darker, accessible
+        // green while dark mode keeps the luminous operational mint.
         mint: {
-          DEFAULT: '#49DC7A',
-          light: '#6BE896',
-          dark: '#2DB85C',
+          DEFAULT: 'rgb(var(--mint-ink) / <alpha-value>)',
+          light: 'rgb(var(--mint-light-ink) / <alpha-value>)',
+          dark: 'rgb(var(--mint-dark-ink) / <alpha-value>)',
           ink: 'rgb(var(--mint-ink) / <alpha-value>)',
-          glow: 'rgba(73, 220, 122, 0.15)',
-          'glow-strong': 'rgba(73, 220, 122, 0.25)',
+          glow: 'rgb(var(--mint-ink) / 0.15)',
+          'glow-strong': 'rgb(var(--mint-ink) / 0.25)',
         },
         success: {
           DEFAULT: 'rgb(var(--color-success) / <alpha-value>)',
@@ -90,24 +91,28 @@ export default {
           border: 'rgb(var(--color-accent-border) / <alpha-value>)',
           text: 'rgb(var(--color-accent-text) / <alpha-value>)',
           glow: 'rgb(var(--color-accent-glow) / <alpha-value>)',
-          orange: '#F97316',
-          'orange-light': '#FB923C',
-          'orange-dark': '#EA580C',
-          'orange-glow': 'rgba(249, 115, 22, 0.15)',
-          cyan: '#22F2EF',
-          'cyan-light': '#67F5F3',
-          'cyan-dark': '#0DD5D2',
-          'cyan-glow': 'rgba(34, 242, 239, 0.15)',
-          blue: '#3B82F6',
-          'blue-light': '#60A5FA',
-          purple: '#A855F7',
-          'purple-light': '#C084FC',
-          red: '#EF4444',
-          amber: '#F59E0B',
+          // Legacy hue names now resolve to the single interface accent or
+          // to neutral ink. Kept as aliases so existing markup degrades
+          // gracefully instead of breaking; migrate call sites to
+          // `accent` / `--ink-*` and delete these.
+          orange: 'rgb(var(--accent-orange-ink) / <alpha-value>)',
+          'orange-light': 'rgb(var(--accent-orange-ink) / <alpha-value>)',
+          'orange-dark': 'rgb(var(--accent-orange-ink) / <alpha-value>)',
+          'orange-glow': 'rgb(var(--accent-orange-ink) / 0.15)',
+          cyan: 'rgb(var(--accent-cyan-ink) / <alpha-value>)',
+          'cyan-light': 'rgb(var(--accent-cyan-ink) / <alpha-value>)',
+          'cyan-dark': 'rgb(var(--accent-cyan-ink) / <alpha-value>)',
+          'cyan-glow': 'rgb(var(--accent-cyan-ink) / 0.12)',
+          blue: 'rgb(var(--accent-blue-ink) / <alpha-value>)',
+          'blue-light': 'rgb(var(--accent-blue-ink) / <alpha-value>)',
+          purple: 'rgb(var(--accent-purple-ink) / <alpha-value>)',
+          'purple-light': 'rgb(var(--accent-purple-ink) / <alpha-value>)',
+          red: 'rgb(var(--accent-red-ink) / <alpha-value>)',
+          amber: 'rgb(var(--accent-amber-ink) / <alpha-value>)',
         },
       },
       fontFamily: {
-        sans: ['Outfit', 'system-ui', 'sans-serif'],
+        sans: ['Helvetica Neue LT', 'Helvetica Neue', 'Helvetica', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         'hero': ['3.5rem', { lineHeight: '1.1', fontWeight: '700', letterSpacing: '-0.02em' }],
@@ -134,10 +139,10 @@ export default {
       boxShadow: {
         'glow-mint': '0 0 20px rgba(73, 220, 122, 0.15), 0 0 60px rgba(73, 220, 122, 0.05)',
         'glow-mint-strong': '0 0 30px rgba(73, 220, 122, 0.2), 0 0 80px rgba(73, 220, 122, 0.08)',
-        'glow-orange': '0 0 20px rgba(249, 115, 22, 0.15), 0 0 60px rgba(249, 115, 22, 0.05)',
-        'glow-orange-strong': '0 0 30px rgba(249, 115, 22, 0.2), 0 0 80px rgba(249, 115, 22, 0.08)',
-        'glow-cyan': '0 0 20px rgba(34, 242, 239, 0.12)',
-        'glow-cyan-strong': '0 0 30px rgba(34, 242, 239, 0.18), 0 0 80px rgba(34, 242, 239, 0.06)',
+        'glow-orange': '0 0 20px rgba(243, 148, 68, 0.18), 0 0 60px rgba(243, 148, 68, 0.06)',
+        'glow-orange-strong': '0 0 30px rgba(243, 148, 68, 0.24), 0 0 80px rgba(243, 148, 68, 0.09)',
+        'glow-cyan': '0 0 20px rgba(243, 148, 68, 0.12)',
+        'glow-cyan-strong': '0 0 30px rgba(243, 148, 68, 0.18), 0 0 80px rgba(243, 148, 68, 0.06)',
         // Theme-aware shadow using the shadow ink var
         'glass': '0 8px 32px rgb(var(--shadow-ink) / 0.18)',
         'glass-lg': '0 16px 48px rgb(var(--shadow-ink) / 0.22)',
@@ -159,8 +164,8 @@ export default {
         'liquid-glass-hover':
           'linear-gradient(145deg, rgb(var(--glass-ink) / 0.14) 0%, rgb(var(--glass-ink) / 0.06) 50%, rgb(var(--glass-ink) / 0.10) 100%)',
         'glow-radial': 'radial-gradient(ellipse at 50% 0%, rgba(73, 220, 122, 0.08) 0%, transparent 70%)',
-        'glow-radial-orange': 'radial-gradient(ellipse at 50% 0%, rgba(249, 115, 22, 0.06) 0%, transparent 70%)',
-        'glow-radial-cyan': 'radial-gradient(ellipse at 50% 0%, rgba(34, 242, 239, 0.06) 0%, transparent 70%)',
+        'glow-radial-orange': 'radial-gradient(ellipse at 50% 0%, rgba(243, 148, 68, 0.07) 0%, transparent 70%)',
+        'glow-radial-cyan': 'radial-gradient(ellipse at 50% 0%, rgba(243, 148, 68, 0.05) 0%, transparent 70%)',
         'specular-highlight':
           'linear-gradient(180deg, rgb(var(--highlight-ink) / 0.08) 0%, transparent 40%)',
         'edge-light':

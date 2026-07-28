@@ -1553,7 +1553,7 @@ function Field({ label, children }) {
 function Toggle({ checked, onChange, label }) {
   return (
     <label className="flex items-center gap-2 text-[12px] text-white/70 cursor-pointer">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="accent-[#49dc7a]" />
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} style={{ accentColor: 'rgb(var(--mint-ink))' }} />
       {label}
     </label>
   );

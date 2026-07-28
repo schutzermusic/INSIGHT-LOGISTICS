@@ -17,10 +17,27 @@
  */
 
 import { CATEGORY_LABELS } from './dashboardCategories.js';
+import { resolveNode } from './geo.js';
 
 const ELIGIBLE = new Set(['confirmed', 'in_progress', 'completed']);
 const ACTIVE = new Set(['confirmed', 'in_progress']);
 const int = (v) => (Number.isFinite(+v) ? Math.round(+v) : 0);
+
+function resolveMapCoordinate(label, latValue, lngValue) {
+  const lat = Number(latValue);
+  const lng = Number(lngValue);
+  // Dashboard operations are in Brazil. Besides rejecting null/NaN, these
+  // bounds repair legacy rows whose missing NUMERIC coordinates became (0, 0).
+  if (
+    Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= -35 && lat <= 6
+    && lng >= -75 && lng <= -32
+  ) {
+    return { lat, lng };
+  }
+  const node = resolveNode(label);
+  return node ? { lat: node.lat, lng: node.lng } : null;
+}
 
 /** The confirmation gate as data (§3.1): keep only dashboard-eligible rows. */
 export function eligible(rows = []) {
@@ -94,7 +111,39 @@ export function computeOverview(rows, nowMs = Date.now()) {
     .reduce((s, r) => s + int(r.team_size), 0);
   const onTimeEligible = completed.filter((r) => r.on_time != null);
   const onTimeCount = onTimeEligible.filter((r) => r.on_time).length;
+
+  // ── Cost composition (§6.1) ──────────────────────────────────────────
+  // "Custo de mobilização" is not one number. Split it so the KPI strip can
+  // answer *where* the money goes, not just how much:
+  //   labor      = hours worked (base) + overtime + night premium
+  //   logistics  = everything else (fares, transfers, accommodation, meals)
+  // Logistics is the residual, so labor + logistics always reconciles to
+  // total even when a row omits a category.
+  const laborBase = rows.reduce((s, r) => s + int(r.labor_cost_c), 0);
+  const overtime = rows.reduce((s, r) => s + int(r.overtime_cost_c), 0);
+  const nightPremium = rows.reduce((s, r) => s + int(r.night_premium_cost_c), 0);
+  const accommodation = rows.reduce((s, r) => s + int(r.accommodation_cost_c), 0);
+  const laborSpend = laborBase + overtime + nightPremium;
+  const logisticsSpend = Math.max(0, totalSpend - laborSpend);
+
+  // Team-hours actually committed to mobilization: duration × headcount.
+  // This is the denominator that makes cost/hour comparable across routes.
+  const teamMinutes = rows.reduce((s, r) => s + int(r.duration_minutes) * int(r.team_size), 0);
+  const teamHours = Math.round(teamMinutes / 60);
+
   return {
+    laborSpendMinor: laborSpend,
+    laborBaseSpendMinor: laborBase,
+    overtimeSpendMinor: overtime,
+    nightPremiumSpendMinor: nightPremium,
+    accommodationSpendMinor: accommodation,
+    logisticsSpendMinor: logisticsSpend,
+    laborSharePercent: totalSpend ? Math.round((laborSpend / totalSpend) * 1000) / 10 : 0,
+    teamHours,
+    costPerTeamHourMinor: teamHours ? Math.round(totalSpend / teamHours) : 0,
+    averageTeamSize: rows.length
+      ? Math.round((rows.reduce((s, r) => s + int(r.team_size), 0) / rows.length) * 10) / 10
+      : 0,
     activeMobilizations: active.length,
     completedMobilizations: completed.length,
     totalMobilizationsInRange: rows.length,
@@ -297,10 +346,15 @@ export function computeAlerts(rows, nowMs = Date.now()) {
 export function activeMapItems(rows, nowMs = Date.now()) {
   return rows
     .filter((r) => ACTIVE.has(r.confirmation_status))
-    .filter((r) => Number.isFinite(+r.origin_lat) && Number.isFinite(+r.destination_lat))
-    .map((r) => {
+    .map((r) => ({
+      row: r,
+      origin: resolveMapCoordinate(r.origin_label, r.origin_lat, r.origin_lng),
+      destination: resolveMapCoordinate(r.destination_label, r.destination_lat, r.destination_lng),
+    }))
+    .filter(({ origin, destination }) => origin && destination)
+    .map(({ row: r, origin, destination }) => {
       const st = deriveLiveState(r, nowMs);
-      const oLat = +r.origin_lat, oLng = +r.origin_lng, dLat = +r.destination_lat, dLng = +r.destination_lng;
+      const oLat = origin.lat, oLng = origin.lng, dLat = destination.lat, dLng = destination.lng;
       return {
         mobilizationId: r.id,
         projectId: r.project_id,
@@ -363,21 +417,49 @@ function summarizeTeam(snapshot) {
   return `${list[0].name} +${list.length - 1}`;
 }
 
-/** §6.6 cost / duration trend bucketed by day. */
+/**
+ * §6.6 cost / duration trend bucketed by day.
+ *
+ * Also emits the running totals that drive the S-curve: `cumulativeAmountMinor`
+ * and `cumulativeCount`. Daily bars answer "how much today"; the cumulative
+ * curve answers "how fast are we burning the period", which is the question a
+ * controller actually asks. Its slope is the burn rate — a flattening tail
+ * means mobilization is winding down, a steepening middle means it is not.
+ *
+ * `baselineAmountMinor` is the straight-line spend the period would have had
+ * at a constant daily rate; plotting it against the real curve is what makes
+ * the S readable (above the line = spending ahead of pace).
+ */
 export function costTrend(rows) {
   const agg = new Map();
   for (const r of rows) {
     const day = (r.confirmed_at || '').slice(0, 10);
     if (!day) continue;
-    const cur = agg.get(day) || { date: day, amountMinor: 0, count: 0, durationSum: 0 };
+    const cur = agg.get(day) || { date: day, amountMinor: 0, count: 0, durationSum: 0, laborSum: 0 };
     cur.amountMinor += int(r.total_cost_c);
+    cur.laborSum += int(r.labor_cost_c) + int(r.overtime_cost_c) + int(r.night_premium_cost_c);
     cur.count += 1;
     cur.durationSum += int(r.duration_minutes);
     agg.set(day, cur);
   }
-  return [...agg.values()]
-    .map((d) => ({ date: d.date, amountMinor: d.amountMinor, count: d.count, avgDurationMinutes: d.count ? Math.round(d.durationSum / d.count) : 0 }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const days = [...agg.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const grandTotal = days.reduce((s, d) => s + d.amountMinor, 0);
+  let runningAmount = 0;
+  let runningCount = 0;
+  return days.map((d, i) => {
+    runningAmount += d.amountMinor;
+    runningCount += d.count;
+    return {
+      date: d.date,
+      amountMinor: d.amountMinor,
+      laborAmountMinor: d.laborSum,
+      count: d.count,
+      avgDurationMinutes: d.count ? Math.round(d.durationSum / d.count) : 0,
+      cumulativeAmountMinor: runningAmount,
+      cumulativeCount: runningCount,
+      baselineAmountMinor: Math.round((grandTotal / days.length) * (i + 1)),
+    };
+  });
 }
 
 /**

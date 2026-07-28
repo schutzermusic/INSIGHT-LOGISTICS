@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { isGoogleMapsLoaded } from '../../services/GoogleMapsLoader';
 import { fetchDrivingRoutes } from '../../services/BackendApiClient';
 import { useTheme } from '../../hooks/useTheme';
+import { decodeGooglePolyline } from '../../utils/googlePolyline';
 
 // Dark cinematic basemap — neutral blue-black palette, no green cast
 const DARK_MAP_STYLES = [
@@ -50,27 +51,6 @@ const LIGHT_MAP_STYLES = [
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#DAE8EE' }] },
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#6F8D97' }] },
 ];
-
-// Decode Google encoded polyline to array of [lng, lat]
-function decodePolyline(encoded) {
-  if (!encoded) return [];
-  if (window.google?.maps?.geometry?.encoding) {
-    const path = window.google.maps.geometry.encoding.decodePath(encoded);
-    return path.map(p => [p.lng(), p.lat()]);
-  }
-  const coords = [];
-  let index = 0, lat = 0, lng = 0;
-  while (index < encoded.length) {
-    let b, shift = 0, result = 0;
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
-    shift = 0; result = 0;
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
-    coords.push([lng / 1e5, lat / 1e5]);
-  }
-  return coords;
-}
 
 const COLORS = {
   mint: [73, 220, 122],
@@ -232,7 +212,7 @@ export default function DeckGLMap({
 
         if (result.success && result.routes?.length > 0) {
           const route = result.routes[0];
-          const decoded = decodePolyline(route.polyline);
+          const decoded = decodeGooglePolyline(route.polyline);
           if (decoded.length > 0) {
             setRoutePath(decoded);
             setRouteInfo(route);

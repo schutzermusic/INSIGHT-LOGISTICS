@@ -250,7 +250,7 @@ function ConfigSection({ table, title, subtitle, icon: Icon, accent, fields, ver
 function ToggleInput({ checked, onChange, disabled }) {
   return (
     <label className="h-10 flex items-center gap-2 text-[13px] text-white/65">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} disabled={disabled} className="accent-[#49dc7a]" />
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} disabled={disabled} style={{ accentColor: 'rgb(var(--mint-ink))' }} />
       {checked ? 'Ativo' : 'Inativo'}
     </label>
   );

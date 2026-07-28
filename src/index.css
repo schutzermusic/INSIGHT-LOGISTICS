@@ -1,6 +1,48 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+
+/* ══════════════════════════════════════════════════════════════════════
+   Helvetica Neue — self-hosted, subset to latin + latin-ext (full pt-BR)
+   plus the UI glyphs the product renders. 4 weights, 172 KB total
+   (down from 1.7 MB of source OTF).
+
+   Weight map: Light 300 · Roman 400 · Medium 500-600 · Bold 700.
+   Helvetica Neue has no true semibold, and Medium->Bold is a big jump, so
+   the 600 step resolves DOWN to Medium. Bold is reserved for explicit 700. Italics and the display cuts (Thin/UltraLight/
+   Black/Heavy) are deliberately not shipped — nothing in the UI uses them.
+
+   NOTE: figures are already tabular by default (uniform 556 advance), so
+   money columns align natively.
+   ══════════════════════════════════════════════════════════════════════ */
+@font-face {
+  font-family: 'Helvetica Neue LT';
+  src: url('/fonts/HelveticaNeue-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Helvetica Neue LT';
+  src: url('/fonts/HelveticaNeue-Roman.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Helvetica Neue LT';
+  src: url('/fonts/HelveticaNeue-Medium.woff2') format('woff2');
+  font-weight: 500 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Helvetica Neue LT';
+  src: url('/fonts/HelveticaNeue-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -219,6 +261,126 @@
    ════════════════════════════════════════════════════════════════ */
 
 @layer base {
+  /* ══════════════════════════════════════════════════════════════
+     INK RAMP — 5 steps, theme-agnostic (built on --ink).
+     Replaces the ~19 ad-hoc `white/[0.0x]` alphas that made the UI
+     read flat and muddy. Use these, not raw opacity values.
+
+       ink-0  values, headings          ink-3  labels, axes, metadata
+       ink-1  body, table cells         ink-line  borders, separators
+       ink-2  secondary, subtitles
+     ══════════════════════════════════════════════════════════════ */
+  :root,
+  .dark {
+    --ink-0: rgb(var(--ink) / 1);
+    --ink-1: rgb(var(--ink) / 0.72);
+    --ink-2: rgb(var(--ink) / 0.48);
+    --ink-3: rgb(var(--ink) / 0.30);
+    --ink-line: rgb(var(--ink) / 0.08);
+    --ink-line-strong: rgb(var(--ink) / 0.14);
+
+    /* Accent aliases — single source for the interface accent. */
+    --accent-solid: rgb(var(--color-accent));
+    --accent-soft: rgb(var(--color-accent) / 0.12);
+    --accent-line: rgb(var(--color-accent) / 0.28);
+    --accent-glow: rgb(var(--color-accent) / 0.22);
+
+    /* Semantics — scoped, not decorative. */
+    --positive: rgb(var(--color-success));
+    --caution: rgb(var(--color-warning));
+    --critical: rgb(var(--color-danger));
+  }
+
+  /* Light mode needs slightly heavier ink to hold contrast on white. */
+  :root:not(.dark) {
+    --ink-1: rgb(var(--ink) / 0.90);
+    --ink-2: rgb(var(--ink) / 0.74);
+    --ink-3: rgb(var(--ink) / 0.62);
+    --ink-line: rgb(var(--ink) / 0.16);
+    --ink-line-strong: rgb(var(--ink) / 0.24);
+  }
+
+  /* Existing screens intentionally use translucent white typography in the
+     dark theme. Because `white` resolves to dark ink in light mode, those same
+     opacity steps need a stronger light-only ramp to remain readable. */
+  :root:not(.dark) .text-white\/10,
+  :root:not(.dark) .text-white\/12,
+  :root:not(.dark) .text-white\/15,
+  :root:not(.dark) .text-white\/20,
+  :root:not(.dark) .text-white\/25 {
+    color: rgb(var(--ink) / 0.58);
+  }
+
+  :root:not(.dark) .text-white\/30,
+  :root:not(.dark) .text-white\/35,
+  :root:not(.dark) .text-white\/40 {
+    color: rgb(var(--ink) / 0.66);
+  }
+
+  :root:not(.dark) .text-white\/45,
+  :root:not(.dark) .text-white\/50,
+  :root:not(.dark) .text-white\/55 {
+    color: rgb(var(--ink) / 0.74);
+  }
+
+  :root:not(.dark) .text-white\/60,
+  :root:not(.dark) .text-white\/65,
+  :root:not(.dark) .text-white\/70 {
+    color: rgb(var(--ink) / 0.82);
+  }
+
+  :root:not(.dark) .text-white\/75,
+  :root:not(.dark) .text-white\/80,
+  :root:not(.dark) .text-white\/85,
+  :root:not(.dark) .text-white\/90 {
+    color: rgb(var(--ink) / 0.92);
+  }
+
+  :root:not(.dark) input::placeholder,
+  :root:not(.dark) textarea::placeholder {
+    color: rgb(var(--ink) / 0.60) !important;
+    opacity: 1;
+  }
+
+  :root:not(.dark) .text-mint\/40,
+  :root:not(.dark) .text-accent-orange\/40,
+  :root:not(.dark) .text-accent-cyan\/40,
+  :root:not(.dark) .text-accent-blue\/40,
+  :root:not(.dark) .text-accent-purple\/40,
+  :root:not(.dark) .text-accent-amber\/40 {
+    opacity: 1;
+    color: rgb(var(--mint-ink) / 0.72);
+  }
+
+  :root:not(.dark) .text-accent-orange\/40 { color: rgb(var(--accent-orange-ink) / 0.72); }
+  :root:not(.dark) .text-accent-cyan\/40 { color: rgb(var(--accent-cyan-ink) / 0.72); }
+  :root:not(.dark) .text-accent-blue\/40 { color: rgb(var(--accent-blue-ink) / 0.72); }
+  :root:not(.dark) .text-accent-purple\/40 { color: rgb(var(--accent-purple-ink) / 0.72); }
+  :root:not(.dark) .text-accent-amber\/40 { color: rgb(var(--accent-amber-ink) / 0.72); }
+
+  :root:not(.dark) .text-mint\/50,
+  :root:not(.dark) .text-mint\/60,
+  :root:not(.dark) .text-mint\/70,
+  :root:not(.dark) .text-mint\/80 {
+    color: rgb(var(--mint-ink) / 0.86);
+  }
+
+  :root:not(.dark) .text-accent-orange\/50,
+  :root:not(.dark) .text-accent-orange\/60,
+  :root:not(.dark) .text-accent-orange\/70 { color: rgb(var(--accent-orange-ink) / 0.86); }
+  :root:not(.dark) .text-accent-cyan\/50,
+  :root:not(.dark) .text-accent-cyan\/60,
+  :root:not(.dark) .text-accent-cyan\/70 { color: rgb(var(--accent-cyan-ink) / 0.86); }
+  :root:not(.dark) .text-accent-blue\/50,
+  :root:not(.dark) .text-accent-blue\/60,
+  :root:not(.dark) .text-accent-blue\/70 { color: rgb(var(--accent-blue-ink) / 0.86); }
+  :root:not(.dark) .text-accent-purple\/50,
+  :root:not(.dark) .text-accent-purple\/60,
+  :root:not(.dark) .text-accent-purple\/70 { color: rgb(var(--accent-purple-ink) / 0.86); }
+  :root:not(.dark) .text-accent-amber\/50,
+  :root:not(.dark) .text-accent-amber\/60,
+  :root:not(.dark) .text-accent-amber\/70 { color: rgb(var(--accent-amber-ink) / 0.86); }
+
   :root {
     /* LIGHT — premium soft off-white, dark green ink, restrained
        mint accents, subtle green-tinted shadows. */
@@ -227,7 +389,17 @@
     --glass-ink: 15 30 24;         /* tint color for glass/borders */
     --highlight-ink: 255 255 255;  /* specular / inner highlight */
     --shadow-ink: 15 50 40;        /* drop shadow color */
-    --mint-ink: 12 122 60;         /* darker mint for light-mode text */
+    --mint-ink: 8 105 48;          /* forest green: readable on light surfaces */
+    --mint-light-ink: 12 122 60;
+    --mint-dark-ink: 6 86 39;
+    --accent-orange-ink: 180 63 10;
+    --accent-cyan-ink: 14 116 144;
+    --accent-blue-ink: 29 78 216;
+    --accent-purple-ink: 109 40 217;
+    --accent-red-ink: 190 18 60;
+    --accent-amber-ink: 180 83 9;
+    --cyan-ink: 14 116 144;
+    --glow-cyan: 14 116 144;
 
     /* Surface ladder — low index = elevated, high index = deeper/base */
     --surface--1: 255 255 255;     /* crisp card highlight */
@@ -242,53 +414,53 @@
 
     /* Chart palette (hex). Chart strokes/fills use these so
        Recharts legend dots and lines stay legible on both themes. */
-    --chart-1: #22c88a;            /* mint */
-    --chart-2: #27b8d6;            /* cyan */
-    --chart-3: #8b6cf6;            /* violet */
-    --chart-4: #cf5ae8;            /* magenta */
-    --chart-5: #e8a93a;            /* amber */
-    --chart-6: #f0627f;            /* danger / reserved */
+    --chart-1: #b45309;            /* burnt amber */
+    --chart-2: #0e7490;            /* deep cyan */
+    --chart-3: #6d28d9;            /* electric violet */
+    --chart-4: #9f285f;            /* modern berry */
+    --chart-5: #334155;            /* slate — benchmark / comparison */
+    --chart-6: #be123c;            /* danger / reserved */
 
     /* Recharts in-chart colors (text & grid) */
     --chart-grid: 15 30 24;        /* rgb triplet for grid lines */
     --chart-text: 15 30 24;        /* rgb triplet for axis labels */
 
     /* Semantic color system */
-    --color-success: 73 220 122;
+    --color-success: 4 122 59;
     --color-success-bg: 232 248 238;
-    --color-success-border: 73 220 122;
-    --color-success-text: 12 122 60;
-    --color-success-glow: 73 220 122;
+    --color-success-border: 4 122 59;
+    --color-success-text: 8 105 48;
+    --color-success-glow: 12 122 60;
 
-    --color-warning: 245 158 11;
+    --color-warning: 180 83 9;
     --color-warning-bg: 255 247 228;
-    --color-warning-border: 245 158 11;
-    --color-warning-text: 146 96 16;
-    --color-warning-glow: 245 158 11;
+    --color-warning-border: 180 83 9;
+    --color-warning-text: 133 63 8;
+    --color-warning-glow: 180 83 9;
 
-    --color-danger: 244 63 94;
+    --color-danger: 190 18 60;
     --color-danger-bg: 255 240 244;
-    --color-danger-border: 244 63 94;
-    --color-danger-text: 159 24 54;
-    --color-danger-glow: 244 63 94;
+    --color-danger-border: 190 18 60;
+    --color-danger-text: 159 18 57;
+    --color-danger-glow: 190 18 60;
 
-    --color-info: 56 189 248;
+    --color-info: 14 116 144;
     --color-info-bg: 236 248 255;
-    --color-info-border: 56 189 248;
-    --color-info-text: 3 105 161;
-    --color-info-glow: 56 189 248;
+    --color-info-border: 14 116 144;
+    --color-info-text: 8 89 112;
+    --color-info-glow: 14 116 144;
 
-    --color-accent: 249 115 22;
-    --color-accent-bg: 255 243 235;
-    --color-accent-border: 249 115 22;
+    --color-accent: 194 65 12;
+    --color-accent-bg: 255 244 234;
+    --color-accent-border: 194 65 12;
     --color-accent-text: 154 52 18;
-    --color-accent-glow: 249 115 22;
+    --color-accent-glow: 194 65 12;
 
-    --color-neutral: 148 163 184;
+    --color-neutral: 71 85 105;
     --color-neutral-bg: 244 247 250;
-    --color-neutral-border: 148 163 184;
-    --color-neutral-text: 71 85 105;
-    --color-neutral-glow: 148 163 184;
+    --color-neutral-border: 71 85 105;
+    --color-neutral-text: 51 65 85;
+    --color-neutral-glow: 71 85 105;
 
     /* shadcn variables — full color values so `color: var(--foreground)`
        etc. work directly. These drive shadcn/base UI primitives. */
@@ -370,29 +542,49 @@
        Neutral base so green is an ACCENT only (mint-ink, status,
        focus ring, selection, explicit gradients), never a wash. */
 
-    --ink: 245 247 250;            /* off-white, reduces eye fatigue */
-    --glass-ink: 230 236 244;      /* cool neutral tint for glass/borders */
+    --ink: 248 248 248;            /* #F8F8F8 — reference off-white */
+    --glass-ink: 248 248 248;      /* neutral tint for glass/borders */
     --highlight-ink: 255 255 255;
-    --shadow-ink: 0 0 0;
+    --shadow-ink: 0 6 4;
     --mint-ink: 73 220 122;
+    --mint-light-ink: 107 232 150;
+    --mint-dark-ink: 45 184 92;
+    --accent-orange-ink: 243 148 68;
+    --accent-cyan-ink: 248 248 248;
+    --accent-blue-ink: 248 248 248;
+    --accent-purple-ink: 248 248 248;
+    --accent-red-ink: 255 0 0;
+    --accent-amber-ink: 224 164 88;
+    --cyan-ink: 148 163 184;
+    --glow-cyan: 148 163 184;
 
-    /* Surface ladder — neutral blue-black, no green hue */
-    --surface--1: 30 34 44;        /* elevated highlight (rare) */
-    --surface-0: 24 28 38;         /* raised panel */
-    --surface-1: 20 24 32;         /* elevated card */
-    --surface-2: 16 20 28;         /* standard card */
-    --surface-3: 12 15 22;         /* page-adjacent panel */
-    --surface-4: 8 10 16;          /* deepest (behind glass) */
+    /* Surface ladder — DEEP GREEN, low chroma and cool-leaning (blue sits
+       just above red, so the hue reads forest/teal rather than olive).
+       Chroma is held to G-R = 7..19 on purpose: enough green to be
+       unmistakably green, little enough that the warm amber accent still
+       reads clean instead of turning muddy. The previous #040A0A/#081A15
+       failed precisely because its hue was yellow-green.
+       Low index = elevated. */
+    --surface--1: 29 48 40;        /* elevated highlight (rare)  #1D3028 */
+    --surface-0: 22 39 32;         /* raised panel               #162720 */
+    --surface-1: 18 33 27;         /* elevated card              #12211B */
+    --surface-2: 14 27 22;         /* standard card              #0E1B16 */
+    --surface-3: 10 21 17;         /* page-adjacent panel        #0A1511 */
+    --surface-4: 7 16 13;          /* deepest (behind glass)     #07100D */
 
-    /* Page background — near-black with subtle blue tilt */
-    --page-base: 10 13 20;
+    /* Page background — deep green near-black #050C0A */
+    --page-base: 5 12 10;
 
-    --chart-1: #49dc9c;
-    --chart-2: #46c8f0;
-    --chart-3: #9e7cff;
-    --chart-4: #ed72ff;
-    --chart-5: #f3bb4f;
-    --chart-6: #ff6b86;
+    /* Charts — desaturated so they sit UNDER the amber accent instead of
+       competing with it. Still 5 distinguishable hues, because genuinely
+       categorical charts (modal mix, RouteIntelligence) need them.
+       Single-measure charts must use ACCENT_RAMP from lib/chartTheme. */
+    --chart-1: #f39444;            /* amber — primary series / accent */
+    --chart-2: #5fa8bf;            /* muted teal */
+    --chart-3: #8b7fc4;            /* muted violet */
+    --chart-4: #c98fb0;            /* muted rose-mauve */
+    --chart-5: #e8e8e8;            /* near-white — benchmark / comparison */
+    --chart-6: #ff4d4d;            /* danger / reserved */
 
     --chart-grid: 255 255 255;
     --chart-text: 255 255 255;
@@ -403,29 +595,33 @@
     --color-success-text: 110 231 183;
     --color-success-glow: 73 220 122;
 
-    --color-warning: 245 158 11;
-    --color-warning-bg: 52 36 15;
-    --color-warning-border: 245 158 11;
-    --color-warning-text: 252 211 77;
-    --color-warning-glow: 245 158 11;
+    --color-warning: 224 164 88;
+    --color-warning-bg: 44 33 19;
+    --color-warning-border: 224 164 88;
+    --color-warning-text: 232 185 124;
+    --color-warning-glow: 224 164 88;
 
-    --color-danger: 244 63 94;
-    --color-danger-bg: 58 22 33;
-    --color-danger-border: 244 63 94;
-    --color-danger-text: 251 113 133;
-    --color-danger-glow: 244 63 94;
+    /* CRITICAL ONLY. Core is reference red #FF0000 for dots/borders/fills;
+       -text is lifted to #FF6B6B because pure red fails contrast as text. */
+    --color-danger: 255 0 0;
+    --color-danger-bg: 48 14 14;
+    --color-danger-border: 255 0 0;
+    --color-danger-text: 255 107 107;
+    --color-danger-glow: 255 0 0;
 
-    --color-info: 56 189 248;
-    --color-info-bg: 15 39 56;
-    --color-info-border: 56 189 248;
-    --color-info-text: 125 211 252;
-    --color-info-glow: 56 189 248;
+    /* Info is demoted to a neutral slate — it is no longer a competing hue. */
+    --color-info: 148 163 184;
+    --color-info-bg: 26 28 32;
+    --color-info-border: 148 163 184;
+    --color-info-text: 190 200 214;
+    --color-info-glow: 148 163 184;
 
-    --color-accent: 249 115 22;
-    --color-accent-bg: 58 30 16;
-    --color-accent-border: 249 115 22;
-    --color-accent-text: 251 146 60;
-    --color-accent-glow: 249 115 22;
+    /* THE interface accent — reference #F39444. */
+    --color-accent: 243 148 68;
+    --color-accent-bg: 46 30 17;
+    --color-accent-border: 243 148 68;
+    --color-accent-text: 247 165 94;
+    --color-accent-glow: 243 148 68;
 
     --color-neutral: 148 163 184;
     --color-neutral-bg: 28 36 48;
@@ -434,29 +630,29 @@
     --color-neutral-glow: 148 163 184;
 
     /* shadcn variables (dark) — full color values */
-    --background: rgb(10 13 20);
+    --background: rgb(5 12 10);
     --foreground: rgb(245 247 250);
-    --card: rgb(16 20 28);
+    --card: rgb(14 27 22);
     --card-foreground: rgb(245 247 250);
-    --popover: rgb(16 20 28);
+    --popover: rgb(14 27 22);
     --popover-foreground: rgb(245 247 250);
     --primary: rgb(73 220 122);
-    --primary-foreground: rgb(8 10 16);
-    --secondary: rgb(20 24 32);
+    --primary-foreground: rgb(5 12 10);
+    --secondary: rgb(18 33 27);
     --secondary-foreground: rgb(245 247 250);
-    --muted: rgb(20 24 32);
+    --muted: rgb(18 33 27);
     --muted-foreground: rgb(168 178 195);
-    --accent: rgb(20 24 32);
+    --accent: rgb(18 33 27);
     --accent-foreground: rgb(245 247 250);
-    --destructive: rgb(239 68 68);
-    --border: rgb(255 255 255 / 0.08);
-    --input: rgb(255 255 255 / 0.12);
-    --ring: rgb(73 220 122 / 0.45);
-    --sidebar: rgb(8 10 16);
+    --destructive: rgb(255 0 0);
+    --border: rgb(248 248 248 / 0.08);
+    --input: rgb(248 248 248 / 0.12);
+    --ring: rgb(243 148 68 / 0.55);
+    --sidebar: rgb(7 16 13);
     --sidebar-foreground: rgb(245 247 250);
     --sidebar-primary: rgb(73 220 122);
-    --sidebar-primary-foreground: rgb(8 10 16);
-    --sidebar-accent: rgb(20 24 32);
+    --sidebar-primary-foreground: rgb(5 12 10);
+    --sidebar-accent: rgb(18 33 27);
     --sidebar-accent-foreground: rgb(245 247 250);
     --sidebar-border: rgb(255 255 255 / 0.06);
     --sidebar-ring: rgb(73 220 122 / 0.45);
@@ -492,12 +688,21 @@
       0 1px 2px rgb(0 0 0 / 0.18);
   }
 
+  /* Helvetica Neue, self-hosted — see the @font-face block above.
+     Outfit (geometric, single-storey `a`) was removed: it reads editorial,
+     not operational, in dense data. The locally-installed 'Helvetica Neue'
+     follows as a fallback for macOS users, then the system stack. */
+  :root,
   .theme {
-    --font-sans: 'Outfit', 'Geist Variable', system-ui, sans-serif;
+    --font-sans: 'Helvetica Neue LT', 'Helvetica Neue', Helvetica, -apple-system,
+      'Segoe UI', system-ui, sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
   }
 
   html {
-    font-family: var(--font-sans, 'Outfit', system-ui, sans-serif);
+    font-family: var(--font-sans);
+    /* Money columns must align everywhere — set once, globally. */
+    font-variant-numeric: tabular-nums;
     color-scheme: light;
     transition: background-color 200ms ease;
   }
@@ -535,8 +740,7 @@
     overflow: hidden;
     height: 100vh;
     margin: 0;
-    font-family: 'Outfit', system-ui, sans-serif;
-    font-feature-settings: "ss01", "cv11", "tnum";
+    font-family: var(--font-sans);
     background: rgb(var(--page-base));
     color: rgb(var(--ink));
     font-variant-numeric: lining-nums;
@@ -549,7 +753,6 @@
   input,
   select,
   textarea {
-    font-feature-settings: "ss01", "cv11", "tnum";
   }
 
   #root {
@@ -775,20 +978,21 @@
       background-color var(--motion-duration-small) var(--motion-ease-out),
       color var(--motion-duration-small) var(--motion-ease-out),
       border-color var(--motion-duration-small) var(--motion-ease-out);
-    font-family: 'Outfit', system-ui, sans-serif;
+    font-family: var(--font-sans);
   }
 
   .btn-primary-mint {
     @apply btn-premium;
-    color: #0A1E18;
-    background: linear-gradient(135deg, #49DC7A 0%, #2DB85C 100%);
+    color: #fff;
+    background: linear-gradient(135deg, rgb(var(--mint-ink)) 0%, rgb(var(--mint-dark-ink)) 100%);
     box-shadow:
-      0 4px 20px rgba(73, 220, 122, 0.25),
+      0 4px 20px rgb(var(--mint-ink) / 0.25),
       inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
+  .dark .btn-primary-mint { color: #0A1E18; }
   .btn-primary-mint:hover {
     box-shadow:
-      0 8px 32px rgba(73, 220, 122, 0.35),
+      0 8px 32px rgb(var(--mint-ink) / 0.35),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
     transform: translateY(-1px);
   }
@@ -858,8 +1062,8 @@
 
   /* ────────── KPI Value ────────── */
   .kpi-value {
-    @apply text-3xl font-bold tracking-tight;
-    font-family: 'Outfit', system-ui, sans-serif;
+    @apply text-3xl font-normal tracking-tight;
+    font-family: var(--font-sans);
     font-variant-numeric: tabular-nums;
   }
 
@@ -868,64 +1072,92 @@
      hero values. Use .label-micro for small caption labels ("From",
      "Departure Date", etc.) and .display-xl for the huge hero values
      ("JFK", "MXP", big KPI numbers). */
+  /* 7-step scale. Weight range is 400/500/600 only — 650 was a variable-font
+     artefact that renders inconsistently on the fallback stack. */
   .label-micro {
-    font-size: 0.6875rem;
-    font-weight: 600;
+    font-size: 0.6875rem;          /* 11 */
+    font-weight: 500;  /* Medium — Bold is chunky at 11px caps */
     line-height: 1.1;
-    font-family: 'Outfit', system-ui, sans-serif;
+    font-family: var(--font-sans);
     text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: rgb(var(--ink) / 0.5);
+    letter-spacing: 0.14em;        /* 0.16em over-opened and read decorative */
+    color: var(--ink-3);
   }
   .label-micro-strong {
     @apply label-micro;
-    color: rgb(var(--ink) / 0.72);
+    color: var(--ink-1);
   }
+  /* display — reserved for THE ONE primary metric per viewport. */
   .display-xl {
-    font-family: 'Outfit', system-ui, sans-serif;
-    font-size: clamp(2.75rem, 5vw, 4rem);
-    font-weight: 650;
-    letter-spacing: -0.025em;
+    font-family: var(--font-sans);
+    font-size: clamp(2.5rem, 4vw, 3rem);   /* 40 → 48 */
+    font-weight: 300;  /* Light — large Helvetica wants air */
+    letter-spacing: -0.03em;
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
   .display-lg {
-    font-family: 'Outfit', system-ui, sans-serif;
-    font-size: clamp(2.125rem, 3.5vw, 2.75rem);
-    font-weight: 650;
-    letter-spacing: -0.025em;
+    font-family: var(--font-sans);
+    font-size: clamp(2rem, 3vw, 2.5rem);
+    font-weight: 300;  /* Light */
+    letter-spacing: -0.03em;
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
   }
   .display-md {
-    font-family: 'Outfit', system-ui, sans-serif;
-    font-size: clamp(1.625rem, 2vw, 1.875rem);
-    font-weight: 600;
-    letter-spacing: -0.025em;
-    line-height: 1.15;
+    font-family: var(--font-sans);
+    font-size: clamp(1.375rem, 1.8vw, 1.5rem);  /* 22 → 24 */
+    font-weight: 400;  /* Roman */
+    letter-spacing: -0.02em;
+    line-height: 1.2;
     font-variant-numeric: tabular-nums;
   }
+  /* title */
   .heading {
-    font-family: 'Outfit', system-ui, sans-serif;
-    font-size: 1.0625rem;
-    font-weight: 600;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;          /* 15 */
+    font-weight: 500;  /* Medium */
     letter-spacing: -0.01em;
-    line-height: 1.25;
-    color: rgb(var(--ink) / 0.9);
+    line-height: 1.3;
+    color: var(--ink-0);
   }
+  /* body */
   .body {
-    font-family: 'Outfit', system-ui, sans-serif;
-    font-size: 0.9375rem;
-    line-height: 1.55;
-    color: rgb(var(--ink) / 0.5);
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;          /* 13 */
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--ink-2);
   }
+  /* metric — supporting figures */
   .metric-value {
-    font-family: 'Outfit', system-ui, sans-serif;
-    font-size: clamp(1.625rem, 2vw, 2rem);
-    font-weight: 650;
-    letter-spacing: -0.025em;
+    font-family: var(--font-sans);
+    font-size: 1.75rem;            /* 28, fixed — clamping made KPIs jitter */
+    font-weight: 400;  /* Roman — reads confident, not thin */
+    letter-spacing: -0.02em;
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
+    color: var(--ink-0);
+  }
+  .dashboard-kpi-value {
+    font-family: var(--font-sans);
+    font-size: clamp(1.5rem, 1.7vw, 1.75rem);
+    font-weight: 400;  /* Roman */
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-0);
+    white-space: nowrap;
+  }
+  /* metric-sm — chip rail, stat blocks */
+  .metric-sm {
+    font-family: var(--font-sans);
+    font-size: 1.25rem;            /* 20 */
+    font-weight: 500;  /* Medium */
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-0);
   }
   .tabular-data {
     font-variant-numeric: tabular-nums;
@@ -934,7 +1166,6 @@
   .recharts-text,
   .recharts-cartesian-axis-tick-value,
   .recharts-legend-item-text {
-    font-feature-settings: "ss01", "cv11", "tnum";
     font-variant-numeric: tabular-nums;
   }
 
@@ -1092,7 +1323,7 @@
     inset: -1px;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(73, 220, 122, 0.4), transparent 50%, rgba(34, 242, 239, 0.15));
+    background: linear-gradient(135deg, rgb(var(--mint-ink) / 0.4), transparent 50%, rgb(var(--mint-light-ink) / 0.15));
     -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
@@ -1124,16 +1355,15 @@
   /* ────────── Text Gradients ────────── */
   .text-gradient-mint {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #49DC7A, #22F2EF);
+    background-image: linear-gradient(135deg, rgb(var(--mint-ink)), rgb(var(--mint-light-ink)));
   }
   .text-gradient-orange {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, #F97316, #FB923C);
   }
-  .text-gradient-premium {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #49DC7A 0%, #22F2EF 50%, #49DC7A 100%);
-  }
+  /* .text-gradient-premium was removed — gradient-filled text was the
+     single most "template"-reading element in the product. Never
+     gradient-fill type; use weight and ink level for emphasis. */
 
   /* ────────── Cinematic Ambient Stage ──────────
      Volumetric light bathing the top of the viewport, plus a
@@ -1263,103 +1493,47 @@
     );
   }
 
-  /* Accent-tinted variants — the same panel shape but with a
-     whisper of brand color bleeding through the top-left. Use
-     for hero / featured panels. */
-  .premium-panel-mint {
-    @apply premium-panel;
-  }
-  .premium-panel-mint::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(ellipse 500px 260px at 0% 0%, rgba(73, 220, 122, 0.10) 0%, transparent 55%),
-      radial-gradient(ellipse 400px 220px at 100% 100%, rgba(34, 242, 239, 0.06) 0%, transparent 55%);
-  }
-  .premium-panel-orange {
-    @apply premium-panel;
-  }
-  .premium-panel-orange::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(ellipse 500px 260px at 100% 0%, rgba(249, 115, 22, 0.08) 0%, transparent 55%);
-  }
+  /* ══════════════════════════════════════════════════════════════
+     CARD RECIPES — three, and only three.
 
-  .premium-panel-purple {
-    @apply premium-panel;
-  }
-  .premium-panel-purple::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(ellipse 500px 260px at 0% 0%, rgba(168, 85, 247, 0.10) 0%, transparent 55%),
-      radial-gradient(ellipse 400px 220px at 100% 100%, rgba(73, 220, 122, 0.05) 0%, transparent 55%);
-  }
+     .panel        Zone B & C (analysis + ledger). Flat, quiet, no glow.
+     .glass-panel  Zone A overlays ONLY. Earns its cost by sitting on the map.
+     .inset-block  Nested blocks inside a panel.
 
-  /* ────────── Premium Panel — HERO variant ──────────
-     Signature "featured" panel used for the most important card on a
-     page. Combines the premium-panel stage with a thin gradient border
-     (mint → cyan) and a soft internal spotlight — inspired by the
-     reference's hero card. Do not use on secondary panels. */
-  .premium-panel-hero {
-    @apply premium-panel;
+     The old .premium-panel-mint / -orange / -purple / -hero accent washes
+     were removed: per-panel hue was assigned arbitrarily, so it taught the
+     reader nothing and only added chroma noise.
+     ══════════════════════════════════════════════════════════════ */
+  .panel {
     position: relative;
-    isolation: isolate;
+    background: rgb(var(--surface-2));
+    border: 1px solid var(--ink-line);
+    border-radius: 16px;
   }
-  .premium-panel-hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background:
-      radial-gradient(ellipse 640px 340px at 8% -5%, rgba(73, 220, 122, 0.11) 0%, transparent 55%),
-      radial-gradient(ellipse 500px 260px at 100% 100%, rgba(34, 242, 239, 0.06) 0%, transparent 55%);
-  }
-  .premium-panel-hero::before {
-    /* Gradient border via mask. Overrides base premium-panel::before. */
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-      135deg,
-      rgba(73, 220, 122, 0.45) 0%,
-      rgba(34, 242, 239, 0.22) 35%,
-      rgba(255, 255, 255, 0.04) 65%,
-      rgba(73, 220, 122, 0.18) 100%
-    );
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-    z-index: 1;
-    height: auto;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: transparent;
-  }
-  .dark .premium-panel-hero {
+
+  .glass-panel {
+    position: relative;
+    background: rgb(var(--surface-2) / 0.72);
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    border: 1px solid var(--ink-line-strong);
+    border-radius: 16px;
     box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.08) inset,
-      0 32px 80px -22px rgb(0 0 0 / 0.7),
-      0 10px 28px -8px rgb(0 0 0 / 0.5),
-      0 0 40px -12px rgba(73, 220, 122, 0.18);
+      0 16px 48px -12px rgb(0 0 0 / 0.6),
+      inset 0 1px 0 rgb(var(--highlight-ink) / 0.06);
+  }
+
+  /* Focus is a safety feature, not a style choice. Global, visible,
+     never removed — most custom controls previously had none. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--accent-solid);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  .inset-block {
+    background: rgb(var(--surface-3));
+    border-radius: 12px;
   }
 
   /* ────────── Premium CTAs ──────────
@@ -1380,7 +1554,7 @@
       0 0 0 1px rgb(0 0 0 / 0.04),
       0 10px 30px -10px rgba(0, 0, 0, 0.4),
       0 2px 6px -2px rgba(0, 0, 0, 0.15);
-    font-family: 'Outfit', system-ui, sans-serif;
+    font-family: var(--font-sans);
   }
   .cta-white:hover {
     transform: translateY(-1px);
@@ -1417,7 +1591,7 @@
     min-width: 168px;
     border-radius: 14px;
     overflow: hidden;
-    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
     background:
       linear-gradient(
         160deg,
@@ -1644,7 +1818,7 @@
 
   .recharts-text {
     fill: rgb(var(--chart-text) / 0.55) !important;
-    font-family: 'Outfit', system-ui, sans-serif !important;
+    font-family: var(--font-sans) !important;
     font-size: 11px !important;
   }
   /* Neutralize per-chart inline axis-line/tick-line strokes so themes match */
@@ -1655,7 +1829,7 @@
     stroke: rgb(var(--chart-grid) / 0.12) !important;
   }
   .recharts-legend-item-text {
-    font-family: 'Outfit', system-ui, sans-serif !important;
+    font-family: var(--font-sans) !important;
     color: rgb(var(--ink) / 0.6) !important;
   }
   .recharts-default-legend .recharts-legend-item {

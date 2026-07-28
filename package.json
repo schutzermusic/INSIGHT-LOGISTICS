@@ -17,8 +17,6 @@
     "@deck.gl/core": "^9.2.11",
     "@deck.gl/google-maps": "^9.2.11",
     "@deck.gl/layers": "^9.2.11",
-    "@fontsource-variable/geist": "^5.2.8",
-    "@fontsource-variable/outfit": "^5.2.8",
     "@luma.gl/core": "^9.2.6",
     "@luma.gl/engine": "^9.2.6",
     "@luma.gl/webgl": "^9.2.6",

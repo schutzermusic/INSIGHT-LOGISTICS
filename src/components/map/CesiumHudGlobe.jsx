@@ -22,18 +22,28 @@ import { useEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import * as Cesium from 'cesium';
 import HudGlobe, { STATUS_COLOR, STATUS_LABEL } from './HudGlobe';
+import { fetchDrivingRoutes } from '../../services/BackendApiClient';
+import { decodeGooglePolyline } from '../../utils/googlePolyline';
+import { BRAZIL_OUTLINE_FLAT } from './brazilOutline';
 
 const MODAL_LABEL = { air: 'Aéreo', bus: 'Ônibus', rental: 'Locado', fleet: 'Frota', multimodal: 'Multimodal' };
 
-/** Rough great-circle-ish arced samples (lon/lat lerp + parabolic height). */
+/** Great-circle samples matching DeckGLMap's `greatCircle` fallback geometry. */
 function arcSamples(Cesium, o, d, n, maxHeight) {
+  const geodesic = new Cesium.EllipsoidGeodesic(
+    Cesium.Cartographic.fromDegrees(o.lng, o.lat),
+    Cesium.Cartographic.fromDegrees(d.lng, d.lat),
+  );
   const pts = [];
   for (let i = 0; i <= n; i++) {
     const t = i / n;
-    const lng = o.lng + (d.lng - o.lng) * t;
-    const lat = o.lat + (d.lat - o.lat) * t;
+    const cartographic = geodesic.interpolateUsingFraction(t, new Cesium.Cartographic());
     const h = maxHeight * Math.sin(Math.PI * t);
-    pts.push(Cesium.Cartesian3.fromDegrees(lng, lat, h));
+    pts.push(Cesium.Cartesian3.fromRadians(
+      cartographic.longitude,
+      cartographic.latitude,
+      h,
+    ));
   }
   return pts;
 }
@@ -46,15 +56,45 @@ function haversineKm(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
+const roadRouteCache = new Map();
+const isRoadModal = (modal) => modal === 'bus' || modal === 'rental' || modal === 'fleet';
+const routeKey = (item) => [
+  item.origin.lat, item.origin.lng, item.destination.lat, item.destination.lng,
+].join(':');
+
+function roadSamples(Cesium, coordinates) {
+  return coordinates.map(([lng, lat]) => Cesium.Cartesian3.fromDegrees(lng, lat, 0));
+}
+
+/** Allocate travel time by distance, so the live marker moves naturally. */
+function cumulativeRouteProgress(coordinates) {
+  if (coordinates.length < 2) return coordinates.map(() => 0);
+  const cumulative = [0];
+  for (let i = 1; i < coordinates.length; i++) {
+    const [previousLng, previousLat] = coordinates[i - 1];
+    const [lng, lat] = coordinates[i];
+    cumulative.push(cumulative[i - 1] + haversineKm(
+      { lat: previousLat, lng: previousLng },
+      { lat, lng },
+    ));
+  }
+  const total = cumulative.at(-1) || 1;
+  return cumulative.map((distance) => distance / total);
+}
+
 export default function CesiumHudGlobe({ items = [], onSelect, className, height = 300 }) {
   const containerRef = useRef(null);
   const viewerRef = useRef(null);
   const cesiumRef = useRef(null);
   const handlerRef = useRef(null);
   const spinRef = useRef({ enabled: false });
+  const dprCleanupRef = useRef(null);
+  const routesRef = useRef(null);   // routes live here, so clearing them
+                                    // never touches the Brazil outline
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const [tooltip, setTooltip] = useState(null);
+  const [roadRoutes, setRoadRoutes] = useState({});
 
   // Initialize the viewer once.
   useEffect(() => {
@@ -80,13 +120,47 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
           sceneModePicker: false, navigationHelpButton: false, animation: false,
           timeline: false, fullscreenButton: false, infoBox: false,
           selectionIndicator: false, shouldAnimate: true, scene3DOnly: true,
-          contextOptions: { webgl: { alpha: true, antialias: true } },
+          contextOptions: { webgl: { alpha: true, antialias: true, powerPreference: 'high-performance' } },
+          msaaSamples: 4,
         });
         viewerRef.current = viewer;
 
         const scene = viewer.scene;
+
+        // Routes get their own data source. The realtime poll wipes and
+        // rebuilds them every tick, and a blanket viewer.entities.removeAll()
+        // would take the Brazil outline with it.
+        const routes = new Cesium.CustomDataSource('routes');
+        viewer.dataSources.add(routes);
+        routesRef.current = routes;
+
+        // ── Retina / 4K rendering ──────────────────────────────────────────
+        // Cesium defaults to the "browser recommended" resolution, which caps
+        // the drawing buffer at 1 CSS pixel per device pixel on many setups —
+        // that is what makes the globe read soft on a 4K/Retina panel. Opting
+        // out and driving resolutionScale from devicePixelRatio renders at the
+        // panel's true pixel density. Capped at 2× because 3× on a 4K display
+        // quadruples fragment work for no visible gain.
+        scene.useBrowserRecommendedResolution = false;
+        const applyResolution = () => {
+          viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 2);
+        };
+        applyResolution();
+        // devicePixelRatio changes when the window moves between displays or
+        // the user zooms; matchMedia is the only event that reports it.
+        let dprQuery = null;
+        const watchDpr = () => {
+          dprQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+          dprQuery.addEventListener('change', onDprChange, { once: true });
+        };
+        const onDprChange = () => { applyResolution(); watchDpr(); };
+        watchDpr();
+        dprCleanupRef.current = () => dprQuery?.removeEventListener('change', onDprChange);
+
+        if (scene.postProcessStages?.fxaa) scene.postProcessStages.fxaa.enabled = true;
+
         scene.backgroundColor = Cesium.Color.TRANSPARENT;
-        scene.globe.baseColor = Cesium.Color.fromCssColorString('#0e2138'); // visible dark-blue globe
+        scene.globe.baseColor = Cesium.Color.fromCssColorString('#0B1A15'); // deep green globe
         scene.globe.showGroundAtmosphere = true;
         scene.globe.enableLighting = false;
         scene.skyBox && (scene.skyBox.show = false);
@@ -95,6 +169,48 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
         scene.fog.enabled = false;
         if (scene.skyAtmosphere) { scene.skyAtmosphere.show = true; scene.skyAtmosphere.brightnessShift = 0.15; }
         viewer.cesiumWidget.creditContainer.style.display = 'none';
+
+        // ── Brazil outline ────────────────────────────────────────────────
+        // A dashed border traced on the real country, drawn once and kept out
+        // of viewer.entities so the per-poll `entities.removeAll()` that
+        // rebuilds routes never wipes it. Ground-clamped so it follows the
+        // terrain instead of floating over it.
+        // GroundPolylinePrimitive needs specific WebGL support; on hardware
+        // that lacks it the constructor throws, which would take the whole
+        // viewer init down into the SVG fallback. Guard, and degrade to a
+        // plain (unclamped) outline instead of losing the globe.
+        if (Cesium.GroundPolylinePrimitive.isSupported(viewer.scene)) {
+        viewer.scene.primitives.add(
+          new Cesium.GroundPolylinePrimitive({
+            geometryInstances: new Cesium.GeometryInstance({
+              geometry: new Cesium.GroundPolylineGeometry({
+                positions: Cesium.Cartesian3.fromDegreesArray(BRAZIL_OUTLINE_FLAT),
+                width: 1.6,
+              }),
+            }),
+            appearance: new Cesium.PolylineMaterialAppearance({
+              material: Cesium.Material.fromType('PolylineDash', {
+                color: Cesium.Color.fromCssColorString('#F39444').withAlpha(0.55),
+                gapColor: Cesium.Color.TRANSPARENT,
+                dashLength: 14,
+              }),
+            }),
+          }),
+        );
+        } else {
+          viewer.entities.add({
+            id: '__brazil-outline',
+            polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArray(BRAZIL_OUTLINE_FLAT),
+              width: 1.6,
+              material: new Cesium.PolylineDashMaterialProperty({
+                color: Cesium.Color.fromCssColorString('#F39444').withAlpha(0.55),
+                gapColor: Cesium.Color.TRANSPARENT,
+                dashLength: 14,
+              }),
+            },
+          });
+        }
 
         // Basemap so the actual geography (Brazil, coastlines, borders) shows on
         // the globe. With an Ion token → Cesium World Imagery (satellite); else →
@@ -180,11 +296,45 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
     return () => {
       cancelled = true;
       cleanup();
+      try { dprCleanupRef.current?.(); } catch { /* noop */ }
       try { handlerRef.current?.destroy?.(); } catch { /* noop */ }
       try { viewerRef.current?.destroy?.(); } catch { /* noop */ }
       viewerRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Road operations use the same backend polyline as the bus map. The cache
+  // prevents the dashboard's realtime refresh from repeating identical calls.
+  useEffect(() => {
+    let cancelled = false;
+    const roadItems = items.filter((item) => (
+      isRoadModal(item.modal)
+      && Number.isFinite(item.origin?.lat)
+      && Number.isFinite(item.destination?.lat)
+    ));
+
+    Promise.all(roadItems.map(async (item) => {
+      const key = routeKey(item);
+      if (!roadRouteCache.has(key)) {
+        roadRouteCache.set(key, fetchDrivingRoutes(
+          { lat: item.origin.lat, lng: item.origin.lng },
+          { lat: item.destination.lat, lng: item.destination.lng },
+          { alternatives: false },
+        ).then((result) => {
+          const encoded = result.success ? result.routes?.[0]?.polyline : '';
+          const coordinates = decodeGooglePolyline(encoded);
+          return coordinates.length > 1 ? coordinates : null;
+        }).catch(() => null));
+      }
+      const coordinates = await roadRouteCache.get(key);
+      if (!coordinates) roadRouteCache.delete(key);
+      return [key, coordinates];
+    })).then((entries) => {
+      if (!cancelled) setRoadRoutes(Object.fromEntries(entries));
+    });
+
+    return () => { cancelled = true; };
+  }, [items]);
 
   // (Re)build entities whenever the active items change (realtime poll).
   useEffect(() => {
@@ -192,8 +342,10 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
     const viewer = viewerRef.current;
     if (!Cesium || !viewer || !ready) return;
 
-    viewer.entities.suspendEvents();
-    viewer.entities.removeAll();
+    const routes = routesRef.current;
+    if (!routes) return;
+    routes.entities.suspendEvents();
+    routes.entities.removeAll();
 
     for (const it of items) {
       if (!Number.isFinite(it.origin?.lat) || !Number.isFinite(it.destination?.lat)) continue;
@@ -202,26 +354,100 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
       );
       const distKm = haversineKm(it.origin, it.destination);
       const maxH = 120000 + distKm * 220; // parabola apex height
-      const samples = arcSamples(Cesium, it.origin, it.destination, 64, maxH);
+      const coordinates = roadRoutes[routeKey(it)];
+      const followsRoad = isRoadModal(it.modal) && coordinates?.length > 1;
+      const samples = followsRoad
+        ? roadSamples(Cesium, coordinates)
+        : arcSamples(Cesium, it.origin, it.destination, 64, maxH);
+      const routeProgress = followsRoad
+        ? cumulativeRouteProgress(coordinates)
+        : samples.map((_, index) => index / (samples.length - 1));
 
-      // Glowing route arc.
-      viewer.entities.add({
-        __item: it,
-        polyline: {
-          positions: samples,
-          width: 2.5,
-          material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.25, color: color.withAlpha(0.85) }),
-          arcType: Cesium.ArcType.NONE,
-        },
-      });
+      // ── Route rendering, by modal ─────────────────────────────────────
+      // The two modals must not look alike, because they are not alike:
+      //
+      //   road  follows the real driving polyline from the routing backend
+      //         (same source as the 2D bus map) and is clamped to the ground,
+      //         so it reads as a highway drawn on the country.
+      //   air   is an elevated great-circle arc that leaves the surface and
+      //         crosses the map, with a glow that sells the altitude.
+      //
+      // Falling back to the arc when the road polyline is missing is
+      // deliberate: a straight line on the ground would imply a road that
+      // does not exist.
+      if (followsRoad) {
+        // Ground-clamped highway. A dashed core over a faint solid casing
+        // reads as a route line rather than a border.
+        routes.entities.add({
+          __item: it,
+          polyline: {
+            positions: samples,
+            width: 5,
+            clampToGround: true,
+            material: color.withAlpha(0.18),
+          },
+        });
+        routes.entities.add({
+          __item: it,
+          polyline: {
+            positions: samples,
+            width: 2,
+            clampToGround: true,
+            material: new Cesium.PolylineDashMaterialProperty({
+              color: color.withAlpha(0.95),
+              gapColor: Cesium.Color.TRANSPARENT,
+              dashLength: 18,
+            }),
+          },
+        });
+      } else {
+        // Airborne arc: a glow pass for the halo, then a crisp core on top.
+        routes.entities.add({
+          __item: it,
+          polyline: {
+            positions: samples,
+            width: 7,
+            material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.45, color: color.withAlpha(0.35) }),
+            arcType: Cesium.ArcType.NONE,
+          },
+        });
+        routes.entities.add({
+          __item: it,
+          polyline: {
+            positions: samples,
+            width: 1.6,
+            material: color.withAlpha(0.95),
+            arcType: Cesium.ArcType.NONE,
+          },
+        });
+        // Dropline at the apex — gives the arc a readable height off the map.
+        const apex = samples[Math.floor(samples.length / 2)];
+        const apexCarto = Cesium.Cartographic.fromCartesian(apex);
+        routes.entities.add({
+          __item: it,
+          polyline: {
+            positions: [
+              apex,
+              Cesium.Cartesian3.fromRadians(apexCarto.longitude, apexCarto.latitude, 0),
+            ],
+            width: 1,
+            material: new Cesium.PolylineDashMaterialProperty({
+              color: color.withAlpha(0.28),
+              gapColor: Cesium.Color.TRANSPARENT,
+              dashLength: 8,
+            }),
+            arcType: Cesium.ArcType.NONE,
+          },
+        });
+      }
 
       // Origin (filled) + destination (ring) nodes.
-      viewer.entities.add({
+      routes.entities.add({
         __item: it,
         position: Cesium.Cartesian3.fromDegrees(it.origin.lng, it.origin.lat),
         point: { pixelSize: 8, color: color.withAlpha(0.95), outlineColor: Cesium.Color.WHITE.withAlpha(0.5), outlineWidth: 1 },
       });
-      viewer.entities.add({
+      routes.entities.add({
         __item: it,
         position: Cesium.Cartesian3.fromDegrees(it.destination.lng, it.destination.lat),
         point: { pixelSize: 9, color: Cesium.Color.TRANSPARENT, outlineColor: color, outlineWidth: 2 },
@@ -235,18 +461,18 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
         const start = Cesium.JulianDate.fromDate(new Date(dep));
         const total = arr - dep;
         samples.forEach((p, i) => {
-          const t = i / (samples.length - 1);
+          const t = routeProgress[i];
           pos.addSample(Cesium.JulianDate.addSeconds(start, (total * t) / 1000, new Cesium.JulianDate()), p);
         });
         pos.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD;
         pos.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD;
-        viewer.entities.add({
+        routes.entities.add({
           __item: it,
           position: pos,
           point: { pixelSize: 11, color, outlineColor: Cesium.Color.WHITE.withAlpha(0.85), outlineWidth: 1.5 },
           label: {
             text: `${it.projectName}`,
-            font: '600 11px Outfit, sans-serif',
+            font: "600 11px 'Helvetica Neue LT', 'Helvetica Neue', sans-serif",
             fillColor: Cesium.Color.WHITE.withAlpha(0.85),
             showBackground: true,
             backgroundColor: Cesium.Color.fromCssColorString('#0b0f1a').withAlpha(0.7),
@@ -261,7 +487,7 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
       // Hospedagem — hotel marker at the destination.
       if (it.lodging?.hasLodging) {
         const active = it.lodging.active;
-        viewer.entities.add({
+        routes.entities.add({
           __item: it,
           position: Cesium.Cartesian3.fromDegrees(it.destination.lng, it.destination.lat, 20000),
           label: {
@@ -280,37 +506,37 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
       }
     }
 
-    viewer.entities.resumeEvents();
+    routes.entities.resumeEvents();
     viewer.scene.requestRender();
-  }, [items, ready]);
+  }, [items, ready, roadRoutes]);
 
   if (failed) {
     return <HudGlobe items={items} onSelect={onSelect} className={className} />;
   }
 
   return (
-    <div className={clsx('relative overflow-hidden rounded-2xl', className)} style={{ height }}>
-      <div ref={containerRef} className="absolute inset-0" style={{ background: 'radial-gradient(120% 120% at 50% 30%, #0d1526 0%, #070a12 70%)' }} />
+    <div className={clsx('relative overflow-hidden', className)} style={{ height }}>
+      <div ref={containerRef} className="absolute inset-0" style={{ background: 'radial-gradient(120% 120% at 50% 35%, #0E1B16 0%, #050C0A 72%)' }} />
 
       {/* HUD scan-line overlay */}
       <div className="absolute inset-0 pointer-events-none" style={{
         opacity: 0.04,
-        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(34,242,239,0.14) 2px, rgba(34,242,239,0.14) 3px)',
+        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(248,248,248,0.10) 2px, rgba(248,248,248,0.10) 3px)',
       }} />
 
       {/* Live corner tag */}
-      <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(11,15,26,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="absolute top-5 right-5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(14,27,22,0.72)', border: '1px solid rgba(248,248,248,0.14)' }}>
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-cyan/60 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-cyan" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent/60 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-accent" />
         </span>
-        <span className="label-micro text-white/60">3D · tempo real</span>
+        <span className="label-micro">3D · tempo real</span>
       </div>
 
       {!ready && (
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-accent-cyan/30 border-t-accent-cyan rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-accent/25 border-t-accent rounded-full animate-spin" />
             <span className="text-xs text-white/50">Carregando globo…</span>
           </div>
         </div>
@@ -321,7 +547,7 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
         <div className="absolute z-30 pointer-events-none px-3 py-2 rounded-lg" style={{
           left: Math.min(tooltip.x + 12, (containerRef.current?.clientWidth || 300) - 190),
           top: Math.max(8, tooltip.y - 10),
-          background: 'rgba(11,15,26,0.92)', border: `1px solid ${STATUS_COLOR[tooltip.item.status] || '#49DC7A'}55`,
+          background: 'rgba(10,21,17,0.94)', border: `1px solid ${STATUS_COLOR[tooltip.item.status] || '#49DC7A'}55`,
           maxWidth: 200,
         }}>
           <div className="text-[11px] font-semibold text-white/90 truncate">{tooltip.item.projectName}</div>

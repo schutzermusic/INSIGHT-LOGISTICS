@@ -139,7 +139,7 @@ export default function App() {
 
       {/* Main content area */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 pt-20">
-        <div className="p-8 max-w-[1440px] mx-auto">
+        <div className="w-full max-w-[1720px] mx-auto px-5 py-7 sm:px-6 lg:px-7 2xl:px-8 2xl:py-8">
           <ErrorBoundary>
             <Suspense fallback={<RouteFallback />}>
               <AnimatePresence mode="wait" initial={false}>

@@ -6,8 +6,7 @@
 /**
  * Calcula os valores de hora para um colaborador
  */
-export const ENCARGOS_TRABALHISTAS_PERCENTUAL = 70;
-const ENCARGOS_TRABALHISTAS_MULTIPLICADOR = 1 + ENCARGOS_TRABALHISTAS_PERCENTUAL / 100;
+export const ENCARGOS_TRABALHISTAS_PERCENTUAL = 0;
 
 export function calcHourlyRates(collaborator) {
     const { salarioBase, cargaHoraria, valorHoraTecnica, multHE50, multHE100, multHE150, percNoturno } = collaborator;
@@ -18,7 +17,7 @@ export function calcHourlyRates(collaborator) {
     const horaExtra150 = horaNormal * (multHE150 || 2.5);
     const horaNoturna = horaNormal * (1 + (percNoturno || 20) / 100);
     const horaTecnicaBase = valorHoraTecnica || horaNormal;
-    const horaTecnica = horaTecnicaBase * ENCARGOS_TRABALHISTAS_MULTIPLICADOR;
+    const horaTecnica = horaTecnicaBase;
 
     return {
         horaNormal: round(horaNormal),
@@ -34,11 +33,6 @@ export function calcHourlyRates(collaborator) {
 
 /** Resolve a hora técnica carregada em centavos para os motores de mobilização. */
 export function calcTechnicalHourlyRateC(collaborator) {
-    const fullyLoadedC =
-        collaborator.fullyLoadedHourlyRateC ??
-        collaborator.fully_loaded_hourly_rate_c;
-    if (Number.isInteger(fullyLoadedC) && fullyLoadedC > 0) return fullyLoadedC;
-
     const explicitBaseC =
         collaborator.hourlyRateC ??
         collaborator.valorHoraC ??
@@ -53,7 +47,7 @@ export function calcTechnicalHourlyRateC(collaborator) {
             : Number(explicitBaseC) > 0
                 ? Number(explicitBaseC) / 100
                 : 0;
-    return Math.round(baseReais * ENCARGOS_TRABALHISTAS_MULTIPLICADOR * 100);
+    return Math.round(baseReais * 100);
 }
 
 /**

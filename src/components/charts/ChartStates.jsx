@@ -135,7 +135,7 @@ export function ChartEmpty({
     : TrendingUp;
 
   const iconColor = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,30,24,0.12)';
-  const textColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,30,24,0.3)';
+  const textColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,30,24,0.62)';
 
   return (
     <div
@@ -185,7 +185,7 @@ export function ChartError({
 }) {
   const { isDark } = useTheme();
   const iconColor = isDark ? 'rgba(240,98,127,0.5)' : 'rgba(220,60,90,0.5)';
-  const textColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(15,30,24,0.35)';
+  const textColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(15,30,24,0.62)';
 
   return (
     <div

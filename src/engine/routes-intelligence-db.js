@@ -94,6 +94,7 @@ const CITIES_EXTENDED = [
     { nome: 'Santarém - PA', uf: 'PA', aeroportos: ['STM'], hub: false, lat: -2.42, lng: -54.71 },
     { nome: 'Altamira - PA', uf: 'PA', aeroportos: ['ATM'], hub: false, lat: -3.21, lng: -52.21 },
     { nome: 'Parauapebas - PA', uf: 'PA', aeroportos: ['CKS'], hub: false, lat: -6.07, lng: -49.90 },
+    { nome: 'Tucuruí - PA', uf: 'PA', aeroportos: [], hub: false, lat: -3.766817, lng: -49.6703074 },
 
     // Rio Grande do Sul Interior
     { nome: 'Caxias do Sul - RS', uf: 'RS', aeroportos: ['CXJ'], hub: false, lat: -29.17, lng: -51.18 },

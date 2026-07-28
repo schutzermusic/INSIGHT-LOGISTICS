@@ -12,7 +12,7 @@ import { CHART_SEQUENCE } from './chartTheme';
  * • No heavy axis lines or default chart borders
  * • Subtle dashed grid (3,3 dash, very low opacity)
  * • Clean readable labels with tabular-nums
- * • Refined Outfit / system-ui typography at 11px
+ * • Refined Helvetica Neue / system-ui typography at 11px
  * • Minimal legends — small circle icons, restrained spacing
  * • Restrained visual density, consistent padding
  * • No noisy decorations
@@ -246,10 +246,10 @@ function formatAutoValue(v) {
 
 /* ═══════ Theme-aware base tokens ═══════ */
 
-const FONT_FAMILY_STACK = "'Outfit', system-ui, -apple-system, sans-serif";
+const FONT_FAMILY_STACK = "'Helvetica Neue LT', 'Helvetica Neue', system-ui, -apple-system, sans-serif";
 
 export function getBaseTextColor(isDark) {
-  return isDark ? 'rgba(245,247,250,0.48)' : 'rgba(15,30,24,0.48)';
+  return isDark ? 'rgba(245,247,250,0.48)' : 'rgba(15,30,24,0.72)';
 }
 
 export function getSplitLineColor(isDark) {

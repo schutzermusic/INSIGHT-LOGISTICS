@@ -12,12 +12,13 @@
  * drill-down drawers (§11).
  */
 
-import { useMemo, useState, lazy, Suspense } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity, Sparkles, Crosshair, Radio, Route as RouteIcon, DollarSign, Clock,
-  TrendingDown, Users, AlertTriangle, ShieldCheck, Globe, Layers, Target, MapPin,
-  Gauge, Zap, Moon, Filter, RotateCcw, ChevronRight, CheckCircle, Briefcase, Plane, Bus, Car,
+  Sparkles, Crosshair, Radio, Route as RouteIcon, Clock,
+  TrendingDown, Users, AlertTriangle, ShieldCheck, Layers, Target, MapPin,
+  Gauge, Moon, Filter, RotateCcw, ChevronRight, CheckCircle, Briefcase, Plane, Bus, Car,
+  Hourglass, Package, TrendingUp, Timer,
 } from 'lucide-react';
 import { useDashboard } from '../hooks/useDashboard';
 import { formatBRL } from '../domain/money.js';
@@ -27,13 +28,11 @@ import { AnimatedNumber } from '../components/ui/AnimatedNumber';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 import { MagneticWrap } from '../components/ui/MagneticWrap';
 import { Modal } from '../components/ui/Modal';
-import { PremiumAreaChart, PremiumDonutChart } from '../components/charts';
-import HudGlobe, { STATUS_COLOR, STATUS_LABEL } from '../components/map/HudGlobe';
-import { CHART_PALETTE, CHART_SEQUENCE } from '../lib/chartTheme';
+import { PremiumAreaChart, PremiumDonutChart, SCurveChart, KpiSparkline } from '../components/charts';
+import { STATUS_COLOR, STATUS_LABEL } from '../components/map/HudGlobe';
+import GlobeStage from '../components/dashboard/GlobeStage';
+import { CHART_PALETTE, CHART_SEQUENCE, accentByRank } from '../lib/chartTheme';
 
-// Heavy 3D globe is lazy-loaded so it never bloats other routes; it falls back
-// to the SVG HUD on WebGL failure and while the chunk streams in.
-const CesiumHudGlobe = lazy(() => import('../components/map/CesiumHudGlobe'));
 
 const fmtDur = (min) => {
   if (!min) return '0h';
@@ -63,7 +62,14 @@ export default function Dashboard() {
   const hasData = ov && ov.totalMobilizationsInRange > 0;
 
   const trendData = useMemo(
-    () => (data?.trend || []).map((d) => ({ name: d.date.slice(5), custo: d.amountMinor, mobilizacoes: d.count })),
+    () => (data?.trend || []).map((d) => ({
+      name: d.date.slice(5),
+      custo: d.amountMinor,
+      maoDeObra: d.laborAmountMinor,
+      mobilizacoes: d.count,
+      acumulado: d.cumulativeAmountMinor,
+      ritmo: d.baselineAmountMinor,
+    })),
     [data?.trend]
   );
   const modalDonut = useMemo(
@@ -72,100 +78,102 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       {/* ═══ HERO COMMAND CENTER ═══ */}
-      <section className="premium-panel-hero">
-        <div className="absolute -top-40 -right-24 w-[420px] h-[420px] bg-mint/[0.06] rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -left-16 w-[320px] h-[320px] bg-accent-cyan/[0.04] rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative px-8 py-8">
-          <div className="flex items-start justify-between mb-6 gap-6 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-mint/20 to-accent-cyan/10 flex items-center justify-center border border-mint/15 shadow-[0_8px_24px_-8px_rgba(73,220,122,0.4)]">
-                <Crosshair className="w-[22px] h-[22px] text-mint" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="label-micro text-mint/80">Control Tower</span>
-                  <span className="w-1 h-1 rounded-full bg-mint/50" />
-                  <span className="label-micro text-white/30">Mobilizações confirmadas</span>
-                </div>
-                <h1 className="display-md"><span className="text-gradient-premium">Insight</span><span className="text-white/90 ml-2">Logistics</span></h1>
-                <p className="body mt-2">Centro de comando em tempo real · somente mobilizações confirmadas alimentam os indicadores</p>
-              </div>
+      <section>
+        <div className="flex items-start justify-between mb-7 gap-6 flex-wrap">
+          <div className="flex items-center gap-4">
+            <div className="relative w-10 h-10 rounded-xl bg-accent/[0.12] flex items-center justify-center border border-accent/25">
+              <Crosshair className="w-[18px] h-[18px] text-accent" strokeWidth={1.5} />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="surface-elevated flex items-center gap-3 px-4 py-2 rounded-full">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-mint/60 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-mint" />
-                </span>
-                <span className="label-micro text-white/50">Ao vivo</span>
-                {lastSync && <span className="label-micro text-white/25 tabular-data">{lastSync.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
+            <div>
+              <div className="mb-2">
+                <span className="label-micro">Mobilizações confirmadas</span>
               </div>
-              <MagneticWrap strength={7}>
-                <button onClick={() => navigate('/mobilizacao')} className="cta-white-with-accent">
-                  <span className="pl-2">Nova Análise</span>
-                  <span className="accent-chip"><Sparkles className="w-4 h-4" strokeWidth={2.5} /></span>
+              <h1 className="display-md">Centro de Comando</h1>
+              <p className="body mt-1.5">
+                {ov?.activeMobilizations ?? 0} operações ativas · {ov?.activeEmployeesInTransit ?? 0} colaboradores em trânsito
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="glass-panel flex items-center gap-3 px-4 py-2 !rounded-full">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent/60 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-accent" />
+              </span>
+              <span className="label-micro">Ao vivo</span>
+              {lastSync && <span className="label-micro tabular-data">{lastSync.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
+            </div>
+            <MagneticWrap strength={7}>
+              <button onClick={() => navigate('/mobilizacao')} className="cta-white-with-accent">
+                <span className="pl-2">Nova Análise</span>
+                <span className="accent-chip"><Sparkles className="w-4 h-4" strokeWidth={2.5} /></span>
+              </button>
+            </MagneticWrap>
+          </div>
+        </div>
+
+        {/* ── Tier 1: the number this product exists to control ──
+            Left: total spend, large. Right: the composition split, because
+            "custo de mobilização" is not one number — the useful question is
+            how much of it is people-hours vs. moving them around. */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
+          <div className="lg:col-span-5 glass-panel p-6 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="label-micro">Custo no período</span>
+                <button onClick={() => setDrawer({ type: 'categories' })}
+                  className="label-micro text-[color:var(--ink-3)] hover:text-accent transition-colors flex items-center gap-1">
+                  Composição<ChevronRight className="w-3 h-3" />
                 </button>
-              </MagneticWrap>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* KPI strip (left) */}
-            <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-4 gap-0 surface-recessed rounded-2xl overflow-hidden self-start">
-              <Kpi label="Ativas" value={ov?.activeMobilizations ?? 0} detail={`${ov?.multimodalCount ?? 0} multimodais`} icon={RouteIcon} color="mint" onClick={() => setDrawer({ type: 'active' })} />
-              <Kpi label="Custo no período" value={ov?.totalSpendMinor ?? 0} money detail={`${ov?.totalMobilizationsInRange ?? 0} confirmadas`} icon={DollarSign} color="cyan" border onClick={() => setDrawer({ type: 'categories' })} />
-              <Kpi label="Custo médio" value={ov?.averageSpendPerMobilizationMinor ?? 0} money detail={`mediana ${formatBRL(ov?.medianSpendPerMobilizationMinor ?? 0)}`} icon={Target} color="blue" border />
-              <Kpi label="Economia" value={ov?.estimatedSavingsMinor ?? 0} money detail="vs. alternativas" icon={TrendingDown} color="orange" border highlight={(ov?.estimatedSavingsMinor ?? 0) > 0} />
-              <Kpi label="Duração média" value={ov?.averageDurationMinutes ?? 0} duration detail="porta a porta" icon={Clock} color="blue" />
-              <Kpi label="No prazo" value={ov?.onTimeRate == null ? null : Math.round(ov.onTimeRate * 100)} suffix="%" detail="chegadas" icon={Gauge} color="mint" border />
-              <Kpi label="Em trânsito" value={ov?.activeEmployeesInTransit ?? 0} detail="colaboradores" icon={Users} color="cyan" border />
-              <Kpi label="Alertas" value={ov?.alertCount ?? 0} detail="operacionais" icon={AlertTriangle} color="orange" border highlight={(ov?.alertCount ?? 0) > 0} onClick={() => setDrawer({ type: 'alerts' })} />
-            </div>
-
-            {/* HUD Globe (right) */}
-            <div className="lg:col-span-5 premium-panel">
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/20 to-transparent" />
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-accent-cyan/[0.08] flex items-center justify-center"><Globe className="w-[14px] h-[14px] text-accent-cyan/70" /></div>
-                    <div>
-                      <h4 className="heading">HUD · Mobilizações ao vivo</h4>
-                      <p className="label-micro mt-0.5">{data?.map?.length ?? 0} operações ativas</p>
-                    </div>
-                  </div>
-                  <Badge variant="info" dot>Tempo real</Badge>
-                </div>
-                {/* The globe always renders (the Earth is the ambient HUD) — the
-                    empty-state message is overlaid when no confirmed operation is active. */}
-                <div className="relative h-[300px] rounded-2xl overflow-hidden">
-                  <Suspense fallback={<HudGlobe items={data?.map || []} onSelect={(item) => setDrawer({ type: 'mobilization', payload: item })} className="w-full h-full" />}>
-                    <CesiumHudGlobe items={data?.map || []} height={300} onSelect={(item) => setDrawer({ type: 'mobilization', payload: item })} className="w-full h-full" />
-                  </Suspense>
-                  {(data?.map?.length ?? 0) === 0 && (
-                    <div className="absolute inset-x-0 bottom-0 z-20 p-3 text-center pointer-events-none">
-                      <p className="body text-[12px] text-white/45 bg-[rgba(11,15,26,0.6)] rounded-lg px-3 py-2 inline-block">Nenhuma mobilização confirmada ativa — confirme uma mobilização para vê-la orbitando o globo.</p>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 pt-3 border-t border-white/[0.04] flex flex-wrap items-center gap-3">
-                  {['on_track', 'in_transit', 'warning', 'delayed'].map((s) => (
-                    <span key={s} className="flex items-center gap-1.5 label-micro text-white/35">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLOR[s] }} />{STATUS_LABEL[s]}
-                    </span>
-                  ))}
-                </div>
               </div>
+              <AnimatedNumber as="div" className="display-xl mt-3" value={ov?.totalSpendMinor ?? 0} format={(v) => formatBRL(Math.round(v))} />
+              <p className="body text-[12px] mt-2">
+                {ov?.totalMobilizationsInRange ?? 0} mobilizações confirmadas · média {formatBRL(ov?.averageSpendPerMobilizationMinor ?? 0)}
+              </p>
             </div>
+            {trendData.length > 1 && (
+              <div className="mt-5 -mx-1">
+                <KpiSparkline data={trendData.map((d) => d.custo)} width="100%" height={44} color="var(--chart-1)" />
+              </div>
+            )}
           </div>
+
+          <div className="lg:col-span-7 grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <CostCard label="Mão de obra" hint="horas + HE + noturno" icon={Hourglass}
+              value={ov?.laborSpendMinor ?? 0} share={ov?.laborSharePercent}
+              onClick={() => setDrawer({ type: 'labor' })} />
+            <CostCard label="Logística" hint="passagens, hospedagem, transporte" icon={Package}
+              value={ov?.logisticsSpendMinor ?? 0}
+              share={ov?.laborSharePercent == null ? null : Math.round((100 - ov.laborSharePercent) * 10) / 10} />
+            <CostCard label="Horas-equipe" icon={Timer} hint="duração × headcount"
+              rawValue={`${(ov?.teamHours ?? 0).toLocaleString('pt-BR')}h`}
+              detail={`equipe média ${ov?.averageTeamSize ?? 0}`} />
+            <CostCard label="Custo / hora-equipe" icon={TrendingUp} hint="comparável entre rotas"
+              value={ov?.costPerTeamHourMinor ?? 0} />
+          </div>
+        </div>
+
+        {/* ── Tier 2: operational chips ── */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-px rounded-xl border border-[color:var(--ink-line)] overflow-hidden bg-[color:var(--ink-line)]">
+          <Kpi label="Ativas" value={ov?.activeMobilizations ?? 0} detail={`${ov?.multimodalCount ?? 0} multimodais`} icon={RouteIcon} onClick={() => setDrawer({ type: 'active' })} />
+          <Kpi label="Economia" value={ov?.estimatedSavingsMinor ?? 0} money detail="vs. cenário não otimizado" icon={TrendingDown} highlight={(ov?.estimatedSavingsMinor ?? 0) > 0} />
+          <Kpi label="Duração média" value={ov?.averageDurationMinutes ?? 0} duration detail="porta a porta" icon={Clock} />
+          <Kpi label="No prazo" value={ov?.onTimeRate == null ? null : Math.round(ov.onTimeRate * 100)} suffix="%" detail="chegadas" icon={Gauge} />
+          <Kpi label="Em trânsito" value={ov?.activeEmployeesInTransit ?? 0} detail="colaboradores" icon={Users} />
+          <Kpi label="Alertas" value={ov?.alertCount ?? 0} detail="operacionais" icon={AlertTriangle} highlight={(ov?.alertCount ?? 0) > 0} onClick={() => setDrawer({ type: 'alerts' })} />
         </div>
       </section>
 
+      {/* ═══ LIVE OPERATIONS CANVAS ═══ */}
+      <GlobeStage
+        items={data?.map || []}
+        onSelect={(item) => setDrawer({ type: 'mobilization', payload: item })}
+      />
+
       {/* ═══ GLOBAL FILTERS (§12) ═══ */}
-      <section className="premium-panel">
+      <section className="glass-panel">
         <div className="px-5 py-4 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 text-white/40"><Filter className="w-4 h-4" /><span className="label-micro">Filtros</span></div>
           <input type="date" className="glass-input !py-1.5 !w-auto text-[13px]" value={filters.dateFrom} onChange={(e) => setFilter('dateFrom', e.target.value)} aria-label="Data inicial" />
@@ -180,7 +188,7 @@ export default function Dashboard() {
           <FilterSelect value={filters.source} onChange={(v) => setFilter('source', v)} placeholder="Origem"
             options={[{ value: 'automatic_mobilization', label: 'Automática' }, { value: 'manual_simulation', label: 'Manual' }]} />
           {activeFilterCount > 0 && (
-            <button onClick={resetFilters} className="flex items-center gap-1.5 label-micro text-white/40 hover:text-mint transition-colors ml-auto">
+            <button onClick={resetFilters} className="flex items-center gap-1.5 label-micro text-white/40 hover:text-accent transition-colors ml-auto">
               <RotateCcw className="w-3.5 h-3.5" /> Limpar ({activeFilterCount})
             </button>
           )}
@@ -189,13 +197,13 @@ export default function Dashboard() {
 
       {/* ═══ GOVERNANCE / EMPTY STATES ═══ */}
       {error && (
-        <div className="surface-card rounded-2xl border border-danger-border/20 p-6 flex items-start gap-3">
+        <div className="glass-panel !border-danger/25 p-6 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-danger-text flex-shrink-0" />
           <div><h3 className="heading text-white mb-1">Falha ao carregar o dashboard</h3><p className="body text-[13px]">{error}</p></div>
         </div>
       )}
       {persistenceOff && (
-        <div className="surface-card rounded-2xl border border-warning-border/20 p-5 flex items-start gap-3">
+        <div className="glass-panel !border-warning/25 p-5 flex items-start gap-3">
           <ShieldCheck className="w-5 h-5 text-warning-text flex-shrink-0" />
           <p className="body text-[13px]">Persistência de confirmações desativada — configure <span className="tabular-data text-white/70">SUPABASE_SERVICE_ROLE_KEY</span> no servidor para que mobilizações confirmadas alimentem o dashboard.</p>
         </div>
@@ -210,41 +218,59 @@ export default function Dashboard() {
       {hasData && (
         <>
           {/* ═══ FINANCIAL INTELLIGENCE ═══ */}
+          {/* Curva S — how fast the period is burning, against a constant-rate
+              reference. Full width because the shape only reads at width. */}
+          <section>
+            <Panel title="Curva S — acumulado do período" subtitle="Realizado vs. ritmo constante" icon={TrendingUp}
+              action={
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1.5 label-micro"><span className="w-3 h-[2px] rounded-full bg-accent" />Realizado</span>
+                  <span className="flex items-center gap-1.5 label-micro"><span className="w-3 h-[2px] rounded-full" style={{ background: CHART_PALETTE.neutral }} />Ritmo constante</span>
+                </div>
+              }>
+              <SCurveChart data={trendData} xKey="name" valueKey="acumulado" baselineKey="ritmo"
+                yFormatter={(v) => `R$${(v / 100000).toFixed(0)}k`} tooltipValueFormatter={(v) => formatBRL(v)} height={300} />
+            </Panel>
+          </section>
+
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <Panel className="lg:col-span-7" accent="mint" title="Evolução de custos" subtitle="Gasto confirmado por dia" icon={TrendingDown}
+            <Panel className="lg:col-span-7" title="Evolução de custos" subtitle="Diário, separando mão de obra de logística" icon={TrendingDown}
               action={<Badge variant="success" dot>Confirmadas</Badge>}>
               {trendData.length > 1 ? (
                 <PremiumAreaChart data={trendData} xKey="name"
-                  series={[{ key: 'custo', name: 'Custo', color: CHART_PALETTE.mint }]}
-                  yFormatter={(v) => `R$${(v / 100000).toFixed(0)}k`} tooltipValueFormatter={(v) => formatBRL(v)} showLegend={false} height={300} />
+                  series={[
+                    { key: 'custo', name: 'Custo total', color: CHART_PALETTE.primary },
+                    { key: 'maoDeObra', name: 'Mão de obra', color: CHART_PALETTE.neutral },
+                  ]}
+                  yFormatter={(v) => `R$${(v / 100000).toFixed(0)}k`} tooltipValueFormatter={(v) => formatBRL(v)} showLegend height={300} />
               ) : <NoData height={300} />}
             </Panel>
 
-            <Panel className="lg:col-span-5" accent="orange" title="Gasto por categoria" subtitle="Composição normalizada" icon={Target}
-              action={<button className="label-micro text-white/30 hover:text-mint flex items-center gap-1" onClick={() => setDrawer({ type: 'categories' })}>Detalhar<ChevronRight className="w-3 h-3" /></button>}>
+            <Panel className="lg:col-span-5" title="Gasto por categoria" subtitle="Composição normalizada" icon={Target}
+              action={<button className="label-micro text-white/30 hover:text-accent flex items-center gap-1" onClick={() => setDrawer({ type: 'categories' })}>Detalhar<ChevronRight className="w-3 h-3" /></button>}>
               <CategoryBars items={data.categorySpend} />
             </Panel>
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <Panel className="lg:col-span-5" accent="cyan" title="Gasto por projeto" subtitle="Ranking por custo total" icon={Briefcase}>
+            <Panel className="lg:col-span-5" title="Gasto por projeto" subtitle="Ranking por custo total" icon={Briefcase}>
               <div className="space-y-2 max-h-[360px] overflow-y-auto">
                 {data.projectSpend.slice(0, 12).map((p, i) => (
                   <button key={p.projectId} onClick={() => setDrawer({ type: 'project', payload: p })}
                     className="w-full surface-recessed flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.04] transition-colors text-left">
-                    <div className="w-6 h-6 rounded-lg surface-recessed flex items-center justify-center flex-shrink-0"><span className="text-[10px] font-bold text-white/30">{i + 1}</span></div>
+                    <span className="w-5 shrink-0 tabular-data text-[11px] text-[color:var(--ink-3)]">{i + 1}</span>
                     <div className="flex-1 min-w-0">
                       <span className="body text-[13px] font-medium text-white/75 block truncate">{p.projectName}</span>
                       <span className="label-micro mt-0.5 block">{p.mobilizationCount} mob · {p.activeMobilizations} ativas</span>
                     </div>
-                    <span className="tabular-data text-[12px] font-semibold text-mint flex-shrink-0">{formatBRL(p.amountMinor)}</span>
+                    <span className="tabular-data text-[12px] font-semibold text-accent flex-shrink-0">{formatBRL(p.amountMinor)}</span>
                   </button>
                 ))}
                 {data.projectSpend.length === 0 && <NoData height={200} />}
               </div>
             </Panel>
 
-            <Panel className="lg:col-span-7" accent="purple" title="Top 20 colaboradores" subtitle="Custo atribuído por colaborador" icon={Users}
+            <Panel className="lg:col-span-7" title="Top 20 colaboradores" subtitle="Custo atribuído por colaborador" icon={Users}
               action={<Badge variant="accent" compact>{data.collaboratorSpend.length}</Badge>}>
               <div className="overflow-x-auto max-h-[360px] overflow-y-auto">
                 <table className="w-full text-left">
@@ -262,8 +288,8 @@ export default function Dashboard() {
                         <td className="px-3 py-2.5 tabular-data text-[11px] text-white/25">{i + 1}</td>
                         <td className="px-3 py-2.5"><span className="body text-[13px] text-white/75 block truncate max-w-[160px]">{c.employeeName}</span>{c.role && <span className="label-micro text-white/25">{c.role}</span>}</td>
                         <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-white/50">{c.mobilizationCount}</td>
-                        <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-accent-purple/80">{formatBRL(c.laborSpendMinor)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-accent-cyan/70">{formatBRL(c.transportSpendMinor)}</td>
+                        <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-white/50">{formatBRL(c.laborSpendMinor)}</td>
+                        <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-white/50">{formatBRL(c.transportSpendMinor)}</td>
                         <td className="px-3 py-2.5 text-right tabular-data text-[12px] font-semibold text-white">{formatBRL(c.totalSpendMinor)}</td>
                       </tr>
                     ))}
@@ -276,7 +302,7 @@ export default function Dashboard() {
 
           {/* ═══ OPERATIONAL INTELLIGENCE ═══ */}
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <Panel className="lg:col-span-8" accent="white" title="Mobilizações ativas" subtitle="Operações confirmadas em campo" icon={Radio}>
+            <Panel className="lg:col-span-8" title="Mobilizações ativas" subtitle="Operações confirmadas em campo" icon={Radio}>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
@@ -298,7 +324,7 @@ export default function Dashboard() {
                           <td className="px-3 py-2.5 text-right tabular-data text-[12px] text-white/50">{m.teamSize}</td>
                           <td className="px-3 py-2.5"><span className="flex items-center gap-1.5 label-micro" style={{ color: STATUS_COLOR[m.status] }}><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: STATUS_COLOR[m.status] }} />{STATUS_LABEL[m.status] || m.status}</span></td>
                           <td className="px-3 py-2.5 text-right label-micro text-white/40 tabular-data">{new Date(m.estimatedArrivalAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                          <td className="px-3 py-2.5 text-right tabular-data text-[12px] font-semibold text-mint">{formatBRL(m.totalCostMinor)}</td>
+                          <td className="px-3 py-2.5 text-right tabular-data text-[12px] font-semibold text-accent">{formatBRL(m.totalCostMinor)}</td>
                         </tr>
                       );
                     })}
@@ -310,7 +336,7 @@ export default function Dashboard() {
 
             {/* Alerts + SLA */}
             <div className="lg:col-span-4 space-y-6">
-              <Panel accent="orange" title="Alertas" subtitle="Mais urgentes primeiro" icon={AlertTriangle} action={<Badge variant="warning" compact>{data.alerts.length}</Badge>}>
+              <Panel title="Alertas" subtitle="Mais urgentes primeiro" icon={AlertTriangle} action={<Badge variant="warning" compact>{data.alerts.length}</Badge>}>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto">
                   {data.alerts.slice(0, 8).map((a, i) => (
                     <div key={i} className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border ${a.severity === 'high' ? 'bg-danger-bg/40 border-danger-border/20' : a.severity === 'medium' ? 'bg-warning-bg/40 border-warning-border/20' : 'bg-white/[0.02] border-white/[0.05]'}`}>
@@ -318,14 +344,14 @@ export default function Dashboard() {
                       <span className="body text-[12px] text-white/65">{a.message}</span>
                     </div>
                   ))}
-                  {data.alerts.length === 0 && <div className="py-8 text-center label-micro text-white/25 flex flex-col items-center gap-2"><CheckCircle className="w-6 h-6 text-mint/40" />Nenhum alerta ativo</div>}
+                  {data.alerts.length === 0 && <div className="py-8 text-center label-micro text-white/25 flex flex-col items-center gap-2"><CheckCircle className="w-6 h-6 text-success-text/50" />Nenhum alerta ativo</div>}
                 </div>
               </Panel>
-              <Panel accent="mint" title="SLA de chegada" subtitle="Cumprimento de prazo" icon={Gauge}>
+              <Panel title="SLA de chegada" subtitle="Cumprimento de prazo" icon={Gauge}>
                 <div className="grid grid-cols-2 gap-3">
-                  <Stat label="No prazo" value={data.sla.onTimeRate == null ? '—' : `${Math.round(data.sla.onTimeRate * 100)}%`} accent="text-mint" />
+                  <Stat label="No prazo" value={data.sla.onTimeRate == null ? '—' : `${Math.round(data.sla.onTimeRate * 100)}%`} accent="text-success-text" />
                   <Stat label="Atrasadas" value={data.sla.lateCount} accent="text-danger-text" />
-                  <Stat label="Em risco" value={data.sla.activeAtRisk} accent="text-accent-orange" />
+                  <Stat label="Em risco" value={data.sla.activeAtRisk} accent="text-warning-text" />
                   <Stat label="Concluídas" value={data.sla.completedCount} accent="text-white/70" />
                 </div>
               </Panel>
@@ -334,7 +360,7 @@ export default function Dashboard() {
 
           {/* ═══ SUPPORTING ANALYTICS ═══ */}
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <Panel className="lg:col-span-4" accent="purple" title="Mix de modais" subtitle="Distribuição por transporte" icon={Layers}>
+            <Panel className="lg:col-span-4" title="Mix de modais" subtitle="Distribuição por transporte" icon={Layers}>
               {modalDonut.length > 0 ? (
                 <>
                   <PremiumDonutChart data={modalDonut} nameKey="name" valueKey="value" colors={CHART_SEQUENCE} innerRadius={40} outerRadius={62} paddingAngle={4} height={160} />
@@ -351,9 +377,9 @@ export default function Dashboard() {
               ) : <NoData height={160} />}
             </Panel>
 
-            <Panel className="lg:col-span-4" accent="mint" title="Inteligência de economia" subtitle={data.savings.methodology} icon={TrendingDown}>
+            <Panel className="lg:col-span-4" title="Inteligência de economia" subtitle={data.savings.methodology} icon={TrendingDown}>
               <div className="space-y-3">
-                <Stat label="Economia total" value={formatBRL(data.savings.totalSavingsMinor)} accent="text-mint" big />
+                <Stat label="Economia total" value={formatBRL(data.savings.totalSavingsMinor)} accent="text-success-text" big />
                 <Row label="Economia média / mob." value={formatBRL(data.savings.averageSavingsMinor)} />
                 <Row label="Cobertura do cálculo" value={`${Math.round((data.savings.coverage || 0) * 100)}%`} />
                 {(data.savings.byProject || []).slice(0, 3).map((p) => (
@@ -362,7 +388,7 @@ export default function Dashboard() {
               </div>
             </Panel>
 
-            <Panel className="lg:col-span-4" accent="cyan" title="Conformidade & exposição" subtitle="HE, noturno e origem" icon={ShieldCheck}>
+            <Panel className="lg:col-span-4" title="Conformidade & exposição" subtitle="HE, noturno e origem" icon={ShieldCheck}>
               <div className="space-y-3">
                 <Row label="Manual vs automática" value={`${ov.manualCount} / ${ov.automaticCount}`} />
                 <Row label="Projetos com mobilização" value={ov.projectsWithMobilization} />
@@ -384,13 +410,14 @@ export default function Dashboard() {
 /* ── Drill-down drawer ── */
 function DrillDownDrawer({ drawer, data, onClose }) {
   if (!drawer) return null;
-  const titles = { mobilization: 'Mobilização', collaborator: 'Colaborador', project: 'Projeto', categories: 'Gasto por categoria', alerts: 'Alertas operacionais', active: 'Mobilizações ativas' };
+  const titles = { mobilization: 'Mobilização', collaborator: 'Colaborador', project: 'Projeto', categories: 'Gasto por categoria', alerts: 'Alertas operacionais', active: 'Mobilizações ativas', labor: 'Composição de mão de obra' };
   return (
     <Modal open={!!drawer} onClose={onClose} title={titles[drawer.type] || 'Detalhe'} size="lg">
       {drawer.type === 'mobilization' && <MobilizationDetail m={drawer.payload} />}
       {drawer.type === 'collaborator' && <CollaboratorDetail c={drawer.payload} />}
       {drawer.type === 'project' && <ProjectDetail p={drawer.payload} data={data} />}
       {drawer.type === 'categories' && <CategoryBars items={data?.categorySpend || []} full />}
+      {drawer.type === 'labor' && <LaborBreakdown ov={data?.overview} />}
       {drawer.type === 'alerts' && (
         <div className="space-y-2">
           {(data?.alerts || []).map((a, i) => (
@@ -409,6 +436,40 @@ function DrillDownDrawer({ drawer, data, onClose }) {
         </div>
       )}
     </Modal>
+  );
+}
+
+/** Where the people-hours money actually goes. */
+function LaborBreakdown({ ov }) {
+  if (!ov) return <NoData height={160} />;
+  const rows = [
+    ['Horas base', ov.laborBaseSpendMinor],
+    ['Hora extra', ov.overtimeSpendMinor],
+    ['Adicional noturno', ov.nightPremiumSpendMinor],
+  ];
+  const total = ov.laborSpendMinor || 1;
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <Info label="Mão de obra total" value={formatBRL(ov.laborSpendMinor)} />
+        <Info label="Participação no custo" value={`${ov.laborSharePercent}%`} />
+        <Info label="Horas-equipe" value={`${(ov.teamHours || 0).toLocaleString('pt-BR')}h`} />
+        <Info label="Custo / hora-equipe" value={formatBRL(ov.costPerTeamHourMinor)} />
+      </div>
+      <div className="space-y-2.5">
+        {rows.map(([label, v], i) => (
+          <div key={label}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="body text-[12px]">{label}</span>
+              <span className="tabular-data text-[11px] text-white/60 font-medium">{formatBRL(v || 0)} · {Math.round(((v || 0) / total) * 100)}%</span>
+            </div>
+            <div className="h-1.5 rounded-full inset-block overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${((v || 0) / total) * 100}%`, backgroundColor: accentByRank(i) }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -474,23 +535,34 @@ function MobRow({ m }) {
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05]">
       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: STATUS_COLOR[m.status] }} />
       <div className="flex-1 min-w-0"><span className="body text-[13px] text-white/75 block truncate">{m.projectName}</span><span className="label-micro">{m.origin.label?.split(' - ')[0]} → {m.destination.label?.split(' - ')[0]}</span></div>
-      <span className="tabular-data text-[12px] font-semibold text-mint">{formatBRL(m.totalCostMinor)}</span>
+      <span className="tabular-data text-[12px] font-semibold text-accent">{formatBRL(m.totalCostMinor)}</span>
     </div>
   );
 }
 
 /* ── Presentational helpers ── */
-function Panel({ children, className = '', accent = 'mint', title, subtitle, icon: Icon, action }) {
-  const line = { mint: 'via-mint/15', cyan: 'via-accent-cyan/15', orange: 'via-accent-orange/15', purple: 'via-accent-purple/15', white: 'via-white/10' }[accent];
-  const iconBg = { mint: 'bg-mint/[0.08] text-mint/70', cyan: 'bg-accent-cyan/[0.08] text-accent-cyan/70', orange: 'bg-accent-orange/[0.08] text-accent-orange/70', purple: 'bg-accent-purple/[0.08] text-accent-purple/70', white: 'bg-white/[0.05] text-white/40' }[accent];
+/**
+ * Zone B/C panel — deliberately quiet.
+ *
+ * The `accent` prop is gone. Panels used to carry one of five hues chosen
+ * per-instance with no rule (mint/orange/cyan/purple/white in page order),
+ * so the colour taught the reader nothing and only added chroma noise. The
+ * header is now: bare icon, title, subtitle, action. Nothing else.
+ *
+ * `accent` is still accepted and ignored so call sites don't have to change
+ * in the same commit.
+ */
+function Panel({ children, className = '', title, subtitle, icon: Icon, action }) {
   return (
-    <div className={`premium-panel ${className}`}>
-      <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${line} to-transparent`} />
+    <div className={`glass-panel ${className}`}>
       <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {Icon && <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${iconBg}`}><Icon className="w-4 h-4" /></div>}
-            <div><h3 className="heading">{title}</h3>{subtitle && <p className="body text-[12px] mt-0.5">{subtitle}</p>}</div>
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {Icon && <Icon className="w-4 h-4 shrink-0 text-[color:var(--ink-3)]" strokeWidth={1.5} />}
+            <div className="min-w-0">
+              <h3 className="heading truncate">{title}</h3>
+              {subtitle && <p className="body text-[12px] mt-0.5 truncate">{subtitle}</p>}
+            </div>
           </div>
           {action}
         </div>
@@ -511,8 +583,8 @@ function CategoryBars({ items = [], full }) {
             <span className="body text-[12px] truncate">{c.label}</span>
             <span className="tabular-data text-[11px] text-white/60 font-semibold ml-2 flex-shrink-0">{formatBRL(c.amountMinor)} · {c.percentage}%</span>
           </div>
-          <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${(c.amountMinor / max) * 100}%`, backgroundColor: CHART_SEQUENCE[i % CHART_SEQUENCE.length], opacity: 0.75 }} />
+          <div className="h-1.5 rounded-full inset-block overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${(c.amountMinor / max) * 100}%`, backgroundColor: accentByRank(i) }} />
           </div>
         </div>
       ))}
@@ -520,28 +592,63 @@ function CategoryBars({ items = [], full }) {
   );
 }
 
-function Kpi({ label, value, detail, icon: Icon, color, border, highlight, money, duration, suffix, onClick }) {
-  const c = {
-    mint: 'text-success-text bg-success-bg', cyan: 'text-info-text bg-info-bg',
-    orange: 'text-accent-text bg-accent-bg', blue: 'text-info-text bg-info-bg',
-  }[color] || 'text-success-text bg-success-bg';
-  const [txt, bg] = c.split(' ');
+/**
+ * KPI cell. The `color` prop is accepted and ignored: hue used to be
+ * assigned per-card with no rule, so "Custo médio" was blue and "Custo no
+ * período" cyan for no reason a reader could learn. Values are now ink-0,
+ * and colour appears only where it carries meaning (`highlight`).
+ */
+function Kpi({ label, value, detail, icon: Icon, highlight, money, duration, suffix, onClick }) {
   const Comp = onClick ? 'button' : 'div';
   return (
-    <Comp onClick={onClick} className={`relative px-5 py-5 text-left ${border ? 'border-l border-white/[0.06]' : ''} ${onClick ? 'hover:bg-white/[0.02] transition-colors' : ''}`}>
-      {highlight && <div className="absolute inset-0 bg-gradient-to-r from-accent-orange/[0.05] to-transparent pointer-events-none" />}
-      <div className="relative">
+    <Comp onClick={onClick} className={`relative min-w-0 px-5 py-5 text-left bg-[rgb(var(--surface-3))] ${onClick ? 'hover:bg-[rgb(var(--surface-2))] transition-colors' : ''}`}>
+      <div className="relative min-w-0">
         <div className="flex items-center justify-between mb-3">
           <span className="label-micro">{label}</span>
-          {Icon && <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}><Icon className={`w-[14px] h-[14px] ${txt}`} /></div>}
+          {Icon && <Icon className={`w-4 h-4 ${highlight ? 'text-accent' : 'text-[color:var(--ink-3)]'}`} strokeWidth={1.5} />}
         </div>
         {value == null ? (
-          <div className={`metric-value ${txt}`}>—</div>
+          <div className="dashboard-kpi-value text-[color:var(--ink-3)]">—</div>
         ) : (
-          <AnimatedNumber as="div" className={`metric-value ${txt}`} value={value}
+          <AnimatedNumber as="div" className={`dashboard-kpi-value ${highlight ? 'text-accent' : ''}`} value={value}
             format={(v) => (money ? formatBRL(Math.round(v)) : duration ? fmtDur(v) : `${Math.round(v).toLocaleString('pt-BR')}${suffix || ''}`)} />
         )}
         {detail && <p className="body text-[12px] mt-1.5">{detail}</p>}
+      </div>
+    </Comp>
+  );
+}
+
+/**
+ * Composition card for the cost split. Takes either a money `value` (minor
+ * units) or a pre-formatted `rawValue`, plus an optional `share` percentage
+ * rendered as a hairline meter — the meter is what makes "R$ 1,2M mão de obra"
+ * legible as *proportion* without the reader doing arithmetic.
+ */
+function CostCard({ label, hint, icon: Icon, value, rawValue, share, detail, onClick }) {
+  const Comp = onClick ? 'button' : 'div';
+  return (
+    <Comp onClick={onClick} className={`glass-panel p-4 text-left flex flex-col justify-between min-h-[132px] ${onClick ? 'hover:border-accent/30 transition-colors' : ''}`}>
+      <div className="flex items-start justify-between gap-2">
+        <span className="label-micro leading-tight">{label}</span>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0 text-[color:var(--ink-3)]" strokeWidth={1.5} />}
+      </div>
+      <div className="mt-3">
+        {rawValue != null ? (
+          <div className="metric-sm">{rawValue}</div>
+        ) : (
+          <AnimatedNumber as="div" className="metric-sm" value={value ?? 0} format={(v) => formatBRL(Math.round(v))} />
+        )}
+        {share != null && (
+          <div className="mt-2">
+            <div className="h-[3px] rounded-full bg-[color:var(--ink-line)] overflow-hidden">
+              <div className="h-full rounded-full bg-accent" style={{ width: `${Math.max(0, Math.min(100, share))}%` }} />
+            </div>
+            <span className="label-micro mt-1.5 block">{share}% do total</span>
+          </div>
+        )}
+        {detail && <p className="label-micro mt-1.5">{detail}</p>}
+        {share == null && !detail && hint && <p className="label-micro mt-1.5">{hint}</p>}
       </div>
     </Comp>
   );

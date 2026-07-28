@@ -80,7 +80,7 @@ export function PremiumDonutChart({
     const displayLabel = centerLabel || 'Total';
 
     const textColor = isDark ? 'rgba(245,247,250,0.88)' : 'rgba(15,30,24,0.88)';
-    const subtextColor = isDark ? 'rgba(245,247,250,0.4)' : 'rgba(15,30,24,0.4)';
+    const subtextColor = isDark ? 'rgba(245,247,250,0.4)' : 'rgba(15,30,24,0.68)';
 
     return {
       ...getBaseOption({ isDark, palette, dataLength: data.length }),
@@ -106,7 +106,7 @@ export function PremiumDonutChart({
               fill: textColor,
               fontSize: 18,
               fontWeight: 600,
-              fontFamily: "'Outfit', system-ui, sans-serif",
+              fontFamily: "'Helvetica Neue LT', 'Helvetica Neue', system-ui, sans-serif",
             },
             top: -6,
           },
@@ -118,7 +118,7 @@ export function PremiumDonutChart({
               fill: subtextColor,
               fontSize: 10,
               fontWeight: 500,
-              fontFamily: "'Outfit', system-ui, sans-serif",
+              fontFamily: "'Helvetica Neue LT', 'Helvetica Neue', system-ui, sans-serif",
               textTransform: 'uppercase',
             },
             top: 16,

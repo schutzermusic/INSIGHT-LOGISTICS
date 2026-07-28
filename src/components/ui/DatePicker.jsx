@@ -128,12 +128,12 @@ const GLASS_CALENDAR_STYLES = `
 
 /* Selected — brand mint gradient, readable on both themes */
 .glass-cal .rdp-selected .rdp-day_button {
-  background: linear-gradient(135deg, #49DC7A, #2DB85C) !important;
+  background: linear-gradient(135deg, rgb(var(--mint-ink)), rgb(var(--mint-dark-ink))) !important;
   color: #0a0f0a !important;
   font-weight: 700;
   box-shadow:
-    0 0 20px rgba(73,220,122,0.25),
-    0 0 0 2px rgba(73,220,122,0.18),
+    0 0 20px rgb(var(--mint-ink) / 0.25),
+    0 0 0 2px rgb(var(--mint-ink) / 0.18),
     inset 0 1px 0 rgba(255,255,255,0.2);
   transform: scale(1.05);
 }
