@@ -5,10 +5,13 @@ import {
   DEFAULT_MEAL_ALLOWANCE_POLICY,
 } from '../server/mobilization/MealAllowanceEngine.js';
 import { recommend } from '../server/mobilization/RecommendationEngine.js';
+import { attributeCollaboratorSpend, computeSavings } from '../server/mobilization/ConfirmedMobilizationService.js';
+import { CATEGORY_GROUP, normalizeCategorySpend } from '../server/mobilization/dashboardCategories.js';
 import { mobilizationDraftHistorySummary } from '../src/domain/mobilizationDraftSummary.js';
 
 const apply = process.argv.includes('--apply');
 const force = process.argv.includes('--force');
+const includeConfirmed = process.argv.includes('--include-confirmed');
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -51,12 +54,22 @@ const { data: rows, error } = await supabase
 
 if (error) throw error;
 
+const { data: confirmedRows, error: confirmedError } = includeConfirmed
+  ? await supabase
+    .from('confirmed_mobilizations')
+    .select('*, collaborators:confirmed_mobilization_collaborators(*)')
+    .limit(5000)
+  : { data: [], error: null };
+
+if (confirmedError) throw confirmedError;
+
 let eligible = 0;
 let changed = 0;
 let skipped = 0;
 let confirmedPreserved = 0;
 let alreadyCurrent = 0;
 let allowanceDeltaC = 0;
+const recalculatedByConfirmedId = new Map();
 
 const allowanceSignature = (result) => JSON.stringify({
   recommendedId: result?.recommended?.id || null,
@@ -80,7 +93,7 @@ const allowanceSignature = (result) => JSON.stringify({
 
 for (const row of rows || []) {
   const draft = row.data || {};
-  if (draft.status === 'confirmed' || draft.dashboardPublished === true) {
+  if (!includeConfirmed && (draft.status === 'confirmed' || draft.dashboardPublished === true)) {
     confirmedPreserved += 1;
     continue;
   }
@@ -147,11 +160,127 @@ for (const row of rows || []) {
     mealAllowanceBackfillVersion: currentPolicy.version,
   };
 
+  if (draft.confirmedId) {
+    recalculatedByConfirmedId.set(String(draft.confirmedId), {
+      result: calculationResult,
+      scenario: scenarios.find(
+        (scenario) => String(scenario.id) === String(draft.calculationResult?.recommended?.id),
+      ) || ranking.recommended || scenarios[0],
+    });
+  }
+
   if (allowanceSignature(draft.calculationResult) !== allowanceSignature(calculationResult)) changed += 1;
   if (apply) {
     const { error: updateError } = await supabase
       .from('simulations')
       .update({ data: nextDraft })
+      .eq('id', row.id);
+    if (updateError) throw updateError;
+  }
+}
+
+let confirmedChanged = 0;
+let confirmedSkipped = 0;
+let confirmedAllowanceDeltaC = 0;
+let confirmedCollaboratorsChanged = 0;
+
+for (const row of confirmedRows || []) {
+  const linked = recalculatedByConfirmedId.get(String(row.id));
+  if (!linked?.scenario) {
+    confirmedSkipped += 1;
+    continue;
+  }
+
+  const scenario = linked.scenario;
+  const previousMealsC = Number(row.meals_cost_c || 0);
+  const mealsCostC = Number(scenario.breakdown?.transit_meals_c || 0)
+    + Number(scenario.breakdown?.field_meals_c || 0);
+  const deltaC = mealsCostC - previousMealsC;
+  const totalCostC = Number(row.total_cost_c || 0) + deltaC;
+  const categorySpend = normalizeCategorySpend(scenario);
+  const rollup = { labor: 0, transport: 0, accommodation: 0, meals: 0, other: 0 };
+  for (const [category, amount] of Object.entries(categorySpend)) {
+    rollup[CATEGORY_GROUP[category] || 'other'] += Number(amount || 0);
+  }
+  const { baselineCostC, estimatedSavingsC } = computeSavings(
+    scenario,
+    (linked.result.scenarios || []).filter((candidate) => candidate.id !== scenario.id),
+  );
+  const allowance = scenario.mealAllowance || {
+    policy: currentPolicy,
+    byEmployee: scenario.breakdown?.meal_allowances || [],
+  };
+  const employees = (linked.result.employees || row.employee_snapshot || []).map((employee) => ({
+    id: employee.id ?? employee.employeeId,
+    name: employee.name ?? employee.employeeName,
+    role: employee.role || null,
+    allowanceCategory: employee.allowanceCategory === 'leader' ? 'leader' : 'standard',
+  }));
+  const collaboratorSpend = attributeCollaboratorSpend(scenario, employees);
+  const spendByEmployee = new Map(
+    collaboratorSpend.map((item) => [String(item.employeeId), item]),
+  );
+
+  const timestamp = new Date().toISOString();
+  const parentUpdate = {
+    total_cost_c: totalCostC,
+    labor_cost_c: rollup.labor,
+    transport_cost_c: rollup.transport,
+    accommodation_cost_c: rollup.accommodation,
+    meals_cost_c: rollup.meals,
+    local_cost_c: Number(categorySpend.transfer || 0),
+    category_spend: categorySpend,
+    baseline_cost_c: baselineCostC,
+    estimated_savings_c: estimatedSavingsC,
+    allowance_policy_version_id: allowance.policy?.id || currentPolicy.id,
+    allowance_snapshot: {
+      policy: allowance.policy || currentPolicy,
+      employees: allowance.byEmployee || [],
+    },
+    cost_snapshot: {
+      ...(row.cost_snapshot || {}),
+      ...(scenario.breakdown || {}),
+      transit_meals_c: Number(scenario.breakdown?.transit_meals_c || 0),
+      field_meals_c: Number(scenario.breakdown?.field_meals_c || 0),
+      total_c: totalCostC,
+    },
+    data: {
+      ...(row.data || {}),
+      mealAllowanceBackfillVersion: currentPolicy.version,
+      mealAllowanceRecalculatedAt: timestamp,
+      previousMealsCostC: previousMealsC,
+      previousTotalCostC: Number(row.total_cost_c || 0),
+    },
+  };
+
+  for (const collaborator of row.collaborators || []) {
+    const employeeId = String(collaborator.employee_id || collaborator.employee_id_text || '');
+    const spend = spendByEmployee.get(employeeId);
+    if (!spend) continue;
+    confirmedCollaboratorsChanged += 1;
+    if (apply) {
+      const { error: collaboratorError } = await supabase
+        .from('confirmed_mobilization_collaborators')
+        .update({
+          labor_spend_c: spend.laborSpendC,
+          transport_spend_c: spend.transportSpendC,
+          other_spend_c: spend.otherSpendC,
+          total_spend_c: spend.totalSpendC,
+          allowance_category_snapshot: spend.allowanceCategory,
+          allowance_total_c: spend.allowanceTotalC,
+          allowance_snapshot: spend.allowanceSnapshot,
+        })
+        .eq('id', collaborator.id);
+      if (collaboratorError) throw collaboratorError;
+    }
+  }
+
+  confirmedChanged += 1;
+  confirmedAllowanceDeltaC += deltaC;
+  if (apply) {
+    const { error: updateError } = await supabase
+      .from('confirmed_mobilizations')
+      .update(parentUpdate)
       .eq('id', row.id);
     if (updateError) throw updateError;
   }
@@ -165,6 +294,12 @@ console.log(JSON.stringify({
   changed,
   skipped,
   confirmedSnapshotsPreserved: confirmedPreserved,
+  includeConfirmed,
+  confirmedFound: confirmedRows?.length || 0,
+  confirmedChanged,
+  confirmedSkipped,
+  confirmedCollaboratorsChanged,
+  confirmedAllowanceDeltaC,
   alreadyCurrent,
   allowanceDeltaC,
   policyVersion: currentPolicy.version,

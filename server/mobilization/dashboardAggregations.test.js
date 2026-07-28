@@ -213,26 +213,47 @@ describe('computeAlerts', () => {
 });
 
 describe('computeOverview — cost composition (§6.1)', () => {
-  it('splits labor (hours + HE + noturno) from logistics, reconciling to total', () => {
+  it('does not double-count overtime/night already included in labor_cost_c', () => {
     const rows = eligible([
-      row({ id: 'a', total_cost_c: 300000, labor_cost_c: 160000, overtime_cost_c: 20000, night_premium_cost_c: 10000 }),
-      row({ id: 'b', total_cost_c: 100000, labor_cost_c: 40000, overtime_cost_c: 0, night_premium_cost_c: 0 }),
+      row({
+        id: 'a', total_cost_c: 300000, labor_cost_c: 160000,
+        overtime_cost_c: 20000, night_premium_cost_c: 10000,
+        category_spend: {
+          airfare: 120000, meals: 20000, labor_regular: 130000,
+          labor_overtime_50: 20000, labor_night_premium: 10000,
+        },
+      }),
+      row({
+        id: 'b', total_cost_c: 100000, labor_cost_c: 40000,
+        overtime_cost_c: 0, night_premium_cost_c: 0,
+        category_spend: { bus_fare: 50000, meals: 10000, labor_regular: 40000 },
+      }),
     ]);
     const ov = computeOverview(rows, NOW);
-    expect(ov.laborBaseSpendMinor).toBe(200000);
+    expect(ov.laborBaseSpendMinor).toBe(170000);
     expect(ov.overtimeSpendMinor).toBe(20000);
     expect(ov.nightPremiumSpendMinor).toBe(10000);
-    expect(ov.laborSpendMinor).toBe(230000);
-    expect(ov.logisticsSpendMinor).toBe(170000);
-    // The split must always reconcile to the reported total.
-    expect(ov.laborSpendMinor + ov.logisticsSpendMinor).toBe(ov.totalSpendMinor);
-    expect(ov.laborSharePercent).toBe(57.5);
+    expect(ov.laborSpendMinor).toBe(200000);
+    expect(ov.ticketSpendMinor).toBe(170000);
+    expect(ov.mealAllowanceSpendMinor).toBe(30000);
+    expect(ov.mobilizationSpendMinor).toBe(400000);
+    expect(ov.laborSpendMinor + ov.ticketSpendMinor + ov.mealAllowanceSpendMinor)
+      .toBe(ov.mobilizationSpendMinor);
+    expect(ov.laborSharePercent).toBe(50);
   });
 
   it('derives team-hours and cost per team-hour from duration x headcount', () => {
     const rows = eligible([
-      row({ id: 'a', total_cost_c: 300000, duration_minutes: 600, team_size: 3 }), // 30h
-      row({ id: 'b', total_cost_c: 100000, duration_minutes: 300, team_size: 2 }), // 10h
+      row({
+        id: 'a', total_cost_c: 300000, labor_cost_c: 160000,
+        duration_minutes: 600, team_size: 3,
+        category_spend: { airfare: 120000, meals: 20000, labor_regular: 160000 },
+      }), // 30h
+      row({
+        id: 'b', total_cost_c: 100000, labor_cost_c: 40000,
+        duration_minutes: 300, team_size: 2,
+        category_spend: { bus_fare: 50000, meals: 10000, labor_regular: 40000 },
+      }), // 10h
     ]);
     const ov = computeOverview(rows, NOW);
     expect(ov.teamHours).toBe(40);
@@ -241,7 +262,9 @@ describe('computeOverview — cost composition (§6.1)', () => {
   });
 
   it('never reports negative logistics when labor exceeds the recorded total', () => {
-    const rows = eligible([row({ id: 'a', total_cost_c: 50000, labor_cost_c: 90000 })]);
+    const rows = eligible([row({
+      id: 'a', total_cost_c: 50000, labor_cost_c: 90000, category_spend: {},
+    })]);
     expect(computeOverview(rows, NOW).logisticsSpendMinor).toBe(0);
   });
 });

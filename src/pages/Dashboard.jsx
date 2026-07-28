@@ -18,7 +18,7 @@ import {
   Sparkles, Crosshair, Radio, Route as RouteIcon, Clock,
   TrendingDown, Users, AlertTriangle, ShieldCheck, Layers, Target, MapPin,
   Gauge, Moon, Filter, RotateCcw, ChevronRight, CheckCircle, Briefcase, Plane, Bus, Car,
-  Hourglass, Package, TrendingUp, Timer,
+  Hourglass, Package, TrendingUp, Utensils,
 } from 'lucide-react';
 import { useDashboard } from '../hooks/useDashboard';
 import { formatBRL } from '../domain/money.js';
@@ -58,6 +58,45 @@ export default function Dashboard() {
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
   const ov = data?.overview;
+  const costOverview = useMemo(() => {
+    if (!ov) return null;
+    const categories = new Map(
+      (data?.categorySpend || []).map((item) => [item.category, Number(item.amountMinor) || 0]),
+    );
+    if (categories.size === 0) return ov;
+
+    const regular = categories.get('labor_regular') || 0;
+    const overtime = [
+      'labor_overtime_50',
+      'labor_overtime_100',
+      'labor_saturday_100',
+      'labor_sunday_150',
+    ].reduce((sum, key) => sum + (categories.get(key) || 0), 0);
+    const night = categories.get('labor_night_premium') || 0;
+    const labor = regular + overtime + night;
+    const tickets = (categories.get('airfare') || 0) + (categories.get('bus_fare') || 0);
+    const meals = categories.get('meals') || 0;
+    const total = labor + tickets + meals;
+    const share = (value) => (total ? Math.round((value / total) * 1000) / 10 : 0);
+
+    return {
+      ...ov,
+      laborBaseSpendMinor: regular,
+      overtimeSpendMinor: overtime,
+      nightPremiumSpendMinor: night,
+      laborSpendMinor: labor,
+      ticketSpendMinor: tickets,
+      mealAllowanceSpendMinor: meals,
+      mobilizationSpendMinor: total,
+      averageMobilizationSpendMinor: ov.totalMobilizationsInRange
+        ? Math.round(total / ov.totalMobilizationsInRange)
+        : 0,
+      laborSharePercent: share(labor),
+      ticketSharePercent: share(tickets),
+      mealAllowanceSharePercent: share(meals),
+      costPerTeamHourMinor: ov.teamHours ? Math.round(total / ov.teamHours) : 0,
+    };
+  }, [data?.categorySpend, ov]);
   const persistenceOff = status && status.persistenceEnabled === false;
   const hasData = ov && ov.totalMobilizationsInRange > 0;
 
@@ -122,15 +161,15 @@ export default function Dashboard() {
           <div className="lg:col-span-5 glass-panel p-6 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="label-micro">Custo no período</span>
+                <span className="label-micro">Montante da mobilização</span>
                 <button onClick={() => setDrawer({ type: 'categories' })}
                   className="label-micro text-[color:var(--ink-3)] hover:text-accent transition-colors flex items-center gap-1">
                   Composição<ChevronRight className="w-3 h-3" />
                 </button>
               </div>
-              <AnimatedNumber as="div" className="display-xl mt-3" value={ov?.totalSpendMinor ?? 0} format={(v) => formatBRL(Math.round(v))} />
+              <AnimatedNumber as="div" className="display-xl mt-3" value={costOverview?.mobilizationSpendMinor ?? 0} format={(v) => formatBRL(Math.round(v))} />
               <p className="body text-[12px] mt-2">
-                {ov?.totalMobilizationsInRange ?? 0} mobilizações confirmadas · média {formatBRL(ov?.averageSpendPerMobilizationMinor ?? 0)}
+                HH + passagens + diárias de alimentação · média {formatBRL(costOverview?.averageMobilizationSpendMinor ?? 0)}
               </p>
             </div>
             {trendData.length > 1 && (
@@ -141,17 +180,15 @@ export default function Dashboard() {
           </div>
 
           <div className="lg:col-span-7 grid grid-cols-2 xl:grid-cols-4 gap-4">
-            <CostCard label="Mão de obra" hint="horas + HE + noturno" icon={Hourglass}
-              value={ov?.laborSpendMinor ?? 0} share={ov?.laborSharePercent}
+            <CostCard label="Mão de obra" hint="HH total, incluindo adicionais" icon={Hourglass}
+              value={costOverview?.laborSpendMinor ?? 0} share={costOverview?.laborSharePercent}
               onClick={() => setDrawer({ type: 'labor' })} />
-            <CostCard label="Logística" hint="passagens, hospedagem, transporte" icon={Package}
-              value={ov?.logisticsSpendMinor ?? 0}
-              share={ov?.laborSharePercent == null ? null : Math.round((100 - ov.laborSharePercent) * 10) / 10} />
-            <CostCard label="Horas-equipe" icon={Timer} hint="duração × headcount"
-              rawValue={`${(ov?.teamHours ?? 0).toLocaleString('pt-BR')}h`}
-              detail={`equipe média ${ov?.averageTeamSize ?? 0}`} />
+            <CostCard label="Passagens" hint="aéreas + rodoviárias" icon={Package}
+              value={costOverview?.ticketSpendMinor ?? 0} share={costOverview?.ticketSharePercent} />
+            <CostCard label="Diárias de alimentação" hint="alimentação da equipe" icon={Utensils}
+              value={costOverview?.mealAllowanceSpendMinor ?? 0} share={costOverview?.mealAllowanceSharePercent} />
             <CostCard label="Custo / hora-equipe" icon={TrendingUp} hint="comparável entre rotas"
-              value={ov?.costPerTeamHourMinor ?? 0} />
+              value={costOverview?.costPerTeamHourMinor ?? 0} />
           </div>
         </div>
 
@@ -417,7 +454,7 @@ function DrillDownDrawer({ drawer, data, onClose }) {
       {drawer.type === 'collaborator' && <CollaboratorDetail c={drawer.payload} />}
       {drawer.type === 'project' && <ProjectDetail p={drawer.payload} data={data} />}
       {drawer.type === 'categories' && <CategoryBars items={data?.categorySpend || []} full />}
-      {drawer.type === 'labor' && <LaborBreakdown ov={data?.overview} />}
+      {drawer.type === 'labor' && <LaborBreakdown ov={costOverview} />}
       {drawer.type === 'alerts' && (
         <div className="space-y-2">
           {(data?.alerts || []).map((a, i) => (

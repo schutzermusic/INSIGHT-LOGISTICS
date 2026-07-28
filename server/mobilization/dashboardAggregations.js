@@ -79,6 +79,21 @@ function median(nums) {
   return s.length % 2 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2);
 }
 
+function costComposition(row) {
+  const categories = row.category_spend || {};
+  const labor = int(row.labor_cost_c);
+  const hasTicketCategories = Object.prototype.hasOwnProperty.call(categories, 'airfare')
+    || Object.prototype.hasOwnProperty.call(categories, 'bus_fare');
+  const tickets = hasTicketCategories
+    ? int(categories.airfare) + int(categories.bus_fare)
+    : int(row.transport_cost_c);
+  const meals = Object.prototype.hasOwnProperty.call(categories, 'meals')
+    ? int(categories.meals)
+    : int(row.meals_cost_c);
+
+  return { labor, tickets, meals, total: labor + tickets + meals };
+}
+
 /**
  * Derive the live HUD/operational state of a confirmed mobilization (§4).
  * @returns {{ status: string, progress: number, delayed: boolean }}
@@ -115,16 +130,28 @@ export function computeOverview(rows, nowMs = Date.now()) {
   // ── Cost composition (§6.1) ──────────────────────────────────────────
   // "Custo de mobilização" is not one number. Split it so the KPI strip can
   // answer *where* the money goes, not just how much:
-  //   labor      = hours worked (base) + overtime + night premium
-  //   logistics  = everything else (fares, transfers, accommodation, meals)
-  // Logistics is the residual, so labor + logistics always reconciles to
-  // total even when a row omits a category.
-  const laborBase = rows.reduce((s, r) => s + int(r.labor_cost_c), 0);
+  //   labor   = complete HH already stored in labor_cost_c
+  //             (regular + overtime + night premium)
+  //   tickets = airfare + bus fare
+  //   meals   = meal allowances / alimentação
+  //
+  // Do not add overtime/night to labor_cost_c again: the confirmed record's
+  // labor rollup already contains both and doing so duplicates HH.
+  const composition = rows.reduce((sum, row) => {
+    const current = costComposition(row);
+    sum.labor += current.labor;
+    sum.tickets += current.tickets;
+    sum.meals += current.meals;
+    sum.total += current.total;
+    return sum;
+  }, { labor: 0, tickets: 0, meals: 0, total: 0 });
   const overtime = rows.reduce((s, r) => s + int(r.overtime_cost_c), 0);
   const nightPremium = rows.reduce((s, r) => s + int(r.night_premium_cost_c), 0);
   const accommodation = rows.reduce((s, r) => s + int(r.accommodation_cost_c), 0);
-  const laborSpend = laborBase + overtime + nightPremium;
-  const logisticsSpend = Math.max(0, totalSpend - laborSpend);
+  const laborSpend = composition.labor;
+  const laborBase = Math.max(0, laborSpend - overtime - nightPremium);
+  const mobilizationSpend = composition.total;
+  const logisticsSpend = composition.tickets + composition.meals;
 
   // Team-hours actually committed to mobilization: duration × headcount.
   // This is the denominator that makes cost/hour comparable across routes.
@@ -138,9 +165,15 @@ export function computeOverview(rows, nowMs = Date.now()) {
     nightPremiumSpendMinor: nightPremium,
     accommodationSpendMinor: accommodation,
     logisticsSpendMinor: logisticsSpend,
-    laborSharePercent: totalSpend ? Math.round((laborSpend / totalSpend) * 1000) / 10 : 0,
+    ticketSpendMinor: composition.tickets,
+    mealAllowanceSpendMinor: composition.meals,
+    mobilizationSpendMinor: mobilizationSpend,
+    otherRecordedSpendMinor: Math.max(0, totalSpend - mobilizationSpend),
+    laborSharePercent: mobilizationSpend ? Math.round((laborSpend / mobilizationSpend) * 1000) / 10 : 0,
+    ticketSharePercent: mobilizationSpend ? Math.round((composition.tickets / mobilizationSpend) * 1000) / 10 : 0,
+    mealAllowanceSharePercent: mobilizationSpend ? Math.round((composition.meals / mobilizationSpend) * 1000) / 10 : 0,
     teamHours,
-    costPerTeamHourMinor: teamHours ? Math.round(totalSpend / teamHours) : 0,
+    costPerTeamHourMinor: teamHours ? Math.round(mobilizationSpend / teamHours) : 0,
     averageTeamSize: rows.length
       ? Math.round((rows.reduce((s, r) => s + int(r.team_size), 0) / rows.length) * 10) / 10
       : 0,
@@ -148,6 +181,7 @@ export function computeOverview(rows, nowMs = Date.now()) {
     completedMobilizations: completed.length,
     totalMobilizationsInRange: rows.length,
     totalSpendMinor: totalSpend,
+    averageMobilizationSpendMinor: rows.length ? Math.round(mobilizationSpend / rows.length) : 0,
     averageSpendPerMobilizationMinor: rows.length ? Math.round(totalSpend / rows.length) : 0,
     medianSpendPerMobilizationMinor: median(totals),
     averageDurationMinutes: rows.length ? Math.round(rows.reduce((s, r) => s + int(r.duration_minutes), 0) / rows.length) : 0,
@@ -437,7 +471,7 @@ export function costTrend(rows) {
     if (!day) continue;
     const cur = agg.get(day) || { date: day, amountMinor: 0, count: 0, durationSum: 0, laborSum: 0 };
     cur.amountMinor += int(r.total_cost_c);
-    cur.laborSum += int(r.labor_cost_c) + int(r.overtime_cost_c) + int(r.night_premium_cost_c);
+    cur.laborSum += int(r.labor_cost_c);
     cur.count += 1;
     cur.durationSum += int(r.duration_minutes);
     agg.set(day, cur);

@@ -234,18 +234,6 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
           try { addCarto(); } catch { /* basemap is best-effort */ }
         }
 
-        // Procedural lat/long HUD grid on top — no assets, gives the command-center
-        // wireframe overlay.
-        try {
-          const grid = viewer.imageryLayers.addImageryProvider(new Cesium.GridImageryProvider({
-            cells: 8,
-            color: Cesium.Color.fromCssColorString('#22f2ef').withAlpha(0.18),
-            glowColor: Cesium.Color.fromCssColorString('#22f2ef').withAlpha(0.04),
-            backgroundColor: Cesium.Color.TRANSPARENT,
-          }));
-          grid.alpha = 0.35;
-        } catch { /* grid is cosmetic */ }
-
         // Real-time clock keyed to the current date.
         viewer.clock.currentTime = Cesium.JulianDate.now();
         viewer.clock.multiplier = 1;
@@ -517,12 +505,6 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
   return (
     <div className={clsx('relative overflow-hidden', className)} style={{ height }}>
       <div ref={containerRef} className="absolute inset-0" style={{ background: 'radial-gradient(120% 120% at 50% 35%, #0E1B16 0%, #050C0A 72%)' }} />
-
-      {/* HUD scan-line overlay */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        opacity: 0.04,
-        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(248,248,248,0.10) 2px, rgba(248,248,248,0.10) 3px)',
-      }} />
 
       {/* Live corner tag */}
       <div className="absolute top-5 right-5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(14,27,22,0.72)', border: '1px solid rgba(248,248,248,0.14)' }}>
