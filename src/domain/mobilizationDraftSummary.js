@@ -20,15 +20,31 @@ export function mobilizationDraftHistorySummary(scenario = {}) {
   const accommodationC = hasSegmentCosts
     ? segmentCost(new Set(['hotel_rest']))
     : cents(breakdown.transit_hotel_c) + cents(breakdown.field_hotel_c);
-  const mealsC = hasSegmentCosts
-    ? segmentCost(new Set(['meal_break']))
-    : cents(breakdown.transit_meals_c) + cents(breakdown.field_meals_c);
+  // Manual mobilization meals are automatic daily allowances stored in the
+  // normalized breakdown. They must remain visible even when transport
+  // segments have their own commercial costs.
+  const mealsC = cents(breakdown.transit_meals_c) + cents(breakdown.field_meals_c);
   const explicitLogisticsC = hasSegmentCosts
     ? segmentCost(new Set(['rental_car', 'company_car', 'local_transfer', 'transfer']))
     : cents(breakdown.shared_vehicle_c) +
       cents(breakdown.terminal_transfers_c) +
       cents(breakdown.field_local_c);
   const totalC = cents(scenario.totalMobilizationCostC ?? breakdown.total_c);
+  const laborByEmployee = Array.isArray(scenario.laborByEmployee) ? scenario.laborByEmployee : [];
+  const totalComputedMinutes = laborByEmployee.reduce(
+    (sum, employee) => sum + Number(employee.summary?.totalCountedMinutes || 0),
+    0,
+  );
+  const totalRealWorkedMinutes = laborByEmployee.reduce(
+    (sum, employee) => sum + (employee.blocks || [])
+      .reduce((blockSum, block) => blockSum + Number(block.realMinutes || 0), 0),
+    0,
+  );
+  const totalIntervalMinutes = laborByEmployee.reduce(
+    (sum, employee) => sum + (employee.deductions || [])
+      .reduce((deductionSum, deduction) => deductionSum + Number(deduction.realMinutes || 0), 0),
+    0,
+  );
 
   // Any future/unknown engine category stays visible under Logístico instead
   // of disappearing from the History detail or breaking total reconciliation.
@@ -46,5 +62,8 @@ export function mobilizationDraftHistorySummary(scenario = {}) {
     custoLogistico: reais(logisticsC),
     custoTotalEquipe: reais(totalC),
     horasTransito: (Number(scenario.durationMinutes) || 0) / 60,
+    horasReaisTrabalhadasEquipe: totalRealWorkedMinutes / 60,
+    horasComputadasEquipe: totalComputedMinutes / 60,
+    horasIntervalosEquipe: totalIntervalMinutes / 60,
   };
 }

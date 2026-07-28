@@ -17,6 +17,8 @@
  */
 
 import { classifyLabor } from './LaborCostEngine.js';
+import { calculateMealAllowances, DEFAULT_MEAL_ALLOWANCE_POLICY } from './MealAllowanceEngine.js';
+import { resolveEmployeeLaborPolicy } from './laborPolicyDefaults.js';
 
 export const DEFAULT_COST_CONFIG = Object.freeze({
   mealDailyC: 8000,       // R$80,00/dia (3 refeições)
@@ -52,7 +54,10 @@ function overlapsNight(startMs, endMs, tz, nightStart = 22, nightEnd = 5) {
  * @param {{ daysInField?: number }} [p.fieldContext]
  * @returns {{ itinerary: object, breakdown: object, laborByEmployee: object[] }}
  */
-export function computeItineraryCost({ itinerary, employees, laborContext, config = {}, fieldContext = {} }) {
+export function computeItineraryCost({
+  itinerary, employees, laborContext, config = {}, fieldContext = {},
+  allowancePolicy = DEFAULT_MEAL_ALLOWANCE_POLICY,
+}) {
   const cfg = { ...DEFAULT_COST_CONFIG, ...config };
   const team = Math.max(1, employees.length);
 
@@ -85,32 +90,38 @@ export function computeItineraryCost({ itinerary, employees, laborContext, confi
     if (!Number.isInteger(emp.hourlyRateC) || emp.hourlyRateC <= 0) {
       return { employeeId: emp.id, totalCostC: 0, blocks: [], warning: 'missing_hourly_rate' };
     }
+    const employeePolicy = resolveEmployeeLaborPolicy(laborContext.policy, emp);
     const r = classifyLabor({
       segments: itinerary.segments,
       hourlyRateC: emp.hourlyRateC,
-      policy: laborContext.policy,
+      policy: employeePolicy,
       travelTimePolicy: laborContext.travelTimePolicy,
       priorWorkedMinutes: emp.priorWorkedMinutes || 0,
       holidays: laborContext.holidays || [],
     });
     laborCostC += r.totalCostC;
-    return { employeeId: emp.id, totalCostC: r.totalCostC, blocks: r.blocks };
+    return {
+      employeeId: emp.id,
+      totalCostC: r.totalCostC,
+      blocks: r.blocks,
+      deductions: r.deductions,
+      alerts: r.alerts,
+      schedule: {
+        dailyStandardMinutes: employeePolicy.regularDailyMinutes,
+        saturdayCompensated: employeePolicy.saturdayAllHoursOvertime,
+        reducedNightHourEnabled: employeePolicy.reducedNightHourEnabled,
+        weekdayOvertimeMultiplier: employeePolicy.weekdayFirstOvertimeMultiplier,
+        compensatedSaturdayMultiplier: employeePolicy.compensatedSaturdayMultiplier,
+        sundayMultiplier: employeePolicy.sundayMultiplier,
+        nightMultiplier: employeePolicy.nightMultiplier,
+      },
+    };
   });
 
   // --- Transit meals (scale with timeline duration) ---
-  const durationHours = itinerary.durationMinutes / 60;
-  let mealsCount = 0;
-  let transitMealsC = 0;
-  if (manual) {
-    // Manual: explicit meal_break segment prices are the source of truth.
-    transitMealsC = itinerary.segments
-      .filter((s) => s.mode === 'meal_break')
-      .reduce((sum, s) => sum + (s.commercialCostC || 0), 0);
-  } else {
-    mealsCount = Math.floor(durationHours / cfg.mealIntervalHours);
-    const perMealC = Math.round(cfg.mealDailyC / 3);
-    transitMealsC = mealsCount * perMealC * team;
-  }
+  const mealAllowance = calculateMealAllowances({ itinerary, employees, policy: allowancePolicy });
+  const transitMealsC = mealAllowance.totalC;
+  const mealsCount = mealAllowance.byEmployee.reduce((sum, employee) => sum + employee.quantity, 0);
 
   // --- Transit hotel (long night waits/rests not spent on a vehicle) ---
   let hotelNights = 0;
@@ -157,6 +168,8 @@ export function computeItineraryCost({ itinerary, employees, laborContext, confi
     field_hotel_c: fieldHotelC,
     terminal_transfers_c: transferC,
     field_local_c: fieldLocalC,
+    meal_allowances: mealAllowance.byEmployee,
+    meal_allowance_policy: mealAllowance.policy,
     total_c: totalMobilizationCostC,
     inputs: { team, mealsCount, hotelNights, transferCount, daysInField },
   };
@@ -172,5 +185,6 @@ export function computeItineraryCost({ itinerary, employees, laborContext, confi
     },
     breakdown,
     laborByEmployee,
+    mealAllowance,
   };
 }

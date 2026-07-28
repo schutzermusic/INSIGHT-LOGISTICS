@@ -104,6 +104,7 @@ export async function persistManualSimulation({ input, result }) {
             breakdown: sc.breakdown, checks: sc.feasibilityChecks, rest: sc.rest,
             derivedGaps: sc.derivedGaps, continuityIssues: sc.continuityIssues,
             modeSequence: sc.modeSequence, tripType: sc.tripType, timelines: sc.timelines,
+            mealAllowance: sc.mealAllowance,
           },
         })
         .select('id')

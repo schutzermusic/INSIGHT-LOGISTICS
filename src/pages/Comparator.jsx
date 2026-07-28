@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, ArrowDown, ArrowLeftRight, ArrowUp, Bus, Car, Check,
   CheckCircle, ChevronDown, ChevronUp, Clock, Copy, Gauge, Hotel, Info,
-  Loader2, Plane, Plus, Route as RouteIcon, Search, Shield, ShieldCheck,
+  Loader2, Plane, Plus, Route as RouteIcon, Search, ShieldCheck,
   Trash2, Truck, Users, Utensils, X,
 } from 'lucide-react';
 import { useCollaborators } from '../hooks/useStore';
@@ -11,13 +11,18 @@ import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
 import { DatePicker } from '../components/ui/DatePicker';
+import { TimePicker } from '../components/ui/TimePicker';
 import { ConfirmMobilizationModal } from '../components/mobilization/ConfirmMobilizationModal';
+import { MobilizationScenarioDetail } from '../components/mobilization/MobilizationScenarioDetail';
 import { getExtendedCities } from '../engine/routes-intelligence-db';
+import { calcTechnicalHourlyRateC } from '../engine/calculator';
 import { formatBRL, toCentavos } from '../domain/money';
 import { mobilizationDraftHistorySummary } from '../domain/mobilizationDraftSummary';
-import { formatDuration, formatInTz, zonedLocalToUtcIso } from '../lib/datetime';
+import { formatMobilitySequence } from '../domain/mobilityLabels';
+import { formatDuration, zonedLocalToUtcIso } from '../lib/datetime';
 import { mobilizationManualCalculate } from '../services/BackendApiClient';
-import { deleteSimulation, saveSimulation } from '../data/store';
+import { deleteSimulation, saveSimulation, updateSimulation } from '../data/store';
+import { getConfig } from '../data/policyStore.js';
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
 const PAID_TYPES = new Set(['bus', 'flight', 'rental_car', 'company_car', 'transfer', 'hotel_rest', 'meal_break']);
@@ -32,6 +37,7 @@ const SEGMENT_TYPES = [
   { key: 'hotel_rest', label: 'Hotel / Descanso', icon: Hotel, originType: 'hotel', destType: 'hotel', allocation: 'selected_passengers_total' },
   { key: 'meal_break', label: 'Alimentação', icon: Utensils, originType: 'custom', destType: 'custom', allocation: 'per_person' },
 ];
+const TOOLBAR_TYPES = SEGMENT_TYPES.filter(({ key }) => !['waiting', 'meal_break'].includes(key));
 const TYPE_META = Object.fromEntries(SEGMENT_TYPES.map((type) => [type.key, type]));
 const LOCATION_TYPES = [
   ['city', 'Cidade'], ['airport', 'Aeroporto'], ['bus_terminal', 'Rodoviária'],
@@ -59,12 +65,7 @@ const addMinutesToLocal = (local, minutes) => {
 };
 const employeeName = (employee) => employee.nome || employee.name || 'Colaborador';
 const employeeRole = (employee) => employee.cargo || employee.role || 'Cargo não informado';
-const hourlyRateC = (employee) => (
-  employee.hourlyRateC ??
-  (employee.salarioBase && employee.cargaHoraria
-    ? Math.round((employee.salarioBase / employee.cargaHoraria) * 100)
-    : 0)
-);
+const hourlyRateC = calcTechnicalHourlyRateC;
 
 function blankSegment(type, direction, date, previous) {
   const meta = TYPE_META[type];
@@ -96,8 +97,9 @@ function blankSegment(type, direction, date, previous) {
     baggageFee: '',
     taxesAmount: '',
     boardingLeadMinutes: type === 'flight' ? '120' : type === 'bus' ? '30' : '',
-    disembarkMinutes: '',
-    baggageClaimMinutes: '',
+    disembarkMinutes: type === 'flight' ? '20' : type === 'bus' ? '15' : '',
+    baggageClaimMinutes: type === 'flight' ? '30' : type === 'bus' ? '15' : '',
+    checkedBaggage: false,
     driverName: '',
     vehicleCategory: '',
     vehicleReference: '',
@@ -204,7 +206,7 @@ function scenarioIsComplete(scenario, selectedIds, tripType) {
 }
 
 export default function Comparator() {
-  const { collaborators } = useCollaborators();
+  const { collaborators, loading: collaboratorsLoading } = useCollaborators();
   const navigate = useNavigate();
   const location = useLocation();
   const cities = useMemo(() => getExtendedCities(), []);
@@ -227,8 +229,31 @@ export default function Comparator() {
   const [confirmed, setConfirmed] = useState(false);
   const [draftContext, setDraftContext] = useState({});
   const [activeDraftId, setActiveDraftId] = useState(null);
+  const [allowancePolicy, setAllowancePolicy] = useState(null);
   const requestVersion = useRef(0);
   const restoredDraft = useRef(false);
+
+  useEffect(() => {
+    getConfig('meal_allowance_policy_versions').then((row) => {
+      if (!row) return;
+      setAllowancePolicy({
+        id: row.id,
+        version: row.version,
+        name: row.name,
+        status: row.status,
+        leaderDailyC: row.leader_daily_c,
+        standardDailyC: row.standard_daily_c,
+        maxAllowancesPerLocalDay: row.max_allowances_per_local_day,
+        travelingCounts: row.traveling_counts,
+        connectionWaitingCounts: row.connection_waiting_counts,
+        hotelAwayFromBaseCounts: row.hotel_away_from_base_counts,
+        timezoneBasis: row.timezone_basis,
+        noAllowanceBelowMinutes: row.no_allowance_below_minutes,
+        fullAllowanceFromMinutes: row.full_allowance_from_minutes,
+        partialAllowanceRatio: Number(row.partial_allowance_ratio),
+      });
+    });
+  }, []);
 
   useEffect(() => {
     if (restoredDraft.current || !collaborators.length) return;
@@ -424,6 +449,7 @@ export default function Comparator() {
         boardingLeadMinutes: Number(segment.boardingLeadMinutes || 0),
         disembarkMinutes: Number(segment.disembarkMinutes || 0),
         baggageClaimMinutes: Number(segment.baggageClaimMinutes || 0),
+        checkedBaggage: segment.checkedBaggage === true,
         driverName: segment.driverName || null,
         vehicleCategory: segment.vehicleCategory || null,
         vehicleReference: segment.vehicleReference || null,
@@ -468,7 +494,16 @@ export default function Comparator() {
         cargaHoraria: employee.cargaHoraria,
         priorWorkedMinutes: employee.priorWorkedMinutes || 0,
         workedMinutesSource: employee.workedMinutesSource || 'cadastro',
+        allowanceCategory: employee.allowanceCategory === 'leader' ? 'leader' : 'standard',
+        dailyStandardMinutes: employee.dailyStandardMinutes || 480,
+        saturdayCompensated: employee.saturdayCompensated ?? true,
+        reducedNightHourEnabled: employee.reducedNightHourEnabled ?? true,
+        multHE50: employee.multHE50,
+        multHE100: employee.multHE100,
+        multHE150: employee.multHE150,
+        percNoturno: employee.percNoturno,
       })),
+      allowancePolicy: allowancePolicy || undefined,
       scenarios: scenarios.map((scenario) => {
         const raw = [
           ...scenario.outbound.map((segment) => ({ ...segment, direction: 'outbound' })),
@@ -507,7 +542,7 @@ export default function Comparator() {
         };
       }),
     };
-  }, [ctx, scenarios, selectedEmployees, toApiSegment]);
+  }, [allowancePolicy, ctx, scenarios, selectedEmployees, toApiSegment]);
 
   const saveAsDraft = useCallback(async (confirmationContext) => {
     const recommended = result?.recommended;
@@ -517,7 +552,7 @@ export default function Comparator() {
       nome: ctx.name || recommended?.scenarioName || 'Mobilização em rascunho',
       origem: ctx.origin,
       destino: ctx.destination,
-      modal: recommended?.modeSequence?.join(' + ') || 'Multimodal',
+      modal: formatMobilitySequence(recommended?.modeSequence) || 'Multimodal',
       qtdColaboradores: selectedIds.length,
       resumo: mobilizationDraftHistorySummary(recommended),
       editorState: { ctx, selectedIds, scenarios },
@@ -559,6 +594,17 @@ export default function Comparator() {
     return () => window.clearTimeout(timer);
   }, [allComplete, calculate]);
 
+  if (collaboratorsLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHero />
+        <div className="surface-recessed rounded-2xl min-h-48 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 text-mint animate-spin" aria-label="Carregando colaboradores" />
+        </div>
+      </div>
+    );
+  }
+
   if (!collaborators.length) {
     return (
       <div className="space-y-6">
@@ -597,8 +643,6 @@ export default function Comparator() {
           onClear={() => setSelectedIds([])}
         />
       </div>
-
-      <PolicyPanel policy={result?.policySummary} />
 
       <section className="manual-workspace surface-card relative overflow-hidden">
         <div className="p-5 md:p-6">
@@ -668,18 +712,39 @@ export default function Comparator() {
           scenario={result.recommended}
           alternatives={result.scenarios}
           employees={selectedEmployees.map((employee) => ({
-            id: employee.id, name: employeeName(employee), role: employeeRole(employee),
+            id: employee.id,
+            name: employeeName(employee),
+            role: employeeRole(employee),
+            allowanceCategory: employee.allowanceCategory === 'leader' ? 'leader' : 'standard',
           }))}
           origin={ctx.origin}
           destination={ctx.destination}
           context={draftContext}
           refs={{ simulationId: result.audit?.simulationId || null, policySummary: result.policySummary || null }}
           onSaveDraft={saveAsDraft}
-          onConfirmed={async () => {
+          onConfirmed={async (confirmation, confirmationContext) => {
             setConfirmed(true);
+            const confirmedHistory = {
+              type: 'mobilization-draft',
+              status: 'confirmed',
+              nome: ctx.name || result.recommended?.scenarioName || 'Mobilização confirmada',
+              origem: ctx.origin,
+              destino: ctx.destination,
+              modal: formatMobilitySequence(result.recommended?.modeSequence) || 'Multimodal',
+              qtdColaboradores: selectedIds.length,
+              resumo: mobilizationDraftHistorySummary(result.recommended),
+              editorState: { ctx, selectedIds, scenarios },
+              calculationResult: result,
+              confirmationContext: confirmationContext || draftContext,
+              confirmedId: confirmation?.confirmedId || null,
+              confirmedAt: new Date().toISOString(),
+              dashboardPublished: true,
+            };
             if (activeDraftId) {
-              await deleteSimulation(activeDraftId);
-              setActiveDraftId(null);
+              await updateSimulation(activeDraftId, confirmedHistory);
+            } else {
+              const saved = await saveSimulation(confirmedHistory);
+              if (saved?.id) setActiveDraftId(saved.id);
             }
           }}
         />
@@ -875,32 +940,6 @@ function TeamSelector({
   );
 }
 
-function PolicyPanel({ policy }) {
-  const lines = policy?.lines || [
-    'SEG–SEX: 8h normal · próximas 2h a +50% · excedente a +100%',
-    'SÁBADO: todas as horas a +100%',
-    'DOMINGO: todas as horas a 2,5×',
-    'NOTURNO: 22h–05h a +20%',
-    'DESCANSO: 11h consecutivas e qualificáveis para reinício',
-  ];
-  return (
-    <section className="surface-card">
-      <div className="p-4 md:px-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-        <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-accent-cyan" />
-          <span className="text-[13px] font-semibold text-white/80">
-            Política aplicada: {policy ? `${policy.name} v${policy.version}` : 'CLT Padrão v2'}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 flex-1">
-          {lines.map((line) => <span key={line} className="text-[11px] text-white/50">{line}</span>)}
-        </div>
-        <span className="label-micro text-white/35">Somente leitura</span>
-      </div>
-    </section>
-  );
-}
-
 function ScenarioEditor(props) {
   const {
     scenario, tripType, direction, onDirection, selectedIds, employees, cities,
@@ -970,7 +1009,7 @@ function ScenarioEditor(props) {
         ))}
         <div className="add-segment-row">
           <span className="label-micro text-white/50 mr-1">Adicionar trecho</span>
-          {SEGMENT_TYPES.map((type) => (
+          {TOOLBAR_TYPES.map((type) => (
             <button key={type.key} type="button" className="add-segment-button" onClick={() => onAddSegment(direction, type.key)}>
               <type.icon className="w-3.5 h-3.5" /> {type.label}
             </button>
@@ -1176,11 +1215,32 @@ function SegmentForm({ segment, employees, cities, selectedIds, errors, duration
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Field label={scheduleLabels.departureDate}><input type="date" className="glass-input" value={segment.departureDate} onChange={(event) => onUpdate({ departureDate: event.target.value })} /></Field>
-        <Field label={scheduleLabels.departureTime}><input type="time" className="glass-input" value={segment.departureTime} onChange={(event) => onUpdate({ departureTime: event.target.value })} /></Field>
-        <Field label={scheduleLabels.arrivalDate}><input type="date" className="glass-input" value={segment.arrivalDate} onChange={(event) => onUpdate({ arrivalDate: event.target.value })} /></Field>
-        <Field label={scheduleLabels.arrivalTime}><input type="time" className="glass-input" value={segment.arrivalTime} onChange={(event) => onUpdate({ arrivalTime: event.target.value })} /></Field>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <DatePicker
+            label={scheduleLabels.departureDate}
+            value={segment.departureDate}
+            onChange={(departureDate) => onUpdate({ departureDate })}
+          />
+          <TimePicker
+            label={scheduleLabels.departureTime}
+            value={segment.departureTime}
+            onChange={(departureTime) => onUpdate({ departureTime })}
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <DatePicker
+            label={scheduleLabels.arrivalDate}
+            value={segment.arrivalDate}
+            minDate={segment.departureDate ? new Date(`${segment.departureDate}T00:00:00`) : undefined}
+            onChange={(arrivalDate) => onUpdate({ arrivalDate })}
+          />
+          <TimePicker
+            label={scheduleLabels.arrivalTime}
+            value={segment.arrivalTime}
+            onChange={(arrivalTime) => onUpdate({ arrivalTime })}
+          />
+        </div>
       </div>
 
       <TypeSpecificFields segment={segment} onUpdate={onUpdate} />
@@ -1262,9 +1322,6 @@ function TypeSpecificFields({ segment, onUpdate }) {
         <Field label="Empresa de ônibus *"><input className="glass-input" value={segment.providerName} onChange={set('providerName')} placeholder="Ex.: Viação Xavante" /></Field>
         <Field label="Classe / serviço"><input className="glass-input" value={segment.serviceClass} onChange={set('serviceClass')} placeholder="Convencional, executivo, leito..." /></Field>
         <Field label="Referência da cotação"><input className="glass-input" value={segment.quoteReference} onChange={set('quoteReference')} placeholder="Código, telefone ou proposta" /></Field>
-        <Field label="Bagagem / materiais"><input className="glass-input" value={segment.baggageDescription} onChange={set('baggageDescription')} placeholder="Volumes e condições" /></Field>
-        <Field label="Taxas (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.taxesAmount} onChange={set('taxesAmount')} /></Field>
-        <Field label="Bagagem adicional (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.baggageFee} onChange={set('baggageFee')} /></Field>
         <Field label="Antecedência de embarque (min)"><input type="number" min="0" className="glass-input" value={segment.boardingLeadMinutes} onChange={set('boardingLeadMinutes')} /></Field>
         <Field label="Tempo de desembarque (min)"><input type="number" min="0" className="glass-input" value={segment.disembarkMinutes} onChange={set('disembarkMinutes')} /></Field>
       </div>
@@ -1281,7 +1338,9 @@ function TypeSpecificFields({ segment, onUpdate }) {
         <Field label="Taxas aeroportuárias (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.taxesAmount} onChange={set('taxesAmount')} /></Field>
         <Field label="Bagagem adicional (R$)"><input type="number" min="0" step="0.01" className="glass-input" value={segment.baggageFee} onChange={set('baggageFee')} /></Field>
         <Field label="Antecedência / check-in (min)"><input type="number" min="0" className="glass-input" value={segment.boardingLeadMinutes} onChange={set('boardingLeadMinutes')} /></Field>
+        <Field label="Desembarque da aeronave (min)"><input type="number" min="0" className="glass-input" value={segment.disembarkMinutes} onChange={set('disembarkMinutes')} /></Field>
         <Field label="Retirada de bagagem (min)"><input type="number" min="0" className="glass-input" value={segment.baggageClaimMinutes} onChange={set('baggageClaimMinutes')} /></Field>
+        <div className="flex items-end pb-2"><Toggle checked={segment.checkedBaggage === true} onChange={(checkedBaggage) => onUpdate({ checkedBaggage })} label="Possui bagagem despachada" /></div>
       </div>
     ));
   }
@@ -1380,6 +1439,8 @@ function Results({ result, onOpenDrawer }) {
     (a.feasibilityStatus === 'invalid') - (b.feasibilityStatus === 'invalid') ||
     a.totalMobilizationCostC - b.totalMobilizationCostC
   ));
+  const allowanceQuantity = (scenario) => (scenario.mealAllowance?.byEmployee || [])
+    .reduce((total, employee) => total + Number(employee.quantity || 0), 0);
   return (
     <div className="space-y-6">
       {result.recommended && (
@@ -1388,10 +1449,14 @@ function Results({ result, onOpenDrawer }) {
             <SectionTitle icon={CheckCircle} title="Recomendação" subtitle={result.explanation?.summary || 'Cenário viável de menor custo total.'} />
             <Badge variant="success">{result.recommended.scenarioName}</Badge>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-5">
             <Metric label="Custo total" value={formatBRL(result.recommended.totalMobilizationCostC)} accent="text-mint" />
             <Metric label="Transporte" value={formatBRL(result.recommended.commercialCostC + result.recommended.localMobilityCostC)} />
             <Metric label="Mão de obra" value={formatBRL(result.recommended.laborCostC)} />
+            <Metric
+              label="Diárias de alimentação"
+              value={`${allowanceQuantity(result.recommended)} · ${formatBRL(result.recommended.mealAllowance?.totalC || 0)}`}
+            />
             <Metric label="Duração porta a porta" value={formatDuration(result.recommended.durationMinutes)} />
           </div>
         </section>
@@ -1403,6 +1468,7 @@ function Results({ result, onOpenDrawer }) {
             <thead><tr className="border-b border-white/10 text-white/45">
               <th className="text-left p-3">Cenário</th><th className="text-right p-3">Transporte</th>
               <th className="text-right p-3">Mão de obra</th><th className="text-right p-3">Permanência</th>
+              <th className="text-right p-3">Diárias</th>
               <th className="text-right p-3">Total</th><th className="text-right p-3">Duração</th>
               <th className="text-left p-3">Status</th><th />
             </tr></thead>
@@ -1412,6 +1478,7 @@ function Results({ result, onOpenDrawer }) {
                 <td className="p-3 text-right tabular-data">{formatBRL(scenario.commercialCostC + scenario.localMobilityCostC)}</td>
                 <td className="p-3 text-right tabular-data">{formatBRL(scenario.laborCostC)}</td>
                 <td className="p-3 text-right tabular-data">{formatBRL(scenario.permanenceCostC)}</td>
+                <td className="p-3 text-right tabular-data">{allowanceQuantity(scenario)}</td>
                 <td className="p-3 text-right tabular-data font-bold text-white">{formatBRL(scenario.totalMobilizationCostC)}</td>
                 <td className="p-3 text-right tabular-data">{formatDuration(scenario.durationMinutes)}</td>
                 <td className="p-3"><StatusBadge status={scenario.feasibilityStatus} detail={scenario.feasibilityDetail} /></td>
@@ -1445,26 +1512,7 @@ function LaborDrawer({ result, drawer, onClose }) {
           <div><h2 className="display-md text-white">{scenario.scenarioName}</h2><p className="body text-[13px] mt-1">Cálculo trabalhista individual e auditável.</p></div>
           <ActionButton label="Fechar" onClick={onClose}><X className="w-4 h-4" /></ActionButton>
         </div>
-        <div className="space-y-4">
-          {scenario.laborByEmployee.map((employee) => {
-            const summary = employee.summary;
-            return (
-              <div key={employee.employeeId} className="surface-recessed rounded-xl p-4 border border-white/10">
-                <div className="flex justify-between gap-3 mb-3"><strong className="text-white/85">{employee.employeeName}</strong><strong className="text-mint">{formatBRL(employee.totalCostC)}</strong></div>
-                {employee.warning ? <p className="text-[12px] text-amber-300">Sem custo-hora válido.</p> : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <Row label="Hora normal útil" value={formatDuration(summary.regularMinutes)} />
-                    <Row label="HE 50% útil" value={formatDuration(summary.weekdayOvertime50Minutes)} />
-                    <Row label="HE 100% útil" value={formatDuration(summary.weekdayOvertime100Minutes)} />
-                    <Row label="Sábado 100%" value={formatDuration(summary.saturdayOvertime100Minutes)} />
-                    <Row label="Domingo 2,5×" value={formatDuration(summary.sundayPremium150Minutes)} />
-                    <Row label="Adicional noturno" value={formatDuration(summary.nightPremiumMinutes)} />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <MobilizationScenarioDetail scenario={scenario} />
       </aside>
     </div>
   );
@@ -1517,10 +1565,6 @@ function ActionButton({ label, onClick, disabled, children }) {
 
 function Metric({ label, value, accent = 'text-white/85' }) {
   return <div><span className="label-micro text-white/45">{label}</span><div className={`text-[14px] font-semibold tabular-data mt-1 ${accent}`}>{value}</div></div>;
-}
-
-function Row({ label, value }) {
-  return <div className="flex items-center justify-between gap-2 text-[12px]"><span className="text-white/50">{label}</span><span className="tabular-data text-white/75">{value}</span></div>;
 }
 
 function StatusBadge({ status, detail }) {

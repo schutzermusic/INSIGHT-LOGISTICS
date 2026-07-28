@@ -4,7 +4,13 @@ import { DEFAULT_LABOR_POLICY, DEFAULT_TRAVEL_TIME_POLICY } from './laborPolicyD
 
 // R$60,00/hour so 1h regular = 6000 centavos. Weekday=Wed 2026-01-07.
 const RATE = 6000;
-const POLICY = DEFAULT_LABOR_POLICY;
+// Most band tests isolate percentages from the reduced-night-hour conversion.
+// The default-enabled 52m30s conversion has dedicated coverage below.
+const POLICY = {
+  ...DEFAULT_LABOR_POLICY,
+  reducedNightHourEnabled: false,
+  automaticJourneyIntervalEnabled: false,
+};
 const TTP = DEFAULT_TRAVEL_TIME_POLICY;
 
 /** Build a counted bus segment (bus_time counts by default). */
@@ -52,10 +58,11 @@ describe('LaborCostEngine — weekday bands', () => {
     expect(totalCostC).toBe(48000 + 18000); // 8h×1.0 + 2h×1.5
   });
 
-  it('3. twelve weekday hours → 8 + 2@50% + 2@100%', () => {
-    const { totalCostC, blocks } = run([seg('2026-01-07T08:00:00Z', '2026-01-07T20:00:00Z')]);
-    expect(minutesByClass(blocks)).toEqual({ regular: 480, overtime_50: 120, overtime_100: 120 });
-    expect(totalCostC).toBe(48000 + 18000 + 24000);
+  it('3. twelve weekday hours → 8 regular + 4 at 50%, with compliance alert', () => {
+    const { totalCostC, blocks, alerts } = run([seg('2026-01-07T08:00:00Z', '2026-01-07T20:00:00Z')]);
+    expect(minutesByClass(blocks)).toEqual({ regular: 480, overtime_50: 240 });
+    expect(totalCostC).toBe(48000 + 36000);
+    expect(alerts.some((alert) => alert.code === 'daily_overtime_limit_exceeded')).toBe(true);
   });
 });
 
@@ -80,7 +87,7 @@ describe('LaborCostEngine — Saturday / Sunday', () => {
       segments: [seg('2026-01-10T08:00:00Z', '2026-01-10T18:00:00Z')],
       hourlyRateC: RATE, policy: legacy, travelTimePolicy: TTP,
     });
-    expect(minutesByClass(blocks)).toEqual({ regular: 480, overtime_100: 120 });
+    expect(minutesByClass(blocks)).toEqual({ regular: 480, overtime_50: 120 });
   });
 
   it('6. Sunday hours at the 150% premium (2.5x)', () => {
@@ -99,13 +106,14 @@ describe('LaborCostEngine — night premium (overlapping, §5)', () => {
     expect(totalCostC).toBe(14400); // 2h × 6000 × 1.2 (additive: 1.0 + 0.2)
   });
 
-  it('8. overtime + night premium (spec example: OT100 at 23:00 + 20%)', () => {
+  it('8. overtime + night premium stacks multiplicatively (1.5 × 1.2)', () => {
     const { totalCostC, blocks } = run(
       [seg('2026-01-07T22:00:00Z', '2026-01-08T00:00:00Z')],
-      { priorWorkedMinutes: 600 } // already 10h → next hours are OT100
+      { priorWorkedMinutes: 600 }
     );
-    expect(minutesByClass(blocks)).toEqual({ overtime_100: 120 });
-    expect(totalCostC).toBe(26400); // 2h × 6000 × 2.2 (additive: 2.0 + 0.2)
+    expect(minutesByClass(blocks)).toEqual({ overtime_50: 120 });
+    expect(blocks.every((block) => Math.abs(block.finalMultiplier - 1.8) < 0.000001)).toBe(true);
+    expect(totalCostC).toBe(21600);
   });
 });
 
@@ -138,15 +146,15 @@ describe('LaborCostEngine — boundary crossings (§14)', () => {
   });
 
   it('12. existing worked hours before departure (§7 worked example)', () => {
-    // Worked 6h, travel begins 18:00 for 7h → 2 normal + 2@50% + 3@100%.
+    // Worked 6h, travel begins 18:00 for 7h → 2 normal + 5@50%.
     const { blocks } = run(
       [seg('2026-01-07T18:00:00Z', '2026-01-08T01:00:00Z')],
       { priorWorkedMinutes: 360 }
     );
     const cls = minutesByClass(blocks);
     expect(cls.regular).toBe(120);      // 2h
-    expect(cls.overtime_50).toBe(120);  // 2h
-    expect(cls.overtime_100).toBe(180); // 3h
+    expect(cls.overtime_50).toBe(300);
+    expect(cls.overtime_100).toBeUndefined();
   });
 });
 
@@ -253,14 +261,188 @@ describe('LaborCostEngine — rounding & stacking modes (§15, §5)', () => {
 
   it('20. additive vs multiplicative night stacking', () => {
     const s = [seg('2026-01-07T22:00:00Z', '2026-01-08T00:00:00Z')]; // 2h night
-    const opts = { priorWorkedMinutes: 600 }; // OT100 band
-    const additive = classifyLabor({ segments: s, hourlyRateC: RATE, policy: POLICY, travelTimePolicy: TTP, ...opts });
+    const opts = { priorWorkedMinutes: 600 }; // OT50 band
+    const additive = classifyLabor({
+      segments: s, hourlyRateC: RATE,
+      policy: { ...POLICY, premiumStackingMode: 'additive' },
+      travelTimePolicy: TTP, ...opts,
+    });
     const multiplicative = classifyLabor({
       segments: s, hourlyRateC: RATE, travelTimePolicy: TTP, ...opts,
       policy: { ...POLICY, premiumStackingMode: 'multiplicative' },
     });
-    expect(additive.totalCostC).toBe(26400);       // 2h × 6000 × (2.0 + 0.2)
-    expect(multiplicative.totalCostC).toBe(28800); // 2h × 6000 × (2.0 × 1.2)
+    expect(additive.totalCostC).toBe(20400);       // 2h × 6000 × (1.5 + 0.2)
+    expect(multiplicative.totalCostC).toBe(21600); // 2h × 6000 × (1.5 × 1.2)
     expect(additive.totalCostC).toBeLessThan(multiplicative.totalCostC);
+  });
+});
+
+describe('LaborCostEngine — corrected contractual rules', () => {
+  it('converts the complete 22:00–05:00 window from 420 real to 480 computed minutes', () => {
+    const result = classifyLabor({
+      segments: [seg('2026-01-07T22:00:00Z', '2026-01-08T05:00:00Z')],
+      hourlyRateC: RATE,
+      policy: DEFAULT_LABOR_POLICY,
+      travelTimePolicy: TTP,
+    });
+    expect(result.totalRealMinutes).toBe(420);
+    expect(result.totalCountedMinutes).toBe(480);
+    expect(result.blocks.reduce((sum, block) => sum + block.computedMinutes, 0)).toBeCloseTo(480, 8);
+    expect(result.blocks.every((block) => block.nightPremiumPercent === 20)).toBe(true);
+  });
+
+  it('never emits a 25% night premium or a 1.25 night multiplier', () => {
+    const { blocks } = classifyLabor({
+      segments: [seg('2026-01-07T22:00:00Z', '2026-01-08T01:00:00Z')],
+      hourlyRateC: RATE,
+      policy: DEFAULT_LABOR_POLICY,
+      travelTimePolicy: TTP,
+    });
+    expect(DEFAULT_LABOR_POLICY.nightMultiplier).toBe(1.2);
+    expect(blocks.every((block) => block.nightPremiumPercent !== 25)).toBe(true);
+    expect(blocks.flatMap((block) => block.appliedMultipliers).includes(1.25)).toBe(false);
+  });
+
+  it('supports an individual 8h48 schedule before weekday overtime starts', () => {
+    const { blocks } = classifyLabor({
+      segments: [seg('2026-01-07T08:00:00Z', '2026-01-07T17:48:00Z')],
+      hourlyRateC: RATE,
+      policy: { ...POLICY, regularDailyMinutes: 528 },
+      travelTimePolicy: TTP,
+    });
+    expect(minutesByClass(blocks)).toEqual({ regular: 528, overtime_50: 60 });
+  });
+
+  it('distinguishes normal Saturday from compensated Saturday', () => {
+    const trip = [seg('2026-01-10T08:00:00Z', '2026-01-10T18:00:00Z')];
+    const normal = classifyLabor({
+      segments: trip,
+      hourlyRateC: RATE,
+      policy: { ...POLICY, saturdayAllHoursOvertime: false },
+      travelTimePolicy: TTP,
+    });
+    const compensated = run(trip);
+    expect(minutesByClass(normal.blocks)).toEqual({ regular: 480, overtime_50: 120 });
+    expect(minutesByClass(compensated.blocks)).toEqual({ overtime_100: 600 });
+  });
+
+  it('applies Sunday 2.5× and stacks the 20% night premium at 3.0×', () => {
+    const { blocks, totalCostC } = run([seg('2026-01-11T22:00:00Z', '2026-01-12T00:00:00Z')]);
+    expect(blocks.every((block) => block.dayType === 'sunday')).toBe(true);
+    expect(blocks.every((block) => block.finalMultiplier === 3)).toBe(true);
+    expect(totalCostC).toBe(36000);
+  });
+
+  it('keeps the journey across days without rest and resets after explicit 11h rest', () => {
+    const noRest = run([
+      seg('2026-01-07T08:00:00Z', '2026-01-07T16:00:00Z'),
+      seg('2026-01-08T02:00:00Z', '2026-01-08T04:00:00Z'),
+    ]);
+    expect(noRest.blocks.filter((block) => block.localDate === '2026-01-08')
+      .every((block) => block.baseClassification === 'overtime_50')).toBe(true);
+
+    const rest = seg('2026-01-07T16:00:00Z', '2026-01-08T03:00:00Z', { rule: 'hotel_rest' });
+    const reset = run([
+      seg('2026-01-07T08:00:00Z', '2026-01-07T16:00:00Z'),
+      rest,
+      seg('2026-01-08T03:00:00Z', '2026-01-08T05:00:00Z'),
+    ]);
+    expect(reset.blocks.filter((block) => block.localDate === '2026-01-08')
+      .every((block) => block.baseClassification === 'regular')).toBe(true);
+  });
+
+  it('changes the percentage exactly at a Saturday/Sunday midnight boundary', () => {
+    const { blocks } = run([seg('2026-01-10T23:30:00Z', '2026-01-11T00:30:00Z')]);
+    expect(blocks.find((block) => block.dayType === 'saturday')?.overtimePercent).toBe(100);
+    expect(blocks.find((block) => block.dayType === 'sunday')?.overtimePercent).toBe(150);
+  });
+
+  it('classifies Friday 12:00 through Saturday 05:00 by every applicable boundary', () => {
+    const { blocks, totalCostC } = run([seg('2026-01-09T12:00:00Z', '2026-01-10T05:00:00Z')]);
+    expect(minutesByClass(blocks)).toEqual({
+      regular: 480,
+      overtime_50: 240,
+      overtime_100: 300,
+    });
+    expect(blocks.some((block) => (
+      block.dayType === 'weekday' &&
+      block.baseClassification === 'overtime_50' &&
+      block.nightPremiumApplied
+    ))).toBe(true);
+    expect(blocks.filter((block) => block.dayType === 'saturday')
+      .every((block) => block.finalMultiplier === 2.4)).toBe(true);
+    expect(totalCostC).toBe(159600);
+  });
+
+  it('keeps one continuous counter over three consecutive travel dates', () => {
+    const { blocks, alerts } = run([seg('2026-01-09T20:00:00Z', '2026-01-12T02:00:00Z')]);
+    expect(new Set(blocks.map((block) => block.localDate)).size).toBe(4);
+    expect(alerts.some((alert) => alert.code === 'continuous_multiday_journey')).toBe(true);
+    expect(blocks.filter((block) => block.localDate === '2026-01-12')
+      .every((block) => block.baseClassification === 'overtime_50')).toBe(true);
+  });
+
+  it('recognizes only an explicit released interval, never waiting, as the break', () => {
+    const travelPolicyWithoutWaiting = { ...TTP, airportWaitingCounts: false };
+    const waitingResult = classifyLabor({
+      segments: [
+        seg('2026-01-07T08:00:00Z', '2026-01-07T12:00:00Z'),
+        seg('2026-01-07T12:00:00Z', '2026-01-07T13:00:00Z', { rule: 'airport_waiting' }),
+        seg('2026-01-07T13:00:00Z', '2026-01-07T16:00:00Z'),
+      ],
+      hourlyRateC: RATE,
+      policy: POLICY,
+      travelTimePolicy: travelPolicyWithoutWaiting,
+    });
+    expect(waitingResult.alerts.some((alert) => alert.code === 'missing_registered_interval')).toBe(true);
+
+    const intervalResult = run([
+      seg('2026-01-07T08:00:00Z', '2026-01-07T12:00:00Z'),
+      seg('2026-01-07T12:00:00Z', '2026-01-07T12:30:00Z', { rule: 'meal_break' }),
+      seg('2026-01-07T12:30:00Z', '2026-01-07T15:30:00Z'),
+    ]);
+    expect(intervalResult.alerts.some((alert) => alert.code === 'missing_registered_interval')).toBe(false);
+  });
+
+  it('automatically deducts one hour of interval for every complete 8h in a local day', () => {
+    const intervalPolicy = { ...POLICY, automaticJourneyIntervalEnabled: true };
+    const result = classifyLabor({
+      segments: [seg('2026-01-07T00:00:00Z', '2026-01-07T16:00:00Z')],
+      hourlyRateC: RATE,
+      policy: intervalPolicy,
+      travelTimePolicy: TTP,
+    });
+    expect(result.totalRealMinutes).toBe(14 * 60);
+    expect(result.deductions).toEqual([
+      expect.objectContaining({ localDate: '2026-01-07', intervalSequence: 1, realMinutes: 60, source: 'system' }),
+      expect.objectContaining({ localDate: '2026-01-07', intervalSequence: 2, realMinutes: 60, source: 'system' }),
+    ]);
+    expect(result.alerts.filter((alert) => alert.code === 'automatic_eight_hour_interval_deduction')).toHaveLength(2);
+  });
+
+  it('does not apply the automatic interval before completing 8h', () => {
+    const result = classifyLabor({
+      segments: [seg('2026-01-07T00:00:00Z', '2026-01-07T07:59:00Z')],
+      hourlyRateC: RATE,
+      policy: { ...POLICY, automaticJourneyIntervalEnabled: true },
+      travelTimePolicy: TTP,
+    });
+    expect(result.totalRealMinutes).toBe(479);
+    expect(result.deductions).toHaveLength(0);
+  });
+
+  it('credits an explicit released interval and does not deduct it twice', () => {
+    const result = classifyLabor({
+      segments: [
+        seg('2026-01-07T00:00:00Z', '2026-01-07T04:00:00Z'),
+        seg('2026-01-07T04:00:00Z', '2026-01-07T05:00:00Z', { rule: 'meal_break' }),
+        seg('2026-01-07T05:00:00Z', '2026-01-07T09:00:00Z'),
+      ],
+      hourlyRateC: RATE,
+      policy: { ...POLICY, automaticJourneyIntervalEnabled: true },
+      travelTimePolicy: TTP,
+    });
+    expect(result.deductions).toHaveLength(0);
+    expect(result.totalRealMinutes).toBe(8 * 60);
   });
 });

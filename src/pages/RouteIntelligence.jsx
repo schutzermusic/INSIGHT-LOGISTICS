@@ -729,13 +729,13 @@ export default function RouteIntelligence() {
                           }`}>Logistics + Labor Cost</div>
                           <div className={`label-micro mt-1 ${
                             operationalMode === 'logistics-labor' ? 'text-white/30' : 'text-white/15'
-                          }`}>Custo hora tecnica + horas extras</div>
+                          }`}>Hora técnica +70% + horas extras</div>
                         </div>
                       </div>
                       <div className={`body text-[13px] leading-relaxed ${
                         operationalMode === 'logistics-labor' ? 'text-white/25' : 'text-white/12'
                       }`}>
-                        Inclui custo hora tecnica, hora normal, HE 50%, HE 100%, HE 150%, adicional noturno
+                        Inclui hora técnica com 70% de encargos, hora normal, HE 50%, HE 100%, HE 150% e adicional noturno
                       </div>
                       {operationalMode === 'logistics-labor' && (
                         <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-accent-purple animate-pulse" />

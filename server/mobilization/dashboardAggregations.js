@@ -323,8 +323,37 @@ export function activeMapItems(rows, nowMs = Date.now()) {
         riskLevel: r.risk_level,
         source: r.source === 'manual_simulation' ? 'manual' : 'automatic',
         lastUpdatedAt: r.updated_at || r.confirmed_at,
+        // Hospedagem (§6.1 accommodation): the globe shows a hotel marker at the
+        // destination while the team is lodged. `lodgingActive` is true once the
+        // team has arrived (real-time, per current date) and the operation is
+        // still running.
+        lodging: buildLodging(r, st, nowMs, dLat, dLng),
       };
     });
+}
+
+/**
+ * Build the lodging (hospedagem) descriptor for the HUD globe. A mobilization
+ * has lodging when it carries accommodation cost; nights are estimated from the
+ * door-to-door duration (min 1 when there is accommodation spend). The hotel
+ * marker sits at the destination and is "active" once the team has arrived and
+ * the operation is still running (real-time, keyed to `nowMs`).
+ */
+function buildLodging(r, liveState, nowMs, dLat, dLng) {
+  const accommodationCostMinor = int(r.accommodation_cost_c);
+  if (accommodationCostMinor <= 0) return null;
+  const nights = Math.max(1, Math.round(int(r.duration_minutes) / (24 * 60)));
+  const arr = Date.parse(r.expected_arrival_at);
+  const active = Number.isFinite(arr) && nowMs >= arr && r.confirmation_status !== 'completed';
+  return {
+    hasLodging: true,
+    nights,
+    accommodationCostMinor,
+    label: `Hospedagem · ${r.destination_label}`,
+    lat: dLat,
+    lng: dLng,
+    active,
+  };
 }
 
 function summarizeTeam(snapshot) {

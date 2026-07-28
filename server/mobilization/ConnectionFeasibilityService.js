@@ -91,3 +91,49 @@ export function evaluateConnection(prev, next, opts = {}) {
   }
   return { feasible: true, gapMin, requiredMin, reason: null };
 }
+
+/**
+ * Resolve the exact operational components that occupy a manual connection.
+ * Segment metadata overrides policy defaults, while checked baggage controls
+ * whether a flight baggage-claim block applies.
+ */
+export function connectionComponents(prev, next, opts = {}) {
+  const p = { ...DEFAULT_BUFFER_POLICY, ...(opts.policy || {}) };
+  const prevMeta = prev.metadata || {};
+  const nextMeta = next.metadata || {};
+  const checkedBaggage = prev.mode === 'flight'
+    ? prevMeta.checkedBaggage === true
+    : Number(prevMeta.baggageClaimMinutes || 0) > 0;
+  const disembarkationMinutes = ['flight', 'bus'].includes(prev.mode)
+    ? Math.max(0, Number(prevMeta.disembarkMinutes ?? p.disembarkBufferMin) || 0)
+    : 0;
+  const baggageClaimMinutes = checkedBaggage
+    ? Math.max(0, Number(prevMeta.baggageClaimMinutes || 0))
+    : 0;
+  const terminalTransferMinutes = opts.requiresTerminalTransfer
+    ? Math.max(0, Number(opts.terminalTransferMinutes ?? p.differentTerminalTransferMin) || 0)
+    : 0;
+  const nextBoardingBufferMinutes = ['flight', 'bus'].includes(next.mode)
+    ? Math.max(0, Number(nextMeta.boardingLeadMinutes ?? (
+      next.mode === 'flight' ? p.airportCheckinBufferMin : p.busTerminalBoardingMin
+    )) || 0)
+    : 0;
+  const availableMinutes = Math.round(
+    (Date.parse(next.departureAtUtc) - Date.parse(prev.arrivalAtUtc)) / MS_PER_MINUTE,
+  );
+  const requiredMinutes = disembarkationMinutes + baggageClaimMinutes +
+    terminalTransferMinutes + nextBoardingBufferMinutes;
+
+  return {
+    availableMinutes,
+    requiredMinutes,
+    residualWaitingMinutes: Math.max(0, availableMinutes - requiredMinutes),
+    feasible: availableMinutes >= requiredMinutes,
+    components: {
+      disembarkationMinutes,
+      baggageClaimMinutes,
+      terminalTransferMinutes,
+      nextBoardingBufferMinutes,
+    },
+  };
+}

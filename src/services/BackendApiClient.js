@@ -306,6 +306,11 @@ export async function dashboardConfirm(payload) {
   return post('/dashboard/confirm', payload, { timeoutMs: 15000 });
 }
 
+/** Cancel a confirmation so it no longer feeds the Dashboard. */
+export async function dashboardRevertConfirmation(confirmedId) {
+  return post(`/dashboard/confirmations/${confirmedId}/revert`, {}, { timeoutMs: 15000 });
+}
+
 /** Full aggregated dashboard payload for the given global filters (§8, §12). */
 export async function dashboardOverview(filters = {}) {
   return get(`/dashboard/overview${toQuery(filters)}`, { timeoutMs: 15000 });

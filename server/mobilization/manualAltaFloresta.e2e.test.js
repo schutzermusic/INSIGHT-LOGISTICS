@@ -51,13 +51,13 @@ const SCENARIO_A = {
       dep: '2026-01-10T08:00', depTz: MT, arr: '2026-01-10T20:00', arrTz: GO, priceAmountMinor: 30000 }),
     leg({ segmentType: 'transfer', originLocationId: 'Rodoviária de Goiânia', destinationLocationId: 'Aeroporto de Goiânia',
       originLocationType: 'bus_terminal', destinationLocationType: 'airport',
-      dep: '2026-01-10T20:30', depTz: GO, arr: '2026-01-10T21:15', arrTz: GO, priceAmountMinor: 6000, priceAllocation: 'scenario_total' }),
+      dep: '2026-01-10T20:20', depTz: GO, arr: '2026-01-10T21:05', arrTz: GO, priceAmountMinor: 6000, priceAllocation: 'scenario_total' }),
     leg({ segmentType: 'flight', originLocationId: 'Aeroporto de Goiânia', destinationLocationId: 'Aeroporto de Belém',
       originLocationType: 'airport', destinationLocationType: 'airport',
-      dep: '2026-01-10T22:00', depTz: GO, arr: '2026-01-11T00:30', arrTz: PA, priceAmountMinor: 90000 }),
+      dep: '2026-01-10T22:35', depTz: GO, arr: '2026-01-11T01:05', arrTz: PA, priceAmountMinor: 90000 }),
     leg({ segmentType: 'transfer', originLocationId: 'Aeroporto de Belém', destinationLocationId: 'Rodoviária de Belém',
       originLocationType: 'airport', destinationLocationType: 'bus_terminal',
-      dep: '2026-01-11T01:00', depTz: PA, arr: '2026-01-11T01:45', arrTz: PA, priceAmountMinor: 6000, priceAllocation: 'scenario_total' }),
+      dep: '2026-01-11T01:25', depTz: PA, arr: '2026-01-11T02:10', arrTz: PA, priceAmountMinor: 6000, priceAllocation: 'scenario_total' }),
     leg({ segmentType: 'bus', originLocationId: 'Rodoviária de Belém', destinationLocationId: 'Tucuruí',
       originLocationType: 'bus_terminal', destinationLocationType: 'bus_terminal',
       dep: '2026-01-11T03:00', depTz: PA, arr: '2026-01-11T10:00', arrTz: PA, priceAmountMinor: 15000 }),
@@ -117,7 +117,9 @@ describe('E2E — Manual Alta Floresta → Tucuruí (§25.4)', () => {
     const bruno = A.laborByEmployee.find((l) => l.employeeId === 'e2');
     expect(ana.summary.totalCountedMinutes).toBe(bruno.summary.totalCountedMinutes); // same route
     // 90/h vs 60/h → 1.5× cost, same minutes.
-    expect(bruno.totalCostC).toBe(Math.round(ana.totalCostC * 1.5));
+    // Each explainable block is rounded independently to centavos, so the
+    // proportional total may differ by one cent after consolidation.
+    expect(Math.abs(bruno.totalCostC - Math.round(ana.totalCostC * 1.5))).toBeLessThanOrEqual(1);
     expect(A.laborCostC).toBe(ana.totalCostC + bruno.totalCostC);
   });
 

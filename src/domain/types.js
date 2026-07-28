@@ -85,14 +85,21 @@
  * @property {number} regularDailyMinutes — e.g. 480 (8h)
  * @property {number} weekdayFirstOvertimeMinutes — e.g. 120 (2h)
  * @property {number} weekdayFirstOvertimeMultiplier — e.g. 1.5
- * @property {number} weekdayExcessMultiplier — e.g. 2.0
+ * @property {number} weekdayExcessMultiplier — compatibility field; default 1.5
  * @property {number} saturdayRegularMinutes — e.g. 480
- * @property {number} saturdayExcessMultiplier — e.g. 2.0
+ * @property {number} saturdayExcessMultiplier — e.g. 1.5 for normal Saturday
+ * @property {number} compensatedSaturdayMultiplier — e.g. 2.0
  * @property {number} sundayMultiplier — e.g. 2.5
  * @property {string} nightStartLocalTime — "22:00"
  * @property {string} nightEndLocalTime — "05:00"
  * @property {number} nightMultiplier — e.g. 1.2 (the +20% premium)
  * @property {'multiplicative'|'additive'} premiumStackingMode — night × OT, or additive (§5)
+ * @property {boolean} reducedNightHourEnabled
+ * @property {number} reducedNightHourMinutes — default 52.5
+ * @property {number} interJourneyRestMinutes — default 660
+ * @property {boolean} automaticJourneyIntervalEnabled
+ * @property {number} journeyIntervalEveryMinutes — default 480
+ * @property {number} journeyIntervalDeductionMinutes — default 60
  * @property {'draft'|'approved'|'retired'} status
  * @property {number} version
  */
@@ -104,7 +111,9 @@
  * @property {string} startAtUtc
  * @property {string} endAtUtc
  * @property {string} localTimezone
- * @property {number} countedMinutes — minutes that count as paid labor
+ * @property {number} realMinutes — elapsed wall-clock minutes
+ * @property {number} computedMinutes — paid minutes after reduced-night-hour conversion
+ * @property {number} countedMinutes — rounded compatibility alias for computedMinutes
  * @property {'regular'|'overtime_50'|'overtime_100'|'overtime_150'|'custom'} baseClassification
  * @property {boolean} nightPremiumApplied
  * @property {boolean} holidayPremiumApplied

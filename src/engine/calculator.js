@@ -6,6 +6,9 @@
 /**
  * Calcula os valores de hora para um colaborador
  */
+export const ENCARGOS_TRABALHISTAS_PERCENTUAL = 70;
+const ENCARGOS_TRABALHISTAS_MULTIPLICADOR = 1 + ENCARGOS_TRABALHISTAS_PERCENTUAL / 100;
+
 export function calcHourlyRates(collaborator) {
     const { salarioBase, cargaHoraria, valorHoraTecnica, multHE50, multHE100, multHE150, percNoturno } = collaborator;
 
@@ -14,7 +17,8 @@ export function calcHourlyRates(collaborator) {
     const horaExtra100 = horaNormal * (multHE100 || 2.0);
     const horaExtra150 = horaNormal * (multHE150 || 2.5);
     const horaNoturna = horaNormal * (1 + (percNoturno || 20) / 100);
-    const horaTecnica = valorHoraTecnica || horaNormal;
+    const horaTecnicaBase = valorHoraTecnica || horaNormal;
+    const horaTecnica = horaTecnicaBase * ENCARGOS_TRABALHISTAS_MULTIPLICADOR;
 
     return {
         horaNormal: round(horaNormal),
@@ -22,8 +26,34 @@ export function calcHourlyRates(collaborator) {
         horaExtra100: round(horaExtra100),
         horaExtra150: round(horaExtra150),
         horaNoturna: round(horaNoturna),
+        horaTecnicaBase: round(horaTecnicaBase),
         horaTecnica: round(horaTecnica),
+        encargosTrabalhistasPercentual: ENCARGOS_TRABALHISTAS_PERCENTUAL,
     };
+}
+
+/** Resolve a hora técnica carregada em centavos para os motores de mobilização. */
+export function calcTechnicalHourlyRateC(collaborator) {
+    const fullyLoadedC =
+        collaborator.fullyLoadedHourlyRateC ??
+        collaborator.fully_loaded_hourly_rate_c;
+    if (Number.isInteger(fullyLoadedC) && fullyLoadedC > 0) return fullyLoadedC;
+
+    const explicitBaseC =
+        collaborator.hourlyRateC ??
+        collaborator.valorHoraC ??
+        collaborator.valor_hora_c ??
+        collaborator.hourly_rate_c ??
+        collaborator.custoHoraC ??
+        collaborator.custo_hora_c;
+    const baseReais = Number(collaborator.valorHoraTecnica) > 0
+        ? Number(collaborator.valorHoraTecnica)
+        : Number(collaborator.salarioBase) > 0 && Number(collaborator.cargaHoraria) > 0
+            ? Number(collaborator.salarioBase) / Number(collaborator.cargaHoraria)
+            : Number(explicitBaseC) > 0
+                ? Number(explicitBaseC) / 100
+                : 0;
+    return Math.round(baseReais * ENCARGOS_TRABALHISTAS_MULTIPLICADOR * 100);
 }
 
 /**

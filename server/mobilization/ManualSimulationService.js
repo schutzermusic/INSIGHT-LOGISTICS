@@ -19,10 +19,20 @@ import { evaluateManualFeasibility } from './ManualFeasibilityService.js';
 import { computeItineraryCost } from './OperationalCostEngine.js';
 import { classifyLabor } from './LaborCostEngine.js';
 import { recommend } from './RecommendationEngine.js';
-import { DEFAULT_LABOR_POLICY, DEFAULT_TRAVEL_TIME_POLICY } from './laborPolicyDefaults.js';
+import {
+  DEFAULT_LABOR_POLICY,
+  DEFAULT_TRAVEL_TIME_POLICY,
+  resolveEmployeeLaborPolicy,
+} from './laborPolicyDefaults.js';
+
+const optionalNumber = (value) => {
+  if (value === null || value === undefined || value === '') return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+};
 
 /** Reduce a labor block list into the §11.2 per-employee minute buckets. */
-function summarizeBlocks(blocks) {
+export function summarizeBlocks(blocks) {
   const s = {
     regularMinutes: 0,
     weekdayOvertime50Minutes: 0,
@@ -51,7 +61,7 @@ function summarizeBlocks(blocks) {
 }
 
 /** Segments a given employee actually travels on (§14). */
-function segmentsForEmployee(itinerary, employeeId) {
+export function segmentsForEmployee(itinerary, employeeId) {
   return itinerary.segments.filter(
     (s) => !s.passengerIds || s.passengerIds.length === 0 || s.passengerIds.includes(employeeId)
   );
@@ -107,7 +117,10 @@ export function validateManualSimulationInput(input) {
  * @returns {object} costed scenario itinerary (recommend-compatible)
  */
 export function computeScenario(p) {
-  const { scenario, employees, policy, travelTimePolicy, deadlineUtc = null, config = {}, holidays = [], daysInField = 0 } = p;
+  const {
+    scenario, employees, policy, travelTimePolicy, allowancePolicy,
+    deadlineUtc = null, config = {}, holidays = [], daysInField = 0,
+  } = p;
   const employeeIds = employees.map((e) => e.id);
 
   const { itinerary, derivedGaps, continuityIssues } = buildManualItinerary({
@@ -116,6 +129,7 @@ export function computeScenario(p) {
     segments: scenario.segments || [],
     passengerIds: employeeIds,
     deadlineUtc,
+    gapPolicy: config.connectionBufferPolicy || config.connectionBuffers || {},
   });
 
   const feasibility = evaluateManualFeasibility({
@@ -128,7 +142,7 @@ export function computeScenario(p) {
   // below over each employee's actual segments (§14).
   const op = computeItineraryCost({
     itinerary, employees, laborContext: { policy, travelTimePolicy, holidays },
-    config, fieldContext: { daysInField },
+    config, fieldContext: { daysInField }, allowancePolicy,
   });
   const b = op.breakdown;
   const commercialCostC = op.itinerary.commercialCostC;
@@ -144,10 +158,11 @@ export function computeScenario(p) {
         totalCostC: 0, blocks: [], summary: summarizeBlocks([]), warning: 'missing_hourly_rate',
       };
     }
+    const employeePolicy = resolveEmployeeLaborPolicy(policy, emp);
     const r = classifyLabor({
       segments: segmentsForEmployee(itinerary, emp.id),
       hourlyRateC: emp.hourlyRateC,
-      policy, travelTimePolicy,
+      policy: employeePolicy, travelTimePolicy,
       priorWorkedMinutes: emp.priorWorkedMinutes || 0,
       holidays,
     });
@@ -156,7 +171,20 @@ export function computeScenario(p) {
       employeeId: emp.id, employeeName: emp.name, hourlyRateC: emp.hourlyRateC,
       priorWorkedMinutes: emp.priorWorkedMinutes || 0,
       workedMinutesSource: emp.workedMinutesSource || 'manual',
-      totalCostC: r.totalCostC, blocks: r.blocks, summary: summarizeBlocks(r.blocks),
+      schedule: {
+        dailyStandardMinutes: employeePolicy.regularDailyMinutes,
+        saturdayCompensated: employeePolicy.saturdayAllHoursOvertime,
+        reducedNightHourEnabled: employeePolicy.reducedNightHourEnabled,
+        weekdayOvertimeMultiplier: employeePolicy.weekdayFirstOvertimeMultiplier,
+        compensatedSaturdayMultiplier: employeePolicy.compensatedSaturdayMultiplier,
+        sundayMultiplier: employeePolicy.sundayMultiplier,
+        nightMultiplier: employeePolicy.nightMultiplier,
+      },
+      totalCostC: r.totalCostC,
+      blocks: r.blocks,
+      deductions: r.deductions,
+      summary: summarizeBlocks(r.blocks),
+      alerts: r.alerts,
     };
   });
 
@@ -195,10 +223,12 @@ export function computeScenario(p) {
       transit_meals_c: b.transit_meals_c, transit_hotel_c: b.transit_hotel_c,
       field_meals_c: b.field_meals_c, field_hotel_c: b.field_hotel_c,
       terminal_transfers_c: b.terminal_transfers_c, field_local_c: b.field_local_c,
+      meal_allowances: b.meal_allowances, meal_allowance_policy: b.meal_allowance_policy,
       commercial_c: commercialCostC, permanence_c: permanenceCostC, local_mobility_c: localMobilityCostC,
       total_c: totalMobilizationCostC,
     },
     laborByEmployee,
+    mealAllowance: op.mealAllowance,
     score: 0,
     rankingCategory: undefined,
   };
@@ -221,6 +251,7 @@ export function computeScenario(p) {
 export function runManualSimulation(input) {
   const policy = input.policy || DEFAULT_LABOR_POLICY;
   const travelTimePolicy = input.travelTimePolicy || DEFAULT_TRAVEL_TIME_POLICY;
+  const allowancePolicy = input.allowancePolicy;
   const deadlineUtc = input.deadlineUtc || input.simulation?.deadlineUtc || null;
 
   // Normalize employee cost basis to centavos/hour (§6) — never float money.
@@ -233,11 +264,29 @@ export function runManualSimulation(input) {
       : (e.salarioBase && e.cargaHoraria ? Math.round((e.salarioBase / e.cargaHoraria) * 100) : 0),
     priorWorkedMinutes: e.priorWorkedMinutes || 0,
     workedMinutesSource: e.workedMinutesSource || 'manual',
+    allowanceCategory: e.allowanceCategory === 'leader' ? 'leader' : 'standard',
+    allowanceOverride: e.allowanceOverride || null,
+    allowanceOverrideJustification: e.allowanceOverrideJustification || null,
+    dailyStandardMinutes: Number.isFinite(Number(e.dailyStandardMinutes))
+      ? Math.round(Number(e.dailyStandardMinutes))
+      : Number.isFinite(Number(e.dailyStandardHours))
+        ? Math.round(Number(e.dailyStandardHours) * 60)
+        : policy.regularDailyMinutes,
+    saturdayCompensated: typeof e.saturdayCompensated === 'boolean'
+      ? e.saturdayCompensated
+      : policy.saturdayAllHoursOvertime,
+    reducedNightHourEnabled: typeof e.reducedNightHourEnabled === 'boolean'
+      ? e.reducedNightHourEnabled
+      : policy.reducedNightHourEnabled,
+    multHE50: optionalNumber(e.multHE50),
+    multHE100: optionalNumber(e.multHE100),
+    multHE150: optionalNumber(e.multHE150),
+    percNoturno: optionalNumber(e.percNoturno),
   }));
 
   const scenarios = (input.scenarios || []).map((scenario) =>
     computeScenario({
-      scenario, employees, policy, travelTimePolicy, deadlineUtc,
+      scenario, employees, policy, travelTimePolicy, allowancePolicy, deadlineUtc,
       config: input.config || {}, holidays: input.holidays || [], daysInField: input.daysInField || 0,
     })
   );
@@ -247,7 +296,15 @@ export function runManualSimulation(input) {
   return {
     success: true,
     simulation: input.simulation || null,
-    employees: employees.map(({ id, name, role, hourlyRateC, priorWorkedMinutes }) => ({ id, name, role, hourlyRateC, priorWorkedMinutes })),
+    employees: employees.map(({
+      id, name, role, hourlyRateC, priorWorkedMinutes, allowanceCategory,
+      dailyStandardMinutes, saturdayCompensated, reducedNightHourEnabled,
+      multHE50, multHE100, multHE150, percNoturno,
+    }) => ({
+      id, name, role, hourlyRateC, priorWorkedMinutes, allowanceCategory,
+      dailyStandardMinutes, saturdayCompensated, reducedNightHourEnabled,
+      multHE50, multHE100, multHE150, percNoturno,
+    })),
     scenarios,
     recommended: rec.recommended || null,
     ranked: rec.ranked,
@@ -257,12 +314,13 @@ export function runManualSimulation(input) {
     policySummary: {
       name: policy.name, version: policy.version,
       premiumStackingMode: policy.premiumStackingMode,
+      mealAllowancePolicyVersionId: scenarios[0]?.mealAllowance?.policy?.id || null,
+      mealAllowancePolicyVersion: scenarios[0]?.mealAllowance?.policy?.version || null,
       lines: [
-        `SEG–SEX: ${policy.regularDailyMinutes / 60}h normal`,
-        `SEG–SEX: próximas ${policy.weekdayFirstOvertimeMinutes / 60}h a +${Math.round((policy.weekdayFirstOvertimeMultiplier - 1) * 100)}%`,
-        `SEG–SEX: excedente a +${Math.round((policy.weekdayExcessMultiplier - 1) * 100)}%`,
+        `SEG–SEX: jornada contratual individual (padrão ${policy.regularDailyMinutes / 60}h)`,
+        `SEG–SEX: excedente a +${Math.round((policy.weekdayFirstOvertimeMultiplier - 1) * 100)}%; acima de 2h gera alerta`,
         policy.saturdayAllHoursOvertime
-          ? `SÁBADO: todas as horas a +${Math.round((policy.saturdayExcessMultiplier - 1) * 100)}%`
+          ? `SÁBADO COMPENSADO: todas as horas a +${Math.round(((policy.compensatedSaturdayMultiplier ?? 2) - 1) * 100)}%`
           : `SÁBADO: após ${policy.saturdayRegularMinutes / 60}h a +${Math.round((policy.saturdayExcessMultiplier - 1) * 100)}%`,
         `DOMINGO: todas as horas a ${policy.sundayMultiplier}×`,
         `NOTURNO: ${policy.nightStartLocalTime}–${policy.nightEndLocalTime} a +${Math.round((policy.nightMultiplier - 1) * 100)}%`,

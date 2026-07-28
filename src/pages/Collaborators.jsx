@@ -31,6 +31,10 @@ export default function Collaborators() {
       multHE100: parseFloat(form.multHE100.value),
       multHE150: parseFloat(form.multHE150.value),
       percNoturno: parseFloat(form.percNoturno.value),
+      allowanceCategory: form.allowanceCategory.value === 'leader' ? 'leader' : 'standard',
+      dailyStandardMinutes: Math.round(parseFloat(form.dailyStandardHours.value) * 60),
+      saturdayCompensated: form.saturdayCompensated.value === 'true',
+      reducedNightHourEnabled: form.reducedNightHourEnabled.value === 'true',
     };
 
     if (editing) {
@@ -84,7 +88,7 @@ export default function Collaborators() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/[0.04]">
-                  {['Nome', 'Cargo', 'Salario Base', 'CH', 'Hora Normal', 'HE 50%', 'HE 100%', 'HE 150%', 'Noturno', 'H. Tecnica', ''].map((h, i) => (
+                  {['Nome', 'Cargo', 'Categoria diária', 'Salario Base', 'CH', 'Hora Normal', 'HE 50%', 'HE 100%', 'HE 150%', 'Noturno', 'H. Técnica (+70%)', ''].map((h, i) => (
                     <th key={i} className="px-6 py-4 label-micro text-white/20 text-left">{h}</th>
                   ))}
                 </tr>
@@ -96,6 +100,7 @@ export default function Collaborators() {
                     <MotionStaggerItem as="tr" key={c.id} className="border-b border-white/[0.04]/50 last:border-0 hover:bg-white/[0.02] transition-colors">
                       <td className="px-6 py-4 heading text-white">{c.nome}</td>
                       <td className="px-6 py-4"><Badge variant="info">{c.cargo}</Badge></td>
+                      <td className="px-6 py-4"><Badge variant={c.allowanceCategory === 'leader' ? 'success' : 'default'}>{c.allowanceCategory === 'leader' ? 'Liderança' : 'Padrão'}</Badge></td>
                       <td className="px-6 py-4 text-sm text-white/50 tabular-data">{formatCurrency(c.salarioBase)}</td>
                       <td className="px-6 py-4 text-sm text-white/35 tabular-data">{c.cargaHoraria}h</td>
                       <td className="px-6 py-4 text-sm text-success-text font-medium tabular-data">{formatCurrency(rates.horaNormal)}</td>
@@ -148,6 +153,54 @@ export default function Collaborators() {
             </div>
           </div>
 
+          <div>
+            <label className="block label-micro text-white/35 mb-2">Categoria da diária de alimentação *</label>
+            <select className="glass-input" name="allowanceCategory" defaultValue={editing?.allowanceCategory || 'standard'} required>
+              <option value="standard">Padrão</option>
+              <option value="leader">Liderança</option>
+            </select>
+            <span className="body text-[13px] mt-2 block">Campo explícito de política; o cargo não é usado para inferir a categoria.</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block label-micro text-white/35 mb-2">Jornada diária contratual *</label>
+              <select
+                className="glass-input"
+                name="dailyStandardHours"
+                defaultValue={String((editing?.dailyStandardMinutes || 480) / 60)}
+                required
+              >
+                <option value="8">8h00</option>
+                <option value="8.8">8h48</option>
+              </select>
+            </div>
+            <div>
+              <label className="block label-micro text-white/35 mb-2">Classificação do sábado *</label>
+              <select
+                className="glass-input"
+                name="saturdayCompensated"
+                defaultValue={String(editing?.saturdayCompensated ?? true)}
+                required
+              >
+                <option value="true">Compensado (+100%)</option>
+                <option value="false">Normal (jornada + HE 50%)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block label-micro text-white/35 mb-2">Hora noturna reduzida *</label>
+              <select
+                className="glass-input"
+                name="reducedNightHourEnabled"
+                defaultValue={String(editing?.reducedNightHourEnabled ?? true)}
+                required
+              >
+                <option value="true">Aplicar (52min30s)</option>
+                <option value="false">Não aplicar</option>
+              </select>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block label-micro text-white/35 mb-2">Salario Base (R$) *</label>
@@ -162,28 +215,28 @@ export default function Collaborators() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block label-micro text-white/35 mb-2">Valor Hora Tecnica (R$)</label>
+              <label className="block label-micro text-white/35 mb-2">Valor-base da hora técnica (R$)</label>
               <input className="glass-input" type="number" name="valorHoraTecnica" defaultValue={editing?.valorHoraTecnica || ''} step="0.01" min="0" placeholder="Calculado se vazio" />
-              <span className="body text-[13px] mt-2 block">Se vazio, usa hora normal</span>
+              <span className="body text-[13px] mt-2 block">Se vazio, usa a hora normal. Ao resultado são adicionados 70% de encargos trabalhistas.</span>
             </div>
             <div>
               <label className="block label-micro text-white/35 mb-2">Multiplicador HE 50%</label>
-              <input className="glass-input" type="number" name="multHE50" defaultValue={editing?.multHE50 || 1.5} step="0.01" min="1" />
+              <input className="glass-input" type="number" name="multHE50" defaultValue={editing?.multHE50 ?? 1.5} step="0.01" min="1" />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block label-micro text-white/35 mb-2">Multiplicador HE 100%</label>
-              <input className="glass-input" type="number" name="multHE100" defaultValue={editing?.multHE100 || 2.0} step="0.01" min="1" />
+              <input className="glass-input" type="number" name="multHE100" defaultValue={editing?.multHE100 ?? 2.0} step="0.01" min="1" />
             </div>
             <div>
               <label className="block label-micro text-white/35 mb-2">Multiplicador HE 150%</label>
-              <input className="glass-input" type="number" name="multHE150" defaultValue={editing?.multHE150 || 2.5} step="0.01" min="1" />
+              <input className="glass-input" type="number" name="multHE150" defaultValue={editing?.multHE150 ?? 2.5} step="0.01" min="1" />
             </div>
             <div>
               <label className="block label-micro text-white/35 mb-2">Adicional Noturno (%)</label>
-              <input className="glass-input" type="number" name="percNoturno" defaultValue={editing?.percNoturno || 20} step="1" min="0" />
+              <input className="glass-input" type="number" name="percNoturno" defaultValue={editing?.percNoturno ?? 20} step="1" min="0" />
             </div>
           </div>
 

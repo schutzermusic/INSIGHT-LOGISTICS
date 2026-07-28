@@ -119,6 +119,14 @@ export function evaluateManualFeasibility(p) {
       ? 'Rota contínua'
       : `Transferência ausente: ${missing.map((m) => `${m.from} → ${m.to}`).join('; ')}. Inclua o transfer e a antecedência de embarque.`);
 
+  const impossibleConnections = continuityIssues.filter((c) => c.code === 'insufficient_connection');
+  add('connection_capacity', impossibleConnections.length === 0, 'error',
+    impossibleConnections.length === 0
+      ? 'Conexões comportam desembarque, bagagem, transfer e embarque'
+      : `Conexão impossível: ${impossibleConnections.map((item) =>
+        `${item.availableMinutes} min disponíveis para ${item.requiredMinutes} min necessários`
+      ).join('; ')}.`);
+
   // §20: arrival within deadline.
   const arrivalMs = itinerary.arrivalAtUtc ? Date.parse(itinerary.arrivalAtUtc) : null;
   const withinDeadline = deadlineUtc && arrivalMs != null ? arrivalMs <= Date.parse(deadlineUtc) : true;

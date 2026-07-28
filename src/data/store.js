@@ -16,6 +16,7 @@ export async function getCollaborators() {
     id: row.id,
     createdAt: row.created_at,
     ...row.data,
+    allowanceCategory: row.allowance_category || row.data?.allowanceCategory || 'standard',
   }));
 }
 
@@ -29,6 +30,7 @@ export async function saveCollaborators(list) {
       name: c.name || c.nome,
       role: c.role || c.cargo,
       daily_cost: c.dailyCost || c.daily_cost || c.custoDiario || 0,
+      allowance_category: c.allowanceCategory === 'leader' ? 'leader' : 'standard',
       data: c,
     }));
     const { error } = await supabase.from('collaborators').insert(rows);
@@ -41,6 +43,7 @@ export async function addCollaborator(collab) {
     name: collab.name || collab.nome || '',
     role: collab.role || collab.cargo || '',
     daily_cost: collab.dailyCost || collab.custoDiario || 0,
+    allowance_category: collab.allowanceCategory === 'leader' ? 'leader' : 'standard',
     data: collab,
   };
   const { data, error } = await supabase.from('collaborators').insert(row).select().single();
@@ -63,6 +66,7 @@ export async function updateCollaborator(id, updates) {
       name: merged.name || merged.nome || '',
       role: merged.role || merged.cargo || '',
       daily_cost: merged.dailyCost || merged.custoDiario || 0,
+      allowance_category: merged.allowanceCategory === 'leader' ? 'leader' : 'standard',
       data: merged,
     })
     .eq('id', id)
@@ -114,6 +118,36 @@ export async function saveSimulation(sim) {
   const { data, error } = await supabase.from('simulations').insert(row).select().single();
   if (error) { console.error('[Store] saveSimulation:', error.message); return null; }
   return { ...sim, id: data.id, createdAt: data.created_at };
+}
+
+export async function updateSimulation(id, updates) {
+  const { data: existing, error: fetchError } = await supabase
+    .from('simulations')
+    .select('data')
+    .eq('id', id)
+    .single();
+  if (fetchError) {
+    console.error('[Store] updateSimulation fetch:', fetchError.message);
+    return null;
+  }
+  const merged = { ...(existing.data || {}), ...updates };
+  const { data, error } = await supabase
+    .from('simulations')
+    .update({
+      origin: merged.origem || merged.origin || '',
+      destination: merged.destino || merged.destination || '',
+      type: merged.type || 'simulation',
+      modal: merged.modal || '',
+      data: merged,
+    })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) {
+    console.error('[Store] updateSimulation:', error.message);
+    return null;
+  }
+  return { ...merged, id: data.id, createdAt: data.created_at };
 }
 
 export async function deleteSimulation(id) {

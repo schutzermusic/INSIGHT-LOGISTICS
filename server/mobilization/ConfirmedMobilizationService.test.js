@@ -23,6 +23,13 @@ function scenario(overrides = {}) {
       { employeeId: 'e2', totalCostC: 60000, blocks: [{ baseClassification: 'regular', countedMinutes: 480, calculatedCostC: 60000 }] },
     ],
     segments: [{ sequence: 0, mode: 'bus' }],
+    mealAllowance: {
+      policy: { id: 'meal-policy-v1', version: 1 },
+      byEmployee: [
+        { employeeId: 'e1', category: 'leader', eligibleDates: ['2026-07-20'], quantity: 1, unitValueC: 12000, totalC: 12000, lines: [] },
+        { employeeId: 'e2', category: 'standard', eligibleDates: ['2026-07-20'], quantity: 1, unitValueC: 9000, totalC: 9000, lines: [] },
+      ],
+    },
     feasibilityStatus: 'valid',
     ...overrides,
   };
@@ -34,7 +41,10 @@ function validInput(overrides = {}) {
     selectedItineraryId: 'it-db-1',
     project: { id: 'p1', name: 'Usina Norte' },
     schedule: { id: 's1', name: 'Montagem eletromecânica' },
-    employees: [{ id: 'e1', name: 'Ana Souza', role: 'Eletricista' }, { id: 'e2', name: 'Bruno Lima', role: 'Mecânico' }],
+    employees: [
+      { id: 'e1', name: 'Ana Souza', role: 'Eletricista', allowanceCategory: 'leader' },
+      { id: 'e2', name: 'Bruno Lima', role: 'Mecânico', allowanceCategory: 'standard' },
+    ],
     scenario: scenario(),
     origin: 'São Paulo - SP',
     destination: 'Recife - PE',
@@ -98,7 +108,13 @@ describe('buildConfirmationRecord', () => {
     expect(record.employee_snapshot).toHaveLength(2);
     expect(record.route_snapshot).toEqual(scenario().segments);
     expect(Object.keys(record.cost_snapshot)).toContain('ticket_c');
+    expect(record.allowance_policy_version_id).toBe('meal-policy-v1');
+    expect(record.allowance_snapshot.employees[0]).toMatchObject({
+      category: 'leader', eligibleDates: ['2026-07-20'], quantity: 1, unitValueC: 12000, totalC: 12000,
+    });
+    expect(record.employee_snapshot[0].allowanceCategory).toBe('leader');
     expect(collaborators).toHaveLength(2);
+    expect(collaborators[0]).toMatchObject({ allowanceCategory: 'leader', allowanceTotalC: 12000 });
     // Category rollup present and consistent with the coarse rollups.
     expect(record.labor_cost_c).toBeGreaterThan(0);
     expect(record.category_spend.accommodation).toBe(12000);

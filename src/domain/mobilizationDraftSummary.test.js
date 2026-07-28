@@ -27,6 +27,9 @@ describe('mobilizationDraftHistorySummary', () => {
       custoLogistico: 90,
       custoTotalEquipe: 550,
       horasTransito: 6,
+      horasReaisTrabalhadasEquipe: 0,
+      horasComputadasEquipe: 0,
+      horasIntervalosEquipe: 0,
     });
   });
 
@@ -52,7 +55,7 @@ describe('mobilizationDraftHistorySummary', () => {
         { mode: 'hotel_rest', commercialCostC: 7000 },
         { mode: 'meal_break', commercialCostC: 5000 },
       ],
-      breakdown: { ticket_c: 18000 },
+      breakdown: { ticket_c: 18000, transit_meals_c: 5000 },
     });
 
     expect(summary.custoEquipePassagens).toBe(100);
@@ -60,5 +63,23 @@ describe('mobilizationDraftHistorySummary', () => {
     expect(summary.custoEquipeAlimentacao).toBe(50);
     expect(summary.custoLogistico).toBe(80);
     expect(summary.custoEquipeHoras).toBe(50);
+  });
+
+  it('summarizes recalculated real, computed and interval hours for the team', () => {
+    const summary = mobilizationDraftHistorySummary({
+      laborByEmployee: [{
+        summary: { totalCountedMinutes: 420 },
+        blocks: [{ realMinutes: 420 }],
+        deductions: [{ realMinutes: 60 }],
+      }, {
+        summary: { totalCountedMinutes: 480 },
+        blocks: [{ realMinutes: 420 }],
+        deductions: [{ realMinutes: 60 }],
+      }],
+    });
+
+    expect(summary.horasReaisTrabalhadasEquipe).toBe(14);
+    expect(summary.horasComputadasEquipe).toBe(15);
+    expect(summary.horasIntervalosEquipe).toBe(2);
   });
 });

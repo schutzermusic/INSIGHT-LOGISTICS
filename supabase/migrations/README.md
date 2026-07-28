@@ -15,11 +15,14 @@ altered, and RLS is only enabled on the new tables (plus `profiles`).
 | `0009_manual_mobilization.sql` | manual simulations, scenarios, normalized segments and labor snapshots |
 | `0010_confirmed_mobilizations.sql` | governed confirmation gate and dashboard-eligible immutable snapshots |
 | `0011_manual_round_trip.sql` | one-way/round-trip context, segment direction and manual audit stream |
+| `0012_manual_connections_meal_allowances.sql` | derived connection operations, explicit allowance categories, versioned allowance policy and immutable confirmation snapshots |
+| `0013_labor_policy_v3.sql` | corrected overtime, night premium, reduced night hour and compliance rules |
+| `0014_labor_policy_v4_eight_hour_intervals.sql` | one automatic hour of interval per complete eight-hour operational period |
 
 ## How to apply
 
 **Option A — Supabase SQL Editor (no tooling):**
-Open your project → SQL Editor → paste each file **in order 0001→0006** → Run.
+Open your project → SQL Editor → paste each file **in filename order** → Run.
 Re-running is safe (guards use `if not exists` / `on conflict do nothing` /
 `drop policy if exists`).
 
@@ -45,7 +48,9 @@ supabase db push        # applies everything in supabase/migrations/
 ## Seeded default IDs (referenced by code)
 
 - Default labor policy **v1** (retired by 0009): `00000000-0000-4000-a000-000000000001`
-- Default labor policy **v2** (active — Saturday all-overtime §4.2): `00000000-0000-4000-a000-000000000011`
+- Default labor policy **v2** (retired by 0013): `00000000-0000-4000-a000-000000000011`
+- Default labor policy **v3** (retired by 0014): `00000000-0000-4000-a000-000000000012`
+- Default labor policy **v4** (active): `00000000-0000-4000-a000-000000000014`
 - Default travel-time policy: `00000000-0000-4000-a000-000000000002`
 
 ## 0009 — Manual Mobilization Simulator
@@ -65,9 +70,17 @@ append-only manual audit stream. Drafts still do not require project allocation;
 project, schedule/activity and identified collaborators remain enforced by the
 confirmation gate from `0010`.
 
-## Open business decision
+## 0013 — Labor policy v3
 
-`labor_policy_versions.premium_stacking_mode` defaults to **`additive`**
-(base × (1 + overtimePremium + nightPremium)), matching the CLT add-on
-interpretation. The spec (§5) allows `multiplicative` (base × otMult × nightMult).
-Confirm which your collective agreements require before approving the policy.
+Keeps weekday overtime at +50% after the contractual limit (more than two
+hours emits an alert), distinguishes normal and compensated Saturdays, applies
+the 20% night premium multiplicatively and enables the 52m30s urban reduced
+night hour. Employee schedule overrides are stored with the employee/draft
+snapshot and are resolved by the same labor engine.
+
+## 0014 — Labor policy v4
+
+Replaces the long-day meal rule with one hour of released interval for every
+complete eight-hour operational period in the employee's local calendar day.
+Explicit released intervals offset the automatic deduction to prevent
+duplication.

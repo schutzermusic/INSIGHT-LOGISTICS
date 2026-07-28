@@ -1,9 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import cesium from 'vite-plugin-cesium';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  // vite-plugin-cesium copies Cesium's static assets (Workers/Assets/Widgets)
+  // and sets CESIUM_BASE_URL so the HUD globe runs fully self-hosted — no Ion
+  // token and no external CDN required.
+  plugins: [react(), cesium()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -36,6 +40,9 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
+            if (id.includes('cesium')) {
+              return 'cesium';
+            }
             if (
               id.includes('@deck.gl') ||
               id.includes('@luma.gl') ||

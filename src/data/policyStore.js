@@ -14,6 +14,7 @@ export const CONFIG_TABLES = {
   connectionBuffers: 'connection_buffer_policies',
   searchLimits: 'search_limit_policies',
   meals: 'meal_policies',
+  mealAllowances: 'meal_allowance_policy_versions',
   hotels: 'hotel_policies',
   localTransport: 'local_transport_policies',
   vehicle: 'vehicle_assumptions',
@@ -26,16 +27,36 @@ export const CONFIG_TABLES = {
  * @returns {Promise<object|null>}
  */
 export async function getConfig(table) {
-  const { data, error } = await supabase
+  let query = supabase
     .from(table)
     .select('*')
-    .order('created_at', { ascending: true })
     .limit(1);
+  query = table === 'meal_allowance_policy_versions'
+    ? query.eq('status', 'approved').order('version', { ascending: false })
+    : query.order('created_at', { ascending: true });
+  const { data, error } = await query;
   if (error) {
-    console.error(`[policyStore] getConfig(${table}):`, error.message);
+    const missingDuringMigrationRollout = error.code === 'PGRST205'
+      || /could not find the table/i.test(error.message || '');
+    const logger = missingDuringMigrationRollout ? console.warn : console.error;
+    logger(`[policyStore] getConfig(${table}):`, error.message);
     return null;
   }
   return data?.[0] || null;
+}
+
+/** Insert a new immutable policy version; approved history is never overwritten. */
+export async function createConfigVersion(table, current, patch) {
+  const row = {
+    ...patch,
+    name: current?.name || 'Padrão',
+    version: Number(current?.version || 0) + 1,
+    status: 'approved',
+    effective_from: new Date().toISOString(),
+  };
+  const { data, error } = await supabase.from(table).insert(row).select().single();
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 /**

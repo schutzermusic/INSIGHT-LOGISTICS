@@ -71,6 +71,7 @@ export function buildCostSnapshot(profileRow, requestedBasis) {
     hourlyRateC,
     monthlyHourDivisor: profileRow.monthly_hour_divisor,
     laborPolicyVersionId: profileRow.labor_policy_version_id,
+    allowanceCategory: profileRow.allowance_category === 'leader' ? 'leader' : 'standard',
     source: profileRow.source,
     profileEffectiveAt: profileRow.effective_at,
     snapshotAt: new Date().toISOString(),

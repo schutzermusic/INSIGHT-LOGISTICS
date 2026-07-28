@@ -61,6 +61,9 @@ export async function persistConfirmation({ record, collaborators, actorId }) {
       total_spend_c: c.totalSpendC || 0,
       overtime_minutes: c.overtimeMinutes || 0,
       night_minutes: c.nightMinutes || 0,
+      allowance_category_snapshot: c.allowanceCategory || 'standard',
+      allowance_total_c: c.allowanceTotalC || 0,
+      allowance_snapshot: c.allowanceSnapshot || {},
     }));
     if (collabRows.length) {
       const { error: cErr } = await sb.from('confirmed_mobilization_collaborators').insert(collabRows);
@@ -82,6 +85,41 @@ export async function persistConfirmation({ record, collaborators, actorId }) {
     e.code = 'CONFIRMATION_PERSIST_FAILED';
     throw e;
   }
+}
+
+/**
+ * Remove a confirmation from the dashboard eligibility set without deleting
+ * its immutable snapshots. The lifecycle status is the dashboard gate.
+ */
+export async function revertConfirmation(confirmedId, actorId = null) {
+  const sb = client();
+  if (!sb) return null;
+  const { data: current, error: readError } = await sb
+    .from('confirmed_mobilizations')
+    .select('id,correlation_id,request_id,confirmation_status')
+    .eq('id', confirmedId)
+    .single();
+  if (readError) throw readError;
+  if (current.confirmation_status === 'cancelled') {
+    return { confirmedId: current.id, status: 'cancelled' };
+  }
+
+  const { data, error } = await sb
+    .from('confirmed_mobilizations')
+    .update({ confirmation_status: 'cancelled' })
+    .eq('id', confirmedId)
+    .select('id,confirmation_status')
+    .single();
+  if (error) throw error;
+
+  await writeAuditEvent(
+    current.request_id || null,
+    current.correlation_id,
+    'mobilization_confirmation_reverted',
+    actorId,
+    { confirmedId },
+  );
+  return { confirmedId: data.id, status: data.confirmation_status };
 }
 
 /**

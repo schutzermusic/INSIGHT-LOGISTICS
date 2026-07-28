@@ -2,16 +2,21 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   History as HistoryIcon, Search, Trash2, X, ChevronDown, Clock, Bot, BarChart3,
-  ArrowRight, Filter, Calendar, MapPin, Users,
+  ArrowRight, Filter, Calendar, MapPin, Users, ListTree, CheckCircle,
 } from 'lucide-react';
 import { useSimulations } from '../hooks/useStore';
+import { dashboardRevertConfirmation } from '../services/BackendApiClient';
 import { formatCurrency } from '../engine/calculator.js';
 import { mobilizationDraftHistorySummary } from '../domain/mobilizationDraftSummary';
+import { formatMobilitySequence } from '../domain/mobilityLabels';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
 import { AnimatedNumber } from '../components/ui/AnimatedNumber';
 import { MotionStagger, MotionStaggerItem } from '../components/ui/MotionStagger';
+import { Modal } from '../components/ui/Modal';
+import { ConfirmMobilizationModal } from '../components/mobilization/ConfirmMobilizationModal';
+import { MobilizationScenarioDetail } from '../components/mobilization/MobilizationScenarioDetail';
 
 const TYPE_CONFIG = {
   'ai-analysis': { label: 'AI', badge: 'accent', icon: Bot },
@@ -21,19 +26,23 @@ const TYPE_CONFIG = {
 };
 
 export default function History() {
-  const { simulations, deleteSimulation, clearSimulations } = useSimulations();
+  const { simulations, updateSimulation, deleteSimulation, clearSimulations } = useSimulations();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterModal, setFilterModal] = useState('');
   const [expanded, setExpanded] = useState(null);
+  const [detailDraft, setDetailDraft] = useState(null);
+  const [confirmDraft, setConfirmDraft] = useState(null);
+  const [revertingId, setRevertingId] = useState(null);
 
   const filtered = useMemo(() => {
     return simulations.filter(sim => {
       const q = search.toLowerCase();
-      const matchSearch = !q || (sim.origem || '').toLowerCase().includes(q) || (sim.destino || '').toLowerCase().includes(q) || (sim.modal || '').toLowerCase().includes(q) || (sim.nome || '').toLowerCase().includes(q);
+      const modalLabel = formatMobilitySequence(sim.modal).toLowerCase();
+      const matchSearch = !q || (sim.origem || '').toLowerCase().includes(q) || (sim.destino || '').toLowerCase().includes(q) || modalLabel.includes(q) || (sim.nome || '').toLowerCase().includes(q);
       const matchType = !filterType || (sim.type || 'simulation') === filterType;
-      const matchModal = !filterModal || (sim.modal || '').includes(filterModal);
+      const matchModal = !filterModal || modalLabel.includes(filterModal);
       return matchSearch && matchType && matchModal;
     });
   }, [simulations, search, filterType, filterModal]);
@@ -60,6 +69,10 @@ export default function History() {
   }, [simulations]);
 
   const handleClear = () => {
+    if (simulations.some((simulation) => simulation.status === 'confirmed' && simulation.dashboardPublished)) {
+      alert('Reverta as mobilizações confirmadas antes de limpar o Histórico.');
+      return;
+    }
     if (confirm('Tem certeza que deseja limpar todo o historico?')) {
       clearSimulations();
     }
@@ -68,6 +81,28 @@ export default function History() {
   const handleDelete = (id) => {
     if (confirm('Excluir esta simulacao?')) {
       deleteSimulation(id);
+    }
+  };
+
+  const handleRevert = async (simulation) => {
+    if (!simulation.confirmedId || revertingId) return;
+    if (!confirm('Reverter esta mobilização? Ela será retirada do Dashboard e voltará ao estado de rascunho.')) return;
+    setRevertingId(simulation.id);
+    try {
+      await dashboardRevertConfirmation(simulation.confirmedId);
+      await updateSimulation(simulation.id, {
+        status: 'draft',
+        dashboardPublished: false,
+        lastConfirmedId: simulation.confirmedId,
+        lastConfirmedAt: simulation.confirmedAt || null,
+        confirmedId: null,
+        confirmedAt: null,
+        revertedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      alert(error.message || 'Não foi possível retirar a mobilização do Dashboard.');
+    } finally {
+      setRevertingId(null);
     }
   };
 
@@ -147,9 +182,11 @@ export default function History() {
               </select>
               <select className="glass-select max-w-[180px]" value={filterModal} onChange={(e) => setFilterModal(e.target.value)}>
                 <option value="">Todos os modais</option>
-                <option value="Onibus">Onibus</option>
-                <option value="Aereo">Aereo</option>
-                <option value="Veiculo">Veiculo</option>
+                <option value="ônibus">Ônibus</option>
+                <option value="voo">Voo</option>
+                <option value="veículo">Veículo</option>
+                <option value="espera">Espera</option>
+                <option value="transfer">Transfer</option>
               </select>
               <Badge variant="neutral" className="ml-auto">{filtered.length} resultado(s)</Badge>
             </div>
@@ -175,23 +212,47 @@ export default function History() {
 
                 <MotionStagger as="div" className="space-y-2" fast inView>
                   {items.map(sim => {
-                    const typeConfig = TYPE_CONFIG[sim.type] || TYPE_CONFIG.default;
+                    const isConfirmed = sim.status === 'confirmed' && sim.dashboardPublished === true;
+                    const typeConfig = isConfirmed
+                      ? { label: 'Confirmada', badge: 'success', icon: CheckCircle }
+                      : (TYPE_CONFIG[sim.type] || TYPE_CONFIG.default);
                     const TypeIcon = typeConfig.icon;
                     const isExpanded = expanded === sim.id;
+                    const modalLabel = formatMobilitySequence(sim.modal);
                     const detailSummary = sim.type === 'mobilization-draft' && sim.calculationResult?.recommended
                       ? mobilizationDraftHistorySummary(sim.calculationResult.recommended)
                       : sim.resumo;
 
                     return (
-                      <MotionStaggerItem key={sim.id} className="surface-card relative overflow-hidden rounded-2xl border border-white/[0.05]">
-                        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-                        <button
-                          className="w-full px-4 py-4 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors"
+                      <MotionStaggerItem
+                        key={sim.id}
+                        className={`surface-card relative overflow-hidden rounded-2xl border ${
+                          isConfirmed
+                            ? 'border-success-border/40 bg-success-bg/20 shadow-[0_0_24px_rgb(var(--color-success-glow)/0.08)]'
+                            : 'border-white/[0.05]'
+                        }`}
+                      >
+                        <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                          isConfirmed ? 'via-success-text/45' : 'via-white/[0.04]'
+                        } to-transparent`} />
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={isExpanded}
+                          className={`w-full px-4 py-4 flex items-center gap-4 text-left transition-colors ${
+                            isConfirmed ? 'hover:bg-success-bg/25' : 'hover:bg-white/[0.02]'
+                          }`}
                           onClick={() => setExpanded(isExpanded ? null : sim.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setExpanded(isExpanded ? null : sim.id);
+                            }
+                          }}
                         >
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${sim.type === 'ai-analysis' ? 'bg-accent-bg/70' : sim.type === 'comparison' ? 'bg-warning-bg/70' : 'bg-info-bg/70'
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isConfirmed ? 'bg-success-bg border border-success-border/30' : sim.type === 'ai-analysis' ? 'bg-accent-bg/70' : sim.type === 'comparison' ? 'bg-warning-bg/70' : 'bg-info-bg/70'
                             }`}>
-                            <TypeIcon className={`w-4 h-4 ${sim.type === 'ai-analysis' ? 'text-accent-text' : sim.type === 'comparison' ? 'text-warning-text' : 'text-info-text'
+                            <TypeIcon className={`w-4 h-4 ${isConfirmed ? 'text-success-text' : sim.type === 'ai-analysis' ? 'text-accent-text' : sim.type === 'comparison' ? 'text-warning-text' : 'text-info-text'
                               }`} />
                           </div>
 
@@ -210,13 +271,13 @@ export default function History() {
 
                           <Badge variant={typeConfig.badge}>{typeConfig.label}</Badge>
 
-                          {sim.modal && (
+                          {modalLabel && (
                             <Badge
-                              variant={sim.modal?.includes('Aereo') || sim.modal?.includes('reo') ? 'info' : sim.modal?.includes('Onibus') || sim.modal?.includes('nibus') ? 'warning' : 'accent'}
+                              variant={modalLabel.includes('Voo') ? 'info' : modalLabel.includes('Ônibus') ? 'warning' : 'accent'}
                               dot
                               compact
                             >
-                              {sim.modal}
+                              {modalLabel}
                             </Badge>
                           )}
 
@@ -227,56 +288,94 @@ export default function History() {
                               value={detailSummary?.custoTotalEquipe || 0}
                               format={(v) => formatCurrency(v)}
                             />
-                            {detailSummary?.horasTransito > 0 && (
-                              <AnimatedNumber
-                                as="div"
-                                className="label-micro text-white/20 tabular-data mt-1"
-                                value={detailSummary.horasTransito}
-                                format={(v) => `${v.toFixed(1)}h transito`}
-                              />
-                            )}
                           </div>
 
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDelete(sim.id); }}
-                            aria-label={`Excluir ${sim.type === 'mobilization-draft' ? 'rascunho' : 'simulação'} ${sim.nome || ''}`.trim()}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white/10 hover:text-danger-text hover:bg-danger-bg/70 transition-[color,background-color] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)]"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                          {!isConfirmed && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDelete(sim.id); }}
+                              aria-label={`Excluir ${sim.type === 'mobilization-draft' ? 'rascunho' : 'simulação'} ${sim.nome || ''}`.trim()}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/10 hover:text-danger-text hover:bg-danger-bg/70 transition-[color,background-color] duration-[var(--motion-duration-micro)] ease-[var(--motion-ease-out)]"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
 
                           <ChevronDown className={`w-4 h-4 text-white/10 transition-transform duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)] ${isExpanded ? 'rotate-180' : ''}`} />
-                        </button>
+                        </div>
 
                         {isExpanded && (
                           <div className="px-4 pb-4 pt-3 animate-fade-in border-t border-white/[0.03]">
-                            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+                            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                               <DetailCell label="Mao de Obra" value={formatCurrency(detailSummary?.custoEquipeHoras || 0)} />
-                              <DetailCell label="Transito" value={formatCurrency(detailSummary?.custoEquipeTransito || 0)} />
                               <DetailCell label="Passagens" value={formatCurrency(detailSummary?.custoEquipePassagens || 0)} />
                               <DetailCell label="Hospedagem" value={formatCurrency(detailSummary?.custoEquipeHospedagem || 0)} />
                               <DetailCell label="Alimentacao" value={formatCurrency(detailSummary?.custoEquipeAlimentacao || 0)} />
                               <DetailCell label="Logistico" value={formatCurrency(detailSummary?.custoLogistico || 0)} />
                             </div>
                             {sim.type === 'mobilization-draft' && (
-                              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-warning-border/15 bg-warning-bg/30 px-4 py-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                                <DetailCell
+                                  label="Horas reais da equipe"
+                                  value={formatHours(detailSummary?.horasReaisTrabalhadasEquipe)}
+                                />
+                                <DetailCell
+                                  label="Horas computadas da equipe"
+                                  value={formatHours(detailSummary?.horasComputadasEquipe)}
+                                />
+                                <DetailCell
+                                  label="Intervalos abatidos"
+                                  value={formatHours(detailSummary?.horasIntervalosEquipe)}
+                                />
+                              </div>
+                            )}
+                            {sim.type === 'mobilization-draft' && (
+                              <div className={`mt-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${
+                                isConfirmed
+                                  ? 'border-success-border/30 bg-success-bg/50'
+                                  : 'border-warning-border/15 bg-warning-bg/30'
+                              }`}>
                                 <div>
-                                  <span className="label-micro text-warning-text/75 block">Mobilização ainda não confirmada</span>
-                                  <span className="body text-[12px] text-white/35">Revise o cenário e conclua os campos obrigatórios quando decidir seguir.</span>
+                                  <span className={`label-micro block ${isConfirmed ? 'text-success-text' : 'text-warning-text/75'}`}>
+                                    {isConfirmed ? 'Mobilização confirmada no Dashboard' : 'Mobilização ainda não confirmada'}
+                                  </span>
+                                  <span className="body text-[12px] text-white/35">
+                                    {isConfirmed
+                                      ? 'O snapshot está publicado e alimenta os indicadores.'
+                                      : 'Revise o cenário e conclua os campos obrigatórios quando decidir seguir.'}
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <button
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white/75 text-[12px] font-semibold hover:bg-white/[0.08] transition-colors"
-                                    onClick={() => navigate('/comparador', { state: { mobilizationDraft: sim, draftIntent: 'edit' } })}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-info-border/40 bg-info-bg text-info-text text-[12px] font-semibold shadow-sm hover:border-info-border/60 hover:brightness-95 transition-[border-color,filter,box-shadow]"
+                                    onClick={() => setDetailDraft(sim)}
                                   >
-                                    Editar rascunho
+                                    <ListTree className="w-3.5 h-3.5" />
+                                    Detalhamento
                                   </button>
-                                  <button
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-warning-bg text-warning-text border border-warning-border/25 text-[12px] font-semibold hover:bg-warning-bg/80 transition-colors"
-                                    onClick={() => navigate('/comparador', { state: { mobilizationDraft: sim, draftIntent: 'confirm' } })}
-                                  >
-                                    Continuar e confirmar <ArrowRight className="w-3.5 h-3.5" />
-                                  </button>
+                                  {isConfirmed ? (
+                                    <button
+                                      disabled={revertingId === sim.id}
+                                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-danger-bg text-danger-text border border-danger-border/30 text-[12px] font-semibold hover:brightness-95 disabled:opacity-50 transition-[filter,opacity]"
+                                      onClick={() => handleRevert(sim)}
+                                    >
+                                      {revertingId === sim.id ? 'Revertendo…' : 'Reverter do Dashboard'}
+                                    </button>
+                                  ) : (
+                                    <>
+                                      <button
+                                        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white/75 text-[12px] font-semibold hover:bg-white/[0.08] transition-colors"
+                                        onClick={() => navigate('/comparador', { state: { mobilizationDraft: sim, draftIntent: 'edit' } })}
+                                      >
+                                        Editar rascunho
+                                      </button>
+                                      <button
+                                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-warning-bg text-warning-text border border-warning-border/25 text-[12px] font-semibold hover:bg-warning-bg/80 transition-colors"
+                                        onClick={() => setConfirmDraft(sim)}
+                                      >
+                                        Continuar e confirmar <ArrowRight className="w-3.5 h-3.5" />
+                                      </button>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -291,7 +390,79 @@ export default function History() {
           </div>
         </>
       )}
+      <DraftEmployeeDetailModal draft={detailDraft} onClose={() => setDetailDraft(null)} />
+      <HistoryConfirmationModal
+        draft={confirmDraft}
+        onClose={() => setConfirmDraft(null)}
+        onUpdate={updateSimulation}
+      />
     </div>
+  );
+}
+
+function HistoryConfirmationModal({ draft, onClose, onUpdate }) {
+  const result = draft?.calculationResult;
+  const scenario = result?.recommended;
+  if (!draft || !scenario) return null;
+
+  const employees = (result?.employees || []).map((employee) => ({
+    id: employee.id,
+    name: employee.nome || employee.name || 'Colaborador',
+    role: employee.cargo || employee.role || null,
+    allowanceCategory: employee.allowanceCategory === 'leader' ? 'leader' : 'standard',
+  }));
+
+  return (
+    <ConfirmMobilizationModal
+      key={draft.id}
+      open
+      onClose={onClose}
+      source="manual_simulation"
+      scenario={scenario}
+      alternatives={result?.scenarios || []}
+      employees={employees}
+      origin={draft?.origem}
+      destination={draft?.destino}
+      context={draft?.confirmationContext || {}}
+      refs={{
+        simulationId: result?.audit?.simulationId || null,
+        policySummary: result?.policySummary || null,
+        reasonCodes: result?.reasonCodes || [],
+      }}
+      onSaveDraft={async (confirmationContext) => {
+        const updated = await onUpdate(draft.id, { confirmationContext });
+        if (!updated) throw new Error('Não foi possível atualizar os dados da confirmação.');
+      }}
+      onConfirmed={async (confirmation, confirmationContext) => {
+        await onUpdate(draft.id, {
+          status: 'confirmed',
+          resumo: mobilizationDraftHistorySummary(scenario),
+          confirmationContext: confirmationContext || draft.confirmationContext || {},
+          confirmedId: confirmation?.confirmedId || null,
+          confirmedAt: new Date().toISOString(),
+          dashboardPublished: true,
+        });
+      }}
+    />
+  );
+}
+
+function DraftEmployeeDetailModal({ draft, onClose }) {
+  const scenario = draft?.calculationResult?.recommended;
+
+  return (
+    <Modal open={!!draft} onClose={onClose} title={scenario?.scenarioName || 'Detalhamento da mobilização'} size="xl">
+      {!scenario ? (
+        <p className="body text-[13px]">Este rascunho ainda não possui um cenário calculado.</p>
+      ) : (
+        <div>
+          <p className="body text-[13px] mb-4">
+            {draft.origem || '—'} → {draft.destino || '—'} · cálculo trabalhista individual e auditável.
+          </p>
+          <MobilizationScenarioDetail scenario={scenario} />
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -320,4 +491,11 @@ function DetailCell({ label, value }) {
       <span className="tabular-data text-[13px] font-semibold text-white/55 mt-2 block">{value}</span>
     </div>
   );
+}
+
+function formatHours(value) {
+  const hours = Number(value) || 0;
+  const whole = Math.floor(hours);
+  const minutes = Math.round((hours - whole) * 60);
+  return `${whole}h${String(minutes).padStart(2, '0')}`;
 }

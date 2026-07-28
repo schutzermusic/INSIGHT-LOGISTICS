@@ -12,7 +12,7 @@
  * drill-down drawers (§11).
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity, Sparkles, Crosshair, Radio, Route as RouteIcon, DollarSign, Clock,
@@ -30,6 +30,10 @@ import { Modal } from '../components/ui/Modal';
 import { PremiumAreaChart, PremiumDonutChart } from '../components/charts';
 import HudGlobe, { STATUS_COLOR, STATUS_LABEL } from '../components/map/HudGlobe';
 import { CHART_PALETTE, CHART_SEQUENCE } from '../lib/chartTheme';
+
+// Heavy 3D globe is lazy-loaded so it never bloats other routes; it falls back
+// to the SVG HUD on WebGL failure and while the chunk streams in.
+const CesiumHudGlobe = lazy(() => import('../components/map/CesiumHudGlobe'));
 
 const fmtDur = (min) => {
   if (!min) return '0h';
@@ -135,27 +139,25 @@ export default function Dashboard() {
                   </div>
                   <Badge variant="info" dot>Tempo real</Badge>
                 </div>
-                <div className="relative h-[300px]">
-                  {(data?.map?.length ?? 0) > 0 ? (
-                    <HudGlobe items={data.map} onSelect={(item) => setDrawer({ type: 'mobilization', payload: item })} className="w-full h-full" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-center">
-                      <div>
-                        <Globe className="w-8 h-8 text-white/10 mx-auto mb-2" />
-                        <p className="body text-[13px] max-w-[220px]">Nenhuma mobilização confirmada ativa. Confirme uma mobilização para vê-la no mapa.</p>
-                      </div>
+                {/* The globe always renders (the Earth is the ambient HUD) — the
+                    empty-state message is overlaid when no confirmed operation is active. */}
+                <div className="relative h-[300px] rounded-2xl overflow-hidden">
+                  <Suspense fallback={<HudGlobe items={data?.map || []} onSelect={(item) => setDrawer({ type: 'mobilization', payload: item })} className="w-full h-full" />}>
+                    <CesiumHudGlobe items={data?.map || []} height={300} onSelect={(item) => setDrawer({ type: 'mobilization', payload: item })} className="w-full h-full" />
+                  </Suspense>
+                  {(data?.map?.length ?? 0) === 0 && (
+                    <div className="absolute inset-x-0 bottom-0 z-20 p-3 text-center pointer-events-none">
+                      <p className="body text-[12px] text-white/45 bg-[rgba(11,15,26,0.6)] rounded-lg px-3 py-2 inline-block">Nenhuma mobilização confirmada ativa — confirme uma mobilização para vê-la orbitando o globo.</p>
                     </div>
                   )}
                 </div>
-                {(data?.map?.length ?? 0) > 0 && (
-                  <div className="mt-3 pt-3 border-t border-white/[0.04] flex flex-wrap items-center gap-3">
-                    {['on_track', 'in_transit', 'warning', 'delayed'].map((s) => (
-                      <span key={s} className="flex items-center gap-1.5 label-micro text-white/35">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLOR[s] }} />{STATUS_LABEL[s]}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-3 pt-3 border-t border-white/[0.04] flex flex-wrap items-center gap-3">
+                  {['on_track', 'in_transit', 'warning', 'delayed'].map((s) => (
+                    <span key={s} className="flex items-center gap-1.5 label-micro text-white/35">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLOR[s] }} />{STATUS_LABEL[s]}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -429,6 +431,9 @@ function MobilizationDetail({ m }) {
         <Info label="Custo total" value={formatBRL(m.totalCostMinor)} />
         <Info label="Origem do dado" value={m.source === 'manual' ? 'Simulação manual' : 'Mobilização automática'} />
         <Info label="Risco" value={m.riskLevel} />
+        {m.lodging?.hasLodging && (
+          <Info label="Hospedagem" value={`${m.lodging.active ? '🏨 Hospedado' : '🛏 Previsto'} · ${m.lodging.nights} noite(s) · ${formatBRL(m.lodging.accommodationCostMinor)}`} />
+        )}
       </div>
     </div>
   );

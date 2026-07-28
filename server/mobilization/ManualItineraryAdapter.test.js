@@ -58,15 +58,17 @@ describe('ManualItineraryAdapter — normalization (§10)', () => {
       ],
     });
     expect(derivedGaps).toHaveLength(1);
-    expect(derivedGaps[0].minutes).toBe(120);
-    const waiting = itinerary.segments.find((s) => s.mode === 'waiting');
+    expect(derivedGaps[0].availableMinutes).toBe(120);
+    expect(derivedGaps[0].requiredMinutes).toBe(50);
+    expect(derivedGaps[0].minutes).toBe(70);
+    const waiting = itinerary.segments.find((s) => s.segmentType === 'waiting');
     expect(waiting).toBeTruthy();
     expect(waiting.source).toBe('derived');
-    expect(waiting.durationMinutes).toBe(120);
+    expect(waiting.durationMinutes).toBe(70);
   });
 
-  it('3. flags a missing transfer between bus terminal and airport (§9)', () => {
-    const { continuityIssues } = buildManualItinerary({
+  it('3. blocks a terminal change when the interval cannot fit transfer and boarding (§9)', () => {
+    const { continuityIssues, derivedGaps } = buildManualItinerary({
       scenarioId: 's3', passengerIds: ['e1'],
       segments: [
         seg({ destinationLocationId: 'GYN', destinationLocationType: 'bus_terminal',
@@ -76,7 +78,9 @@ describe('ManualItineraryAdapter — normalization (§10)', () => {
           departureAtUtc: '2026-01-05T13:00:00Z', arrivalAtUtc: '2026-01-05T15:00:00Z', priceAllocation: 'per_person', priceAmountMinor: 120000 }),
       ],
     });
-    expect(continuityIssues.some((c) => c.code === 'missing_transfer')).toBe(true);
+    expect(continuityIssues.some((c) => c.code === 'insufficient_connection')).toBe(true);
+    expect(derivedGaps[0].components.terminalTransferMinutes).toBe(60);
+    expect(derivedGaps[0].requiredMinutes).toBeGreaterThan(derivedGaps[0].availableMinutes);
   });
 
   it('4. an explicit transfer between terminals clears the continuity issue', () => {
@@ -126,5 +130,40 @@ describe('ManualItineraryAdapter — normalization (§10)', () => {
     expect(itinerary.timelines.outbound).toHaveLength(1);
     expect(itinerary.timelines.return).toHaveLength(1);
     expect(itinerary.segments.find((segment) => segment.direction === 'return')).toBeTruthy();
+  });
+
+  it('7. derives disembarkation, baggage, terminal transfer, check-in and residual waiting', () => {
+    const { itinerary, derivedGaps } = buildManualItinerary({
+      scenarioId: 'ops',
+      passengerIds: ['e1'],
+      segments: [
+        seg({
+          destinationLocationId: 'GYN',
+          destinationLocationType: 'bus_terminal',
+          departureAtUtc: '2026-01-05T08:00:00Z',
+          arrivalAtUtc: '2026-01-05T10:00:00Z',
+          metadata: { disembarkMinutes: 15, baggageClaimMinutes: 10 },
+        }),
+        seg({
+          segmentType: 'flight',
+          originLocationId: 'GYN',
+          originLocationType: 'airport',
+          destinationLocationId: 'BEL',
+          destinationLocationType: 'airport',
+          departureAtUtc: '2026-01-05T14:00:00Z',
+          arrivalAtUtc: '2026-01-05T16:00:00Z',
+          metadata: { boardingLeadMinutes: 90 },
+        }),
+      ],
+    });
+    expect(derivedGaps[0]).toMatchObject({
+      availableMinutes: 240,
+      requiredMinutes: 175,
+      residualWaitingMinutes: 65,
+    });
+    expect(itinerary.segments.filter((segment) => segment.source === 'derived').map((segment) => segment.segmentType))
+      .toEqual(expect.arrayContaining([
+        'disembarkation', 'baggage_claim', 'terminal_transfer', 'waiting', 'check_in_boarding',
+      ]));
   });
 });

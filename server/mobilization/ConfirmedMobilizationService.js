@@ -89,6 +89,10 @@ export function validateConfirmation(input = {}) {
 export function attributeCollaboratorSpend(scenario, employees) {
   const laborByEmployee = scenario.laborByEmployee || [];
   const laborById = new Map(laborByEmployee.map((l) => [String(l.employeeId), l]));
+  const allowanceById = new Map(
+    (scenario.mealAllowance?.byEmployee || scenario.breakdown?.meal_allowances || [])
+      .map((item) => [String(item.employeeId), item]),
+  );
 
   const totalLaborC = laborByEmployee.reduce((s, l) => s + int(l.totalCostC), 0);
   const sharedC = Math.max(0, int(scenario.totalMobilizationCostC) - totalLaborC);
@@ -98,6 +102,7 @@ export function attributeCollaboratorSpend(scenario, employees) {
 
   return employees.map((emp, idx) => {
     const labor = laborById.get(String(emp.id));
+    const allowance = allowanceById.get(String(emp.id));
     const laborSpend = int(labor?.totalCostC);
     const transportShare = sharePer + (idx === 0 ? remainder : 0);
     let overtimeMinutes = 0;
@@ -116,6 +121,9 @@ export function attributeCollaboratorSpend(scenario, employees) {
       totalSpendC: laborSpend + transportShare,
       overtimeMinutes,
       nightMinutes,
+      allowanceCategory: emp.allowanceCategory === 'leader' ? 'leader' : 'standard',
+      allowanceTotalC: int(allowance?.totalC),
+      allowanceSnapshot: allowance || {},
     };
   });
 }
@@ -165,6 +173,10 @@ export function buildConfirmationRecord(input) {
 
   const sc = input.scenario;
   const employees = input.employees;
+  const confirmedEmployeeIds = new Set(employees.map((employee) => String(employee.id)));
+  const confirmedAllowances = (
+    sc.mealAllowance?.byEmployee || sc.breakdown?.meal_allowances || []
+  ).filter((item) => confirmedEmployeeIds.has(String(item.employeeId)));
   const modeSequence = sc.modeSequence || [];
   const categorySpend = normalizeCategorySpend(sc);
   const collaborators = attributeCollaboratorSpend(sc, employees);
@@ -227,8 +239,18 @@ export function buildConfirmationRecord(input) {
     cost_snapshot: sc.breakdown || {},
     labor_snapshot: sc.laborByEmployee || [],
     route_snapshot: sc.segments || [],
-    employee_snapshot: employees.map((e) => ({ id: e.id, name: e.name, role: e.role || null })),
+    employee_snapshot: employees.map((e) => ({
+      id: e.id,
+      name: e.name,
+      role: e.role || null,
+      allowanceCategory: e.allowanceCategory === 'leader' ? 'leader' : 'standard',
+    })),
     labor_policy_version_id: input.laborPolicyVersionId || null,
+    allowance_policy_version_id: sc.mealAllowance?.policy?.id || sc.breakdown?.meal_allowance_policy?.id || null,
+    allowance_snapshot: {
+      policy: sc.mealAllowance?.policy || sc.breakdown?.meal_allowance_policy || null,
+      employees: confirmedAllowances,
+    },
 
     risk_level: sc.feasibilityDetail === 'requires_approval' ? 'medium' : 'low',
     on_time: null,
@@ -237,7 +259,12 @@ export function buildConfirmationRecord(input) {
     confirmed_by: input.actorId || null,
     confirmed_by_name: input.actorName || null,
     confirmed_at: input.confirmedAt || now,
-    data: { reasonCodes: input.reasonCodes || [], policySummary: input.policySummary || null },
+    data: {
+      reasonCodes: input.reasonCodes || [],
+      policySummary: input.policySummary || null,
+      allowanceOverrides: confirmedAllowances
+        .filter((item) => item.overrides || item.overrideJustification),
+    },
   };
 
   return { record, collaborators };

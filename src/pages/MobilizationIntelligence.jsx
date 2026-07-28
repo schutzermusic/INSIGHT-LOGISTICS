@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useCollaborators } from '../hooks/useStore';
 import { getExtendedCities } from '../engine/routes-intelligence-db.js';
+import { calcTechnicalHourlyRateC } from '../engine/calculator.js';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Badge } from '../components/ui/Badge';
@@ -51,19 +52,7 @@ const timePart = (dateTime, fallback = '08:00') => (dateTime || '').slice(11, 16
 const withDatePart = (date, dateTime, fallbackTime = '08:00') => (date ? `${date}T${timePart(dateTime, fallbackTime)}` : dateTime);
 const employeeName = (employee) => employee.nome || employee.name || 'Colaborador';
 const employeeRole = (employee) => employee.cargo || employee.role || 'Cargo não informado';
-const hourlyRateC = (employee) => (
-  employee.hourlyRateC ??
-  employee.valorHoraC ??
-  employee.valor_hora_c ??
-  employee.hourly_rate_c ??
-  employee.custoHoraC ??
-  employee.custo_hora_c ??
-  // O cadastro guarda salário mensal e carga horária; convertemos para os
-  // centavos/hora que o seletor e o motor de custos utilizam.
-  (employee.salarioBase && employee.cargaHoraria
-    ? Math.round((Number(employee.salarioBase) / Number(employee.cargaHoraria)) * 100)
-    : 0)
-);
+const hourlyRateC = calcTechnicalHourlyRateC;
 
 const PROGRESS_STEPS = [
   'Selecionando hubs e aeroportos no corredor...',
@@ -74,7 +63,7 @@ const PROGRESS_STEPS = [
 ];
 
 export default function MobilizationIntelligence() {
-  const { collaborators } = useCollaborators();
+  const { collaborators, loading: collaboratorsLoading } = useCollaborators();
   const navigate = useNavigate();
   const cities = useMemo(() => getExtendedCities(), []);
 
@@ -167,7 +156,22 @@ export default function MobilizationIntelligence() {
         returnDate: tripType === 'roundtrip' ? returnDate : null,
         earliestDepartureUtc: toUtcIso(departure || `${outboundDate}T00:00`),
         deadlineUtc: toUtcIso(deadline || `${defaultDeadlineDate}T23:59`),
-        employees: selected.map((c) => ({ id: c.id, nome: c.nome, salarioBase: c.salarioBase, cargaHoraria: c.cargaHoraria })),
+        employees: selected.map((c) => ({
+          id: c.id,
+          nome: c.nome,
+          salarioBase: c.salarioBase,
+          cargaHoraria: c.cargaHoraria,
+          hourlyRateC: hourlyRateC(c),
+          priorWorkedMinutes: c.priorWorkedMinutes || 0,
+          dailyStandardMinutes: c.dailyStandardMinutes || 480,
+          saturdayCompensated: c.saturdayCompensated ?? true,
+          reducedNightHourEnabled: c.reducedNightHourEnabled ?? true,
+          allowanceCategory: c.allowanceCategory === 'leader' ? 'leader' : 'standard',
+          multHE50: c.multHE50,
+          multHE100: c.multHE100,
+          multHE150: c.multHE150,
+          percNoturno: c.percNoturno,
+        })),
         config: config || undefined,
       };
       const res = await mobilizationSearch(payload);
@@ -179,6 +183,14 @@ export default function MobilizationIntelligence() {
       setLoading(false);
     }
   };
+
+  if (collaboratorsLoading) {
+    return (
+      <div className="flex min-h-64 items-center justify-center">
+        <Loader2 className="w-6 h-6 text-mint animate-spin" aria-label="Carregando colaboradores" />
+      </div>
+    );
+  }
 
   if (collaborators.length === 0) {
     return (
@@ -235,8 +247,6 @@ export default function MobilizationIntelligence() {
           onClear={() => setSelectedIds(new Set())}
         />
       </div>
-
-      <PolicyCard policy={result?.policySummary} />
 
       <div className="flex flex-col items-center gap-2 pt-1">
         {selected.length === 0 && <span className="body text-[13px] text-warning-text/80">Selecione ao menos 1 colaborador</span>}
@@ -393,25 +403,6 @@ function Hero() {
           </div>
           <p className="body">Otimiza pelo <span className="text-white/70 font-medium">custo total de mobilização</span> — não pela menor passagem. Mão de obra, permanência e viabilidade calculadas automaticamente.</p>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function PolicyCard({ policy }) {
-  const lines = policy?.lines || ['8h normais', '+2h a +50%', 'excedente a +100%', 'sábado: todas as horas a +100%', 'domingo a 2.5x', 'noturno 22:00–05:00 a +20%'];
-  return (
-    <div className="surface-recessed rounded-2xl border border-white/[0.04] p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <ShieldCheck className="w-4 h-4 text-mint/60" />
-        <span className="label-micro text-white/40">Política Trabalhista Aplicada</span>
-        <Badge variant="neutral" compact>{policy?.name || 'CLT Padrão'} v{policy?.version || 1}</Badge>
-        <span className="label-micro text-white/20 ml-auto">Somente leitura — editável na administração</span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {lines.map((l, i) => (
-          <span key={i} className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.05] label-micro text-white/50">{l}</span>
-        ))}
       </div>
     </div>
   );
@@ -982,9 +973,10 @@ function FieldBlock({
 
 /* ── Config mapping (Settings → engine shapes) ── */
 async function loadConfig() {
-  const [buf, lim, meal, hotel, local, veh, fuel] = await Promise.all([
+  const [buf, lim, meal, allowance, hotel, local, veh, fuel] = await Promise.all([
     getConfig('connection_buffer_policies'), getConfig('search_limit_policies'),
-    getConfig('meal_policies'), getConfig('hotel_policies'), getConfig('local_transport_policies'),
+    getConfig('meal_policies'), getConfig('meal_allowance_policy_versions'),
+    getConfig('hotel_policies'), getConfig('local_transport_policies'),
     getConfig('vehicle_assumptions'), getConfig('fuel_prices'),
   ]);
   const cfg = {};
@@ -1002,6 +994,22 @@ async function loadConfig() {
     ...(meal ? { mealDailyC: meal.daily_meal_cost_c } : {}),
     ...(hotel ? { hotelDailyC: hotel.daily_hotel_cost_c } : {}),
     ...(local ? { localDailyC: local.daily_local_transport_cost_c } : {}),
+  };
+  if (allowance) cfg.allowancePolicy = {
+    id: allowance.id,
+    version: allowance.version,
+    name: allowance.name,
+    status: allowance.status,
+    leaderDailyC: allowance.leader_daily_c,
+    standardDailyC: allowance.standard_daily_c,
+    maxAllowancesPerLocalDay: allowance.max_allowances_per_local_day,
+    travelingCounts: allowance.traveling_counts,
+    connectionWaitingCounts: allowance.connection_waiting_counts,
+    hotelAwayFromBaseCounts: allowance.hotel_away_from_base_counts,
+    timezoneBasis: allowance.timezone_basis,
+    noAllowanceBelowMinutes: allowance.no_allowance_below_minutes,
+    fullAllowanceFromMinutes: allowance.full_allowance_from_minutes,
+    partialAllowanceRatio: Number(allowance.partial_allowance_ratio),
   };
   return cfg;
 }

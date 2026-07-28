@@ -17,7 +17,11 @@
 
 import express from 'express';
 import { buildConfirmationRecord } from '../mobilization/ConfirmedMobilizationService.js';
-import { persistConfirmation, isConfirmationPersistenceEnabled } from '../mobilization/confirmedPersistence.js';
+import {
+  persistConfirmation,
+  revertConfirmation,
+  isConfirmationPersistenceEnabled,
+} from '../mobilization/confirmedPersistence.js';
 import {
   getDashboard, getRealtimeSlice, getFilterOptions, invalidateDashboardCache,
 } from '../mobilization/DashboardService.js';
@@ -59,6 +63,23 @@ dashboard.post('/confirm', async (req, res) => {
       return res.status(422).json({ error: err.message, errors: err.errors });
     }
     console.error('[dashboard/confirm]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+dashboard.post('/confirmations/:id/revert', async (req, res) => {
+  try {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.id)) {
+      return res.status(400).json({ error: 'Identificador de confirmação inválido.' });
+    }
+    if (!isConfirmationPersistenceEnabled()) {
+      return res.status(409).json({ error: 'Persistência do Dashboard desativada.' });
+    }
+    const reverted = await revertConfirmation(req.params.id, req.body?.actorId || null);
+    invalidateDashboardCache();
+    res.json({ ok: true, ...reverted });
+  } catch (err) {
+    console.error('[dashboard/confirmations/revert]', err);
     res.status(500).json({ error: err.message });
   }
 });

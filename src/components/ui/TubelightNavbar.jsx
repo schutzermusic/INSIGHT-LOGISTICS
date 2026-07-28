@@ -39,7 +39,7 @@ export function NavBar({ items, className }) {
           src="/INSIGHT-LOGISTICS-LOGO.png"
           alt="Insight Logistics"
           className={cn(
-            'h-12 w-auto transition-[filter] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]',
+            'w-[240px] h-auto transition-[filter] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]',
             isDark
               ? 'drop-shadow-[0_4px_16px_rgba(73,220,122,0.12)]'
               : 'drop-shadow-[0_4px_12px_rgba(15,50,40,0.15)]',

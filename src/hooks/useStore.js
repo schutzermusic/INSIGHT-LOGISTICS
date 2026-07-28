@@ -6,6 +6,7 @@ import {
   deleteCollaborator as _deleteCollab,
   getSimulations as _getSims,
   saveSimulation as _saveSim,
+  updateSimulation as _updateSim,
   deleteSimulation as _deleteSim,
   clearSimulations as _clearSims,
 } from '../data/store.js';
@@ -62,6 +63,12 @@ export function useSimulations() {
     return result;
   }, [refresh]);
 
+  const updateSimulation = useCallback(async (id, updates) => {
+    const result = await _updateSim(id, updates);
+    await refresh();
+    return result;
+  }, [refresh]);
+
   const deleteSimulation = useCallback(async (id) => {
     await _deleteSim(id);
     await refresh();
@@ -72,5 +79,5 @@ export function useSimulations() {
     await refresh();
   }, [refresh]);
 
-  return { simulations, loading, saveSimulation, deleteSimulation, clearSimulations };
+  return { simulations, loading, saveSimulation, updateSimulation, deleteSimulation, clearSimulations };
 }

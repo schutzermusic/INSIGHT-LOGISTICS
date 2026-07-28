@@ -35,13 +35,15 @@ describe('ManualSimulationService — individual labor & consolidation (§11, §
     });
     const ana = sc.laborByEmployee.find((l) => l.employeeId === 'e1');
     const bruno = sc.laborByEmployee.find((l) => l.employeeId === 'e2');
-    expect(ana.totalCostC).toBe(48000);   // 8h × 6000
-    expect(bruno.totalCostC).toBe(72000);  // 8h × 9000
-    expect(ana.summary.regularMinutes).toBe(480);
-    expect(sc.laborCostC).toBe(120000);    // consolidated
+    expect(ana.totalCostC).toBe(42000);   // 8h operação - 1h intervalo
+    expect(bruno.totalCostC).toBe(63000);
+    expect(ana.summary.regularMinutes).toBe(420);
+    expect(sc.laborCostC).toBe(105000);    // consolidated
     // Commercial: per-person 250,00 × 2 passengers.
     expect(sc.commercialCostC).toBe(50000);
-    expect(sc.totalMobilizationCostC).toBe(50000 + 120000);
+    // Eight hours away receive half of the standard allowance per employee.
+    expect(sc.mealAllowance.byEmployee.map((item) => item.totalC)).toEqual([4500, 4500]);
+    expect(sc.totalMobilizationCostC).toBe(50000 + 105000 + 9000);
   });
 
   it('Saturday travel is all +100% from the first minute for each employee (§4.2)', () => {
@@ -74,8 +76,57 @@ describe('ManualSimulationService — individual labor & consolidation (§11, §
     const ana = sc.laborByEmployee.find((l) => l.employeeId === 'e1');
     const bruno = sc.laborByEmployee.find((l) => l.employeeId === 'e2');
     expect(ana.summary.totalCountedMinutes).toBe(120);  // 2h flight
-    expect(bruno.summary.totalCountedMinutes).toBe(600); // 10h bus → 8 reg + 2 @50%
-    expect(bruno.summary.weekdayOvertime50Minutes).toBe(120);
+    expect(bruno.summary.totalCountedMinutes).toBe(540); // 10h operação - 1h intervalo
+    expect(bruno.summary.weekdayOvertime50Minutes).toBe(60);
+  });
+
+  it('applies each employee contractual schedule through the shared labor engine', () => {
+    const sc = computeScenario({
+      scenario: {
+        id: 'individual-schedules',
+        name: 'Jornadas individuais',
+        segments: [bus({
+          departureAtUtc: '2026-01-07T08:00:00Z',
+          arrivalAtUtc: '2026-01-07T18:00:00Z',
+        })],
+      },
+      employees: [
+        { ...EMP[0], dailyStandardMinutes: 480 },
+        { ...EMP[1], dailyStandardMinutes: 528 },
+      ],
+      policy: POLICY,
+      travelTimePolicy: TTP,
+    });
+    const ana = sc.laborByEmployee.find((employee) => employee.employeeId === 'e1');
+    const bruno = sc.laborByEmployee.find((employee) => employee.employeeId === 'e2');
+    expect(ana.summary.weekdayOvertime50Minutes).toBe(60);
+    expect(bruno.summary.weekdayOvertime50Minutes).toBe(12);
+    expect(bruno.schedule.dailyStandardMinutes).toBe(528);
+  });
+
+  it('honors explicit employee/CCT multipliers while keeping the policy defaults centralized', () => {
+    const sc = computeScenario({
+      scenario: {
+        id: 'individual-rates',
+        name: 'Percentuais individuais',
+        segments: [bus({
+          departureAtUtc: '2026-01-07T22:00:00Z',
+          arrivalAtUtc: '2026-01-07T23:00:00Z',
+          passengerIds: ['e1'],
+        })],
+      },
+      employees: [{
+        ...EMP[0],
+        percNoturno: 30,
+        reducedNightHourEnabled: false,
+      }],
+      policy: POLICY,
+      travelTimePolicy: TTP,
+    });
+    const ana = sc.laborByEmployee[0];
+    expect(ana.schedule.nightMultiplier).toBe(1.3);
+    expect(ana.blocks.every((block) => block.nightPremiumPercent === 30)).toBe(true);
+    expect(ana.totalCostC).toBe(7800);
   });
 });
 
@@ -96,7 +147,7 @@ describe('ManualSimulationService — cross-scenario recommendation (§16)', () 
     expect(result.recommended).toBeTruthy();
     expect(result.recommended.scenarioName).toBe('Aéreo'); // cheaper ticket loses to labor? no — air is faster & cheaper total
     expect(result.scenarios).toHaveLength(2);
-    expect(result.policySummary.lines.some((l) => l.includes('SÁBADO: todas as horas'))).toBe(true);
+    expect(result.policySummary.lines.some((l) => l.includes('SÁBADO COMPENSADO: todas as horas'))).toBe(true);
   });
 
   it('keeps outbound and return segments in one continuous shared calculation', () => {
@@ -128,7 +179,7 @@ describe('ManualSimulationService — cross-scenario recommendation (§16)', () 
     expect(result.scenarios[0].tripType).toBe('roundtrip');
     expect(result.scenarios[0].timelines.outbound.length).toBe(2);
     expect(result.scenarios[0].timelines.return.length).toBe(1);
-    expect(result.scenarios[0].laborByEmployee[0].summary.regularMinutes).toBe(600);
+    expect(result.scenarios[0].laborByEmployee[0].summary.regularMinutes).toBe(540);
   });
 });
 

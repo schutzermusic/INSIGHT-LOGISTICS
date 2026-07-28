@@ -28,11 +28,10 @@ function laborPolicySummary(p) {
     version: p.version,
     effectiveFrom: p.effectiveFrom,
     lines: [
-      `${p.regularDailyMinutes / 60}h normais`,
-      `+${p.weekdayFirstOvertimeMinutes / 60}h a +${Math.round((p.weekdayFirstOvertimeMultiplier - 1) * 100)}%`,
-      `excedente a +${Math.round((p.weekdayExcessMultiplier - 1) * 100)}%`,
+      `jornada contratual individual (padrão ${p.regularDailyMinutes / 60}h)`,
+      `excedente a +${Math.round((p.weekdayFirstOvertimeMultiplier - 1) * 100)}%; acima de 2h gera alerta`,
       p.saturdayAllHoursOvertime
-        ? `sábado: todas as horas a +${Math.round((p.saturdayExcessMultiplier - 1) * 100)}%`
+        ? `sábado compensado: todas as horas a +${Math.round(((p.compensatedSaturdayMultiplier ?? 2) - 1) * 100)}%`
         : `sábado após ${p.saturdayRegularMinutes / 60}h a +${Math.round((p.saturdayExcessMultiplier - 1) * 100)}%`,
       `domingo a ${p.sundayMultiplier}x`,
       `noturno ${p.nightStartLocalTime}–${p.nightEndLocalTime} a +${Math.round((p.nightMultiplier - 1) * 100)}%`,
@@ -118,8 +117,20 @@ export async function searchMobilization(input) {
   const employees = (input.employees || []).map((e) => ({
     id: e.id,
     name: e.nome || e.name || 'Colaborador',
-    hourlyRateC: e.salarioBase && e.cargaHoraria ? Math.round((e.salarioBase / e.cargaHoraria) * 100) : 0,
+    hourlyRateC: Number.isInteger(e.hourlyRateC)
+      ? e.hourlyRateC
+      : e.salarioBase && e.cargaHoraria
+        ? Math.round((e.salarioBase / e.cargaHoraria) * 100)
+        : 0,
     priorWorkedMinutes: e.priorWorkedMinutes || 0,
+    dailyStandardMinutes: e.dailyStandardMinutes,
+    saturdayCompensated: e.saturdayCompensated,
+    reducedNightHourEnabled: e.reducedNightHourEnabled,
+    allowanceCategory: e.allowanceCategory === 'leader' ? 'leader' : 'standard',
+    multHE50: e.multHE50,
+    multHE100: e.multHE100,
+    multHE150: e.multHE150,
+    percNoturno: e.percNoturno,
   }));
 
   if (valid.length === 0) {
@@ -132,7 +143,7 @@ export async function searchMobilization(input) {
       stats: { ...graphStats, ...genStats },
       metrics: { correlationId, totalMs: timer.total(), durationsMs: timer.phases() },
       policySummary: laborPolicySummary(DEFAULT_LABOR_POLICY),
-      employees: employees.map(({ id, name, hourlyRateC }) => ({ id, name, hourlyRateC })),
+      employees,
     };
   }
 
@@ -145,6 +156,7 @@ export async function searchMobilization(input) {
       itinerary: it, employees, laborContext,
       config: cfg.costConfig || {},
       fieldContext: { daysInField: input.daysInField || 0 },
+      allowancePolicy: cfg.allowancePolicy,
     });
     const laborByEmployee = r.laborByEmployee.map((l) => ({ ...l, employeeName: nameById[l.employeeId] || l.employeeId }));
     return { ...r.itinerary, breakdown: r.breakdown, laborByEmployee };
@@ -202,7 +214,7 @@ export async function searchMobilization(input) {
       usedRealProviders: useReal,
     },
     policySummary: laborPolicySummary(DEFAULT_LABOR_POLICY),
-    employees: employees.map(({ id, name, hourlyRateC }) => ({ id, name, hourlyRateC })),
+    employees,
   };
 
   // Immutable audit snapshot (§23, §25) — best-effort; never blocks the result.

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Badge } from '../components/ui/Badge';
-import { getConfig, updateConfig } from '../data/policyStore.js';
+import { createConfigVersion, getConfig, updateConfig } from '../data/policyStore.js';
 import { toCentavos, fromCentavos } from '../domain/money.js';
 
 // Field types: 'minutes' | 'int' | 'money' (BRL↔centavos) | 'decimal'
@@ -74,6 +74,25 @@ const SECTIONS = [
     fields: [{ key: 'daily_meal_cost_c', label: 'Alimentação/dia (R$)', type: 'money' }],
   },
   {
+    table: 'meal_allowance_policy_versions',
+    title: 'Diárias de Alimentação',
+    subtitle: 'Política versionada, individual e limitada a uma diária por data local elegível',
+    icon: Utensils,
+    accent: 'mint',
+    versioned: true,
+    fields: [
+      { key: 'leader_daily_c', label: 'Liderança/dia (R$)', type: 'money' },
+      { key: 'standard_daily_c', label: 'Padrão/dia (R$)', type: 'money' },
+      { key: 'max_allowances_per_local_day', label: 'Máximo por data local', type: 'int', hint: 'Regra operacional: 1' },
+      { key: 'traveling_counts', label: 'Viagem elegível', type: 'boolean' },
+      { key: 'connection_waiting_counts', label: 'Espera/conexão elegível', type: 'boolean' },
+      { key: 'hotel_away_from_base_counts', label: 'Hotel fora da base elegível', type: 'boolean' },
+      { key: 'no_allowance_below_minutes', label: 'Sem diária abaixo de (min)', type: 'minutes', hint: 'Padrão: 360 (6h)' },
+      { key: 'full_allowance_from_minutes', label: 'Diária integral a partir de (min)', type: 'minutes', hint: 'Padrão: 1080 (18h)' },
+      { key: 'partial_allowance_ratio', label: 'Fração da meia diária', type: 'decimal', hint: 'Padrão: 0,5' },
+    ],
+  },
+  {
     table: 'hotel_policies',
     title: 'Hospedagem',
     subtitle: 'Custo diário de hospedagem',
@@ -97,11 +116,13 @@ const ACCENT = {
 
 function toFormValue(type, raw) {
   if (raw == null) return '';
+  if (type === 'boolean') return Boolean(raw);
   if (type === 'money') return String(fromCentavos(Number(raw)));
   return String(raw);
 }
 
 function toColumnValue(type, str) {
+  if (type === 'boolean') return Boolean(str);
   const n = parseFloat(str);
   if (!Number.isFinite(n)) return null;
   if (type === 'money') return toCentavos(n);
@@ -109,7 +130,7 @@ function toColumnValue(type, str) {
   return Math.round(n); // int | minutes
 }
 
-function ConfigSection({ table, title, subtitle, icon: Icon, accent, fields }) {
+function ConfigSection({ table, title, subtitle, icon: Icon, accent, fields, versioned = false }) {
   const [row, setRow] = useState(null);
   const [form, setForm] = useState({});
   const [status, setStatus] = useState('loading'); // loading|idle|saving|saved|error
@@ -141,7 +162,9 @@ function ConfigSection({ table, title, subtitle, icon: Icon, accent, fields }) {
         const v = toColumnValue(f.type, form[f.key]);
         if (v != null) patch[f.key] = v;
       }
-      const updated = await updateConfig(table, row.id, patch);
+      const updated = versioned
+        ? await createConfigVersion(table, row, patch)
+        : await updateConfig(table, row.id, patch);
       setRow(updated);
       setStatus('saved');
       setTimeout(() => setStatus((s) => (s === 'saved' ? 'idle' : s)), 2500);
@@ -176,15 +199,23 @@ function ConfigSection({ table, title, subtitle, icon: Icon, accent, fields }) {
               {fields.map((f) => (
                 <div key={f.key}>
                   <label className="block label-micro text-white/35 mb-2">{f.label}</label>
-                  <input
-                    className="glass-input"
-                    type="number"
-                    step={f.type === 'money' ? '0.01' : f.type === 'decimal' ? '0.1' : '1'}
-                    min="0"
-                    value={form[f.key] ?? ''}
-                    onChange={(e) => onChange(f.key, e.target.value)}
-                    disabled={status === 'loading' || status === 'saving'}
-                  />
+                  {f.type === 'boolean' ? (
+                    <ToggleInput
+                      checked={form[f.key] === true}
+                      onChange={(value) => onChange(f.key, value)}
+                      disabled={status === 'loading' || status === 'saving'}
+                    />
+                  ) : (
+                    <input
+                      className="glass-input"
+                      type="number"
+                      step={f.type === 'money' ? '0.01' : f.type === 'decimal' ? '0.1' : '1'}
+                      min="0"
+                      value={form[f.key] ?? ''}
+                      onChange={(e) => onChange(f.key, e.target.value)}
+                      disabled={status === 'loading' || status === 'saving'}
+                    />
+                  )}
                   {f.hint && <span className="label-micro text-white/15 mt-1 block">{f.hint}</span>}
                 </div>
               ))}
@@ -213,6 +244,15 @@ function ConfigSection({ table, title, subtitle, icon: Icon, accent, fields }) {
         )}
       </div>
     </div>
+  );
+}
+
+function ToggleInput({ checked, onChange, disabled }) {
+  return (
+    <label className="h-10 flex items-center gap-2 text-[13px] text-white/65">
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} disabled={disabled} className="accent-[#49dc7a]" />
+      {checked ? 'Ativo' : 'Inativo'}
+    </label>
   );
 }
 

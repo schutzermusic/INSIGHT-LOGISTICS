@@ -37,8 +37,6 @@ export function ConfirmMobilizationModal({
 }) {
   const [projectName, setProjectName] = useState(context.projectName || '');
   const [scheduleName, setScheduleName] = useState(context.scheduleName || '');
-  const [activityName, setActivityName] = useState(context.activityName || '');
-  const [costCenter, setCostCenter] = useState(context.costCenter || '');
   const [contract, setContract] = useState(context.contract || '');
   const [assigned, setAssigned] = useState(() => new Set(
     context.assignedEmployeeIds?.length
@@ -76,10 +74,13 @@ export function ConfirmMobilizationModal({
       actorName: refs.actorName || null,
       project: { id: context.projectId || slug(projectName), name: projectName.trim() },
       schedule: { id: context.scheduleId || slug(scheduleName), name: scheduleName.trim() },
-      activity: activityName.trim() ? { id: slug(activityName), name: activityName.trim() } : undefined,
-      costCenter: costCenter.trim() || undefined,
       contract: contract.trim() || undefined,
-      employees: assignedEmployees.map((e) => ({ id: e.id, name: e.name, role: e.role || null })),
+      employees: assignedEmployees.map((e) => ({
+        id: e.id,
+        name: e.name,
+        role: e.role || null,
+        allowanceCategory: e.allowanceCategory === 'leader' ? 'leader' : 'standard',
+      })),
       scenario,
       alternatives,
       origin,
@@ -90,7 +91,12 @@ export function ConfirmMobilizationModal({
     try {
       const res = await dashboardConfirm(payload);
       setState('done');
-      onConfirmed?.(res);
+      onConfirmed?.(res, {
+        projectName: projectName.trim(),
+        scheduleName: scheduleName.trim(),
+        contract: contract.trim(),
+        assignedEmployeeIds: assignedEmployees.map((employee) => employee.id),
+      });
     } catch (err) {
       setState('error');
       setError(err.message || 'Falha ao confirmar a mobilização.');
@@ -105,8 +111,6 @@ export function ConfirmMobilizationModal({
       await onSaveDraft?.({
         projectName: projectName.trim(),
         scheduleName: scheduleName.trim(),
-        activityName: activityName.trim(),
-        costCenter: costCenter.trim(),
         contract: contract.trim(),
         assignedEmployeeIds: assignedEmployees.map((employee) => employee.id),
       });
@@ -152,14 +156,8 @@ export function ConfirmMobilizationModal({
             <Field label="Projeto *" required filled={projectName.trim().length > 0}>
               <input className="glass-input" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="Ex.: Usina Norte" />
             </Field>
-            <Field label="Cronograma / etapa / frente *" required filled={scheduleName.trim().length > 0}>
+            <Field label="Cronograma / OS *" required filled={scheduleName.trim().length > 0}>
               <input className="glass-input" value={scheduleName} onChange={(e) => setScheduleName(e.target.value)} placeholder="Ex.: Montagem eletromecânica" />
-            </Field>
-            <Field label="Atividade / pacote de trabalho">
-              <input className="glass-input" value={activityName} onChange={(e) => setActivityName(e.target.value)} placeholder="Opcional" />
-            </Field>
-            <Field label="Centro de custo">
-              <input className="glass-input" value={costCenter} onChange={(e) => setCostCenter(e.target.value)} placeholder="Opcional" />
             </Field>
           </div>
 

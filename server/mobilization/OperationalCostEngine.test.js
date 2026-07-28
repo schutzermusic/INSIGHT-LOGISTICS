@@ -32,13 +32,13 @@ describe('computeItineraryCost', () => {
 
     // Commercial: R$100 × 2 people.
     expect(breakdown.ticket_c).toBe(20000);
-    // Labor: 12h weekday each = 8h reg + 2h@50% + 2h@100% = 90000, × 2 = 180000.
-    expect(breakdown.labor_c).toBe(180000);
-    // Meals: floor(12h / 5h) = 2 meals × round(8000/3) × 2 people = 2 × 2667 × 2.
-    expect(breakdown.transit_meals_c).toBe(2 * 2667 * 2);
+    // Labor: 12h operation - 1h interval = 8h regular + 3h@50% = 75000, × 2.
+    expect(breakdown.labor_c).toBe(150000);
+    // Twelve hours away = half standard allowance (R$45) per employee.
+    expect(breakdown.transit_meals_c).toBe(4500 * 2);
     expect(breakdown.transit_hotel_c).toBe(0); // no overnight wait
-    expect(itinerary.totalMobilizationCostC).toBe(20000 + 180000 + 2 * 2667 * 2);
-    expect(itinerary.laborCostC).toBe(180000);
+    expect(itinerary.totalMobilizationCostC).toBe(20000 + 150000 + 4500 * 2);
+    expect(itinerary.laborCostC).toBe(150000);
   });
 
   it('treats rental vehicle as a shared (not per-person) cost', () => {
