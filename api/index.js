@@ -5,6 +5,7 @@ import { googleGeocoding } from '../server/routes/google-geocoding.js';
 import { queroPassagem } from '../server/routes/quero-passagem.js';
 import { serpApiFlights } from '../server/routes/serpapi.js';
 import { mobilization } from '../server/routes/mobilization.js';
+import { dashboard } from '../server/routes/dashboard.js';
 
 const app = express();
 app.use(cors());
@@ -29,5 +30,6 @@ app.use('/api/geocoding', googleGeocoding);
 app.use('/api/bus', queroPassagem);
 app.use('/api/flights', serpApiFlights);
 app.use('/api/mobilization', mobilization);
+app.use('/api/dashboard', dashboard);
 
 export default app;
