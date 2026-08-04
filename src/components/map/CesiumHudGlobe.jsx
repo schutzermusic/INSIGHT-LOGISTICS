@@ -216,22 +216,51 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
         // the globe. With an Ion token → Cesium World Imagery (satellite); else →
         // free CARTO dark tiles. If neither loads (offline), the dark globe + grid
         // still render.
-        const addCarto = () => viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
-          url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-          credit: '© OpenStreetMap contributors © CARTO',
-          maximumLevel: 18,
-        }));
+        //
+        // The fallback has to be async-aware. `ImageryLayer.fromWorldImagery`
+        // returns a layer immediately but resolves the Ion asset in the
+        // background, so a missing/expired/rejected token fails AFTER the
+        // try/catch below has already succeeded. Catching only synchronous
+        // throws left the globe on its bare baseColor — the "globo preto".
+        // errorEvent is the signal for that late failure; the timer covers the
+        // modes that never raise it (request hangs, silent block).
+        let basemapSettled = false;
+        const addCarto = () => {
+          if (basemapSettled || viewer.isDestroyed()) return;
+          basemapSettled = true;
+          try {
+            viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+              url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+              credit: '© OpenStreetMap contributors © CARTO',
+              maximumLevel: 18,
+            }));
+          } catch { /* basemap is best-effort */ }
+        };
+
+        let worldImageryTimer = null;
         try {
           if (ionToken && typeof Cesium.ImageryLayer?.fromWorldImagery === 'function') {
             const layer = Cesium.ImageryLayer.fromWorldImagery({});
             layer.brightness = 0.85;   // tone the satellite imagery toward the HUD
             layer.saturation = 0.9;
+            const dropToCarto = () => {
+              if (basemapSettled || viewer.isDestroyed()) return;
+              clearTimeout(worldImageryTimer);
+              try { viewer.imageryLayers.remove(layer, true); } catch { /* already gone */ }
+              addCarto();
+            };
+            layer.errorEvent.addEventListener(dropToCarto);
+            layer.readyEvent.addEventListener(() => {
+              basemapSettled = true;
+              clearTimeout(worldImageryTimer);
+            });
+            worldImageryTimer = setTimeout(dropToCarto, 6000);
             viewer.imageryLayers.add(layer);
           } else {
             addCarto();
           }
         } catch {
-          try { addCarto(); } catch { /* basemap is best-effort */ }
+          addCarto();
         }
 
         // Real-time clock keyed to the current date.
@@ -272,6 +301,7 @@ export default function CesiumHudGlobe({ items = [], onSelect, className, height
 
         setReady(true);
         cleanup = () => {
+          clearTimeout(worldImageryTimer);
           scene.canvas.removeEventListener('pointerdown', stopSpin);
           scene.canvas.removeEventListener('wheel', stopSpin);
         };
