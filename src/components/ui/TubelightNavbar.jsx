@@ -27,13 +27,19 @@ export function NavBar({ items, className }) {
 
   return (
     <>
-      {/* Logo — pinned to the viewport, outside the nav row so nothing can scroll it */}
-      <div className="fixed top-4 left-6 z-[60] flex items-center pointer-events-none">
+      {/* Logo — pinned to the viewport, outside the nav row so nothing can scroll it.
+          Sized down and hidden on small screens: the wordmark at 240px spanned
+          most of a phone's width and sat on top of the nav pill. The pill is
+          absolutely centred and, on mobile, stretches nearly edge to edge —
+          there is no clear space beside it, so even a small symbol overlapped
+          the first icon. Below `md` the logo is dropped entirely; from `md` up
+          it returns as the full wordmark, narrower than before. */}
+      <div className="fixed top-4 left-4 md:left-6 z-[60] flex items-center pointer-events-none">
         <img
           src="/INSIGHT-LOGISTICS-LOGO.png"
           alt="Insight Logistics"
           className={cn(
-            'w-[240px] h-auto transition-[filter] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]',
+            'hidden md:block w-[150px] h-auto transition-[filter] duration-[var(--motion-duration-small)] ease-[var(--motion-ease-out)]',
             isDark
               ? 'drop-shadow-[0_4px_16px_rgba(73,220,122,0.12)]'
               : 'drop-shadow-[0_4px_12px_rgba(15,50,40,0.15)]',
@@ -47,8 +53,9 @@ export function NavBar({ items, className }) {
           className,
         )}
       >
-        {/* Spacer reserves the logo's footprint so the nav row keeps its layout */}
-        <div aria-hidden className="w-[240px] shrink-0" />
+        {/* Spacer reserves the logo's footprint so the nav row keeps its layout.
+            Tracks the responsive logo widths above. */}
+        <div aria-hidden className="w-0 md:w-[150px] shrink-0" />
 
         {/* Centered nav pill — cinematic glass */}
         <div
